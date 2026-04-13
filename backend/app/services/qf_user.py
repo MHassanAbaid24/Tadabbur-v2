@@ -192,3 +192,108 @@ async def create_reading_session(user_id: str, verse_key: str) -> Dict[str, Any]
         HTTPException(401/403/503): See _qf_user_post
     """
     return await _qf_user_post(user_id, "reading-sessions", {"verse_key": verse_key})
+
+
+async def create_qf_note(user_id: str, verse_key: str, body: str) -> Optional[str]:
+    """
+    Create a note (reflection) in QF Notes API.
+
+    Args:
+        user_id: Supabase user ID
+        verse_key: Verse key (e.g., "2:255")
+        body: Note text
+
+    Returns:
+        Note ID string from QF API, or None if creation fails
+
+    Raises:
+        HTTPException(401/403): Via _qf_user_post (will raise and be caught by caller)
+    """
+    try:
+        response = await _qf_user_post(user_id, "notes", {
+            "verse_key": verse_key,
+            "body": body,
+            "tags": ["tadabbur"],
+        })
+        note_id = response.get("id")
+        logger.debug("Created QF note %s for user %s", note_id, user_id)
+        return note_id
+    except HTTPException as e:
+        if e.status_code in (401, 403):
+            raise
+        logger.error("QF note creation failed: %s", str(e))
+        return None
+    except Exception as e:
+        logger.error("Unexpected error creating QF note: %s", str(e))
+        return None
+
+
+async def create_qf_post(
+    user_id: str,
+    body: str,
+    verse_key: str,
+    room_id: str,
+) -> Optional[str]:
+    """
+    Create a shared post in a QF Room.
+
+    Args:
+        user_id: Supabase user ID
+        body: Post text (reflection)
+        verse_key: Verse key (e.g., "2:255")
+        room_id: QF Room ID
+
+    Returns:
+        Post ID string from QF API, or None if creation fails
+    """
+    try:
+        response = await _qf_user_post(user_id, "posts", {
+            "body": body,
+            "verse_key": verse_key,
+            "room_id": room_id,
+        })
+        post_id = response.get("id")
+        logger.debug("Created QF post %s for user %s", post_id, user_id)
+        return post_id
+    except HTTPException as e:
+        if e.status_code in (401, 403):
+            raise
+        logger.error("QF post creation failed: %s", str(e))
+        return None
+    except Exception as e:
+        logger.error("Unexpected error creating QF post: %s", str(e))
+        return None
+
+
+async def log_activity_day(user_id: str, date_str: str) -> None:
+    """
+    Log an activity day (reflection completion).
+
+    Non-blocking: logs error but does not raise.
+
+    Args:
+        user_id: Supabase user ID
+        date_str: Date in YYYY-MM-DD format
+    """
+    try:
+        await _qf_user_post(user_id, "activity-days", {"date": date_str})
+        logger.debug("Logged activity day for user %s on %s", user_id, date_str)
+    except Exception as e:
+        logger.warning("Failed to log activity day: %s", str(e))
+
+
+async def log_reading_session(user_id: str, verse_key: str) -> None:
+    """
+    Log a reading session for a verse.
+
+    Non-blocking: logs warning but does not raise.
+
+    Args:
+        user_id: Supabase user ID
+        verse_key: Verse key (e.g., "2:255")
+    """
+    try:
+        await _qf_user_post(user_id, "reading-sessions", {"verse_key": verse_key})
+        logger.debug("Logged reading session for user %s on %s", user_id, verse_key)
+    except Exception as e:
+        logger.warning("Failed to log reading session: %s", str(e))

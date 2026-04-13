@@ -42,3 +42,58 @@ class APIResponse(BaseModel):
     data: Optional[dict[str, Any]] = None
     error: Optional[str] = None
     code: Optional[str] = None
+
+
+class ReflectionSubmitRequest(BaseModel):
+    """Request body for submitting a daily reflection."""
+
+    verse_key: str = Field(
+        pattern=r"^\d{1,3}:\d{1,3}$",
+        description="Verse key in format 'chapter:verse' (e.g., '2:255')",
+    )
+    prompt_1_answer: str = Field(
+        max_length=2000,
+        description="Answer to 'What does this ayah mean to you?'",
+    )
+    prompt_2_answer: str = Field(
+        max_length=2000,
+        description="Answer to 'What will you do differently today?'",
+    )
+    mood: Optional[str] = Field(
+        None,
+        description="Mood: peaceful, grateful, hopeful, challenged, or moved",
+    )
+    is_shared: bool = Field(
+        False,
+        description="Whether to share reflection with circle",
+    )
+    circle_id: Optional[str] = Field(
+        None,
+        description="QF Room ID (required if is_shared=True)",
+    )
+
+
+class ReflectionResponse(BaseModel):
+    """Response body for successfully submitted reflection."""
+
+    id: str = Field(description="Reflection ID (UUID)")
+    verse_key: str
+    date: str = Field(description="Date in YYYY-MM-DD format")
+    mood: Optional[str]
+    is_shared: bool
+    qf_note_id: Optional[str] = Field(
+        None,
+        description="QF Notes API ID (proof of integration)",
+    )
+    qf_post_id: Optional[str] = Field(
+        None,
+        description="QF Posts API ID (if shared to circle)",
+    )
+    ai_action_suggestion: Optional[str] = Field(
+        None,
+        description="AI-generated action suggestion (may be None if API failed)",
+    )
+    xp_earned: int = Field(
+        description="XP points awarded for this reflection",
+    )
+

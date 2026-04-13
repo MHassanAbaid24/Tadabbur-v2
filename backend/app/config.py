@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic_settings import BaseSettings
 
 
@@ -7,6 +9,7 @@ class Settings(BaseSettings):
     qf_client_id: str
     qf_client_secret: str
     qf_env: str = "prelive"
+    qf_test_user_token: Optional[str] = None
     supabase_url: str
     supabase_service_key: str
     openrouter_api_key: str
@@ -28,11 +31,21 @@ class Settings(BaseSettings):
         return "https://prelive-oauth2.quran.foundation"
 
     @property
+    def qf_oauth2_base_url(self) -> str:
+        """Quran Foundation OAuth2 base URL (alias for consistency)."""
+        return self.qf_auth_base_url
+
+    @property
     def qf_api_base_url(self) -> str:
-        """Quran Foundation API base URL based on environment."""
+        """Quran Foundation Content API base URL based on environment."""
         if self.qf_env == "production":
             return "https://apis.quran.foundation"
         return "https://apis-prelive.quran.foundation"
+
+    @property
+    def qf_user_api_base_url(self) -> str:
+        """Quran Foundation User API base URL (same as content API)."""
+        return self.qf_api_base_url
 
 
 settings = Settings()

@@ -16,7 +16,7 @@ class RegisterRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_]+$",
         description="Username: 3-30 chars, alphanumeric + underscore only",
     )
-    display_name: str = Field(max_length=50, description="Display name, max 50 chars")
+    display_name: str = Field(default="", max_length=50, description="Display name, max 50 chars (optional)")
 
 
 class LoginRequest(BaseModel):

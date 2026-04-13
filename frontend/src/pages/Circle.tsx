@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useCircleStore } from '../../store/circleStore'
-import CircleFeed from '../../components/circle/CircleFeed'
-import CircleInvite from '../../components/circle/CircleInvite'
+import { useCircleStore } from '../store/circleStore'
+import CircleFeed from '../components/circle/CircleFeed'
+import CircleInvite from '../components/circle/CircleInvite'
 import { Link } from 'react-router-dom'
 
 export default function Circle() {

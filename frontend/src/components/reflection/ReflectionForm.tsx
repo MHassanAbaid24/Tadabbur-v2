@@ -60,7 +60,7 @@ export default function ReflectionForm({
         prompt_2_answer: formData.prompt2,
         mood: formData.mood,
         is_shared: formData.isShared,
-        circle_id: null, // TODO: get from circle store
+        circle_id: undefined, // TODO: get from circle store
       })
       onSubmitted()
     } catch (err) {

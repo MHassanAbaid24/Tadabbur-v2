@@ -35,3 +35,14 @@ export interface ReflectionResponse {
   ai_action_suggestion: string | null
   xp_earned: number
 }
+
+export interface CircleFeedItem {
+  reflection_id: string
+  user_display_name: string
+  mood: Mood
+  prompt_1_preview: string
+  verse_key: string
+  created_at: string
+  likes_count?: number
+  is_liked?: boolean
+}

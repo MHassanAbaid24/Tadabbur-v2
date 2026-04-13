@@ -76,12 +76,26 @@ async def register(req: RegisterRequest) -> APIResponse:
         )
 
     except APIError as e:
-        if "duplicate" in str(e).lower() or "already exists" in str(e).lower():
+        error_str = str(e).lower()
+        if "duplicate" in error_str or "already exists" in error_str:
             logger.warning("Duplicate email: %s", req.email)
             raise HTTPException(status_code=409, detail="Email already exists") from e
+        if "confirmation" in error_str or "send" in error_str:
+            logger.error("Email service error: %s", str(e))
+            raise HTTPException(
+                status_code=500,
+                detail="Email verification unavailable. Please contact support.",
+            ) from e
         logger.error("Database error during registration: %s", str(e))
         raise HTTPException(status_code=500, detail="Registration failed") from e
     except Exception as e:
+        error_str = str(e).lower()
+        if "confirmation" in error_str or "send" in error_str or "email" in error_str:
+            logger.error("Email service error during registration: %s", str(e))
+            raise HTTPException(
+                status_code=503,
+                detail="Email verification service temporarily unavailable",
+            ) from e
         logger.error("Unexpected error during registration: %s", str(e))
         raise HTTPException(status_code=500, detail="Registration failed") from e
 

@@ -345,3 +345,45 @@ async def like_qf_post(user_id: str, qf_post_id: str) -> bool:
     except Exception as e:
         logger.warning("Failed to like QF post %s: %s", qf_post_id, str(e))
         return False
+
+
+async def get_activity_days(user_id: str, from_date: str, to_date: str) -> list[str]:
+    """
+    Fetch activity days (reflection completion dates) for date range.
+
+    Non-blocking: returns empty list on failure.
+
+    Args:
+        user_id: Supabase user ID
+        from_date: Start date in YYYY-MM-DD format
+        to_date: End date in YYYY-MM-DD format
+
+    Returns:
+        List of date strings where user completed a reflection
+    """
+    try:
+        response = await _qf_user_get(user_id, "activity-days", {
+            "from": from_date,
+            "to": to_date,
+        })
+
+        # Extract dates from response (assuming array of objects with 'date' field)
+        dates = []
+        if isinstance(response, dict) and "data" in response:
+            data = response["data"]
+            if isinstance(data, list):
+                dates = [item.get("date") for item in data if isinstance(item, dict) and "date" in item]
+        elif isinstance(response, list):
+            dates = [item.get("date") for item in response if isinstance(item, dict) and "date" in item]
+
+        logger.debug("Fetched %d activity days for user %s", len(dates), user_id)
+        return dates
+    except HTTPException as e:
+        if e.status_code == 401:
+            logger.warning("QF token expired for user %s", user_id)
+            return []
+        logger.warning("Failed to fetch activity days: %s", str(e))
+        return []
+    except Exception as e:
+        logger.warning("Unexpected error fetching activity days: %s", str(e))
+        return []

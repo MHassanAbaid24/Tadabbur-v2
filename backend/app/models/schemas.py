@@ -97,3 +97,46 @@ class ReflectionResponse(BaseModel):
         description="XP points awarded for this reflection",
     )
 
+
+class CreateCircleRequest(BaseModel):
+    """Request body for creating a reflection circle."""
+
+    name: str = Field(
+        min_length=2,
+        max_length=50,
+        description="Circle name (e.g., 'Family', 'Study Group')",
+    )
+
+
+class CircleResponse(BaseModel):
+    """Response body for circle data."""
+
+    id: str = Field(description="Circle ID (UUID)")
+    name: str
+    invite_code: str = Field(description="URL-safe invite code for joining")
+    member_count: int = Field(description="Number of members in circle")
+    qf_room_id: Optional[str] = Field(
+        None,
+        description="QF Room ID (may be None if creation failed)",
+    )
+
+
+class CircleFeedItem(BaseModel):
+    """Single reflection item in circle feed."""
+
+    reflection_id: str = Field(description="Reflection ID (UUID)")
+    user_display_name: str = Field(description="Display name of reflection author")
+    verse_key: str = Field(description="Verse key (e.g., '2:255')")
+    prompt_1_preview: str = Field(
+        description="First 200 chars of reflection on verse meaning",
+    )
+    mood: Optional[str] = Field(
+        None,
+        description="Mood selected by author",
+    )
+    created_at: str = Field(description="Creation timestamp (ISO 8601)")
+    qf_post_id: Optional[str] = Field(
+        None,
+        description="QF Post ID (for likes/interactions)",
+    )
+

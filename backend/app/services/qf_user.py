@@ -297,3 +297,51 @@ async def log_reading_session(user_id: str, verse_key: str) -> None:
         logger.debug("Logged reading session for user %s on %s", user_id, verse_key)
     except Exception as e:
         logger.warning("Failed to log reading session: %s", str(e))
+
+
+async def create_qf_room(user_id: str, name: str) -> Optional[str]:
+    """
+    Create a new QF Room (reflection circle).
+
+    Args:
+        user_id: Supabase user ID
+        name: Room name
+
+    Returns:
+        Room ID string from QF API, or None if creation fails
+    """
+    try:
+        response = await _qf_user_post(user_id, "rooms/groups", {"name": name})
+        room_id = response.get("id")
+        logger.debug("Created QF room %s for user %s", room_id, user_id)
+        return room_id
+    except HTTPException as e:
+        if e.status_code in (401, 403):
+            raise
+        logger.error("QF room creation failed: %s", str(e))
+        return None
+    except Exception as e:
+        logger.error("Unexpected error creating QF room: %s", str(e))
+        return None
+
+
+async def like_qf_post(user_id: str, qf_post_id: str) -> bool:
+    """
+    Like a QF Post (reflection from circle member).
+
+    Non-blocking: returns False on failure, never raises.
+
+    Args:
+        user_id: Supabase user ID
+        qf_post_id: QF Post ID to like
+
+    Returns:
+        True if like succeeded, False otherwise
+    """
+    try:
+        await _qf_user_post(user_id, f"posts/{qf_post_id}/like", {})
+        logger.debug("Liked QF post %s for user %s", qf_post_id, user_id)
+        return True
+    except Exception as e:
+        logger.warning("Failed to like QF post %s: %s", qf_post_id, str(e))
+        return False

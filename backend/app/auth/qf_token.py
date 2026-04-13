@@ -1,5 +1,6 @@
 """Thread-safe OAuth2 Client Credentials token manager for QF Content APIs."""
 
+import logging
 import time
 import threading
 from typing import Optional
@@ -7,6 +8,8 @@ from typing import Optional
 import httpx
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class QFTokenManager:
@@ -31,17 +34,24 @@ class QFTokenManager:
 
     def _fetch_new_token(self) -> str:
         """Fetch a new token from QF OAuth2 endpoint."""
-        response = httpx.post(
-            f"{settings.qf_auth_base_url}/oauth2/token",
-            auth=(settings.qf_client_id, settings.qf_client_secret),
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            data="grant_type=client_credentials&scope=content",
-            timeout=10,
-        )
-        response.raise_for_status()
+        try:
+            logger.debug("Fetching new QF token from %s", settings.qf_auth_base_url)
+            response = httpx.post(
+                f"{settings.qf_auth_base_url}/oauth2/token",
+                auth=(settings.qf_client_id, settings.qf_client_secret),
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                data="grant_type=client_credentials&scope=content",
+                timeout=10,
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as e:
+            logger.error("QF token fetch failed: %s", response.status_code if hasattr(e, 'response') else str(e))
+            raise RuntimeError(f"QF token fetch failed: {str(e)}") from e
+        
         data = response.json()
         self._token = data["access_token"]
         self._expires_at = time.time() + data["expires_in"]
+        logger.info("QF token refreshed, expires in %d seconds", data["expires_in"])
         return self._token
 
     def get_token(self) -> str:

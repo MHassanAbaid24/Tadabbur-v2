@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,9 +7,46 @@
 @layer base {
   html {
     @apply scroll-smooth;
+    font-family: 'Inter', sans-serif;
   }
 
   body {
     @apply bg-cream-50 text-gray-900;
   }
+
+  .font-scheherazade {
+    font-family: 'Scheherazade New', serif;
+  }
+
+  .notranslate {
+    translate: none !important;
+  }
+}
+
+@layer components {
+  /* Utility class for disabling auto-translate */
+  [translate='no'] {
+    translate: none !important;
+  }
+
+  /* Loading skeleton animation */
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}
+
+/* Smooth scrolling for iOS */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

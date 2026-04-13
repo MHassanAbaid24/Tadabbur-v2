@@ -6,6 +6,7 @@ import VerseCard from '../components/verse/VerseCard'
 import ReflectionForm from '../components/reflection/ReflectionForm'
 import ReflectionCard from '../components/reflection/ReflectionCard'
 import StreakBadge from '../components/progress/StreakBadge'
+import PageWrapper from '../components/layout/PageWrapper'
 import { Link } from 'react-router-dom'
 
 export default function Home() {
@@ -33,19 +34,26 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white flex items-center justify-center p-4">
-        <div className="w-full max-w-lg space-y-4">
-          {/* Skeleton: Heading */}
-          <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse" />
+      <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white pt-20 pb-20 px-4">
+        <div className="max-w-lg mx-auto space-y-6">
+          {/* Skeleton: Heading with streak */}
+          <div className="flex items-center justify-between">
+            <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse" />
+            <div className="h-8 w-16 bg-gold-200 rounded-full animate-pulse" />
+          </div>
 
-          {/* Skeleton: Card */}
-          <div className="bg-gray-200 rounded-lg h-64 animate-pulse" />
+          {/* Skeleton: Verse card */}
+          <div className="bg-white rounded-2xl border border-gold-500/20 p-6 space-y-4">
+            <div className="h-24 bg-gray-200 rounded animate-pulse" />
+            <div className="h-12 bg-gray-100 rounded animate-pulse" />
+            <div className="h-10 bg-gray-100 rounded animate-pulse" />
+          </div>
 
-          {/* Skeleton: Form */}
-          <div className="space-y-3">
-            <div className="h-24 bg-gray-200 rounded animate-pulse" />
-            <div className="h-24 bg-gray-200 rounded animate-pulse" />
-            <div className="h-12 bg-gray-200 rounded animate-pulse" />
+          {/* Skeleton: Form fields */}
+          <div className="space-y-4">
+            <div className="h-28 bg-gray-100 rounded-lg animate-pulse" />
+            <div className="h-28 bg-gray-100 rounded-lg animate-pulse" />
+            <div className="h-12 bg-gold-200 rounded-lg animate-pulse" />
           </div>
         </div>
       </div>
@@ -55,18 +63,21 @@ export default function Home() {
   if (verseError || !verse) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white flex items-center justify-center p-4">
-        <div className="text-center">
+        <div className="max-w-lg w-full text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+            <span className="text-3xl">📖</span>
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Unable to load verse
+            Unable to load today's verse
           </h1>
-          <p className="text-gray-600 mb-4">
-            Please refresh the page or try again later.
+          <p className="text-gray-600 mb-6">
+            Pull to refresh and try again, or check your connection.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
+            className="w-full px-6 py-3 min-h-11 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
           >
-            Refresh
+            🔄 Retry
           </button>
         </div>
       </div>

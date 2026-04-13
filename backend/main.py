@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import audio, circle, daily, progress, reflection, tafsir, verse
+from app.routers import audio, auth, circle, daily, progress, reflection, tafsir, verse
 
 app = FastAPI(
     title="Tadabbur API",
@@ -26,6 +26,7 @@ async def health() -> dict[str, str]:
 
 
 # Include routers
+app.include_router(auth.router)
 app.include_router(verse.router, prefix="/api/verse", tags=["Verse"])
 app.include_router(tafsir.router, prefix="/api/tafsir", tags=["Tafsir"])
 app.include_router(audio.router, prefix="/api/audio", tags=["Audio"])

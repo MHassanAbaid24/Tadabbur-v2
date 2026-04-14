@@ -6,6 +6,7 @@
 -- DROP TABLES (with CASCADE for development/re-runs)
 -- ============================================================================
 
+DROP TABLE IF EXISTS email_verification CASCADE;
 DROP TABLE IF EXISTS xp_events CASCADE;
 DROP TABLE IF EXISTS reflections CASCADE;
 DROP TABLE IF EXISTS daily_verse_log CASCADE;
@@ -31,6 +32,8 @@ CREATE TABLE profiles (
   username TEXT UNIQUE NOT NULL,
   display_name TEXT,
   avatar_url TEXT,
+  email_verified BOOLEAN DEFAULT FALSE,  -- Whether user has verified their email
+  verification_status TEXT DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'blocked')),  -- Email verification status
   qf_access_token TEXT,  -- Encrypted in prod; nullable (user may not connect QF)
   qf_token_expires_at TIMESTAMPTZ,  -- When per-user QF token expires
   xp INTEGER DEFAULT 0,  -- Total XP earned (denormalized from xp_events)
@@ -193,6 +196,50 @@ CREATE INDEX idx_xp_events_event_type ON xp_events(event_type);
 
 
 -- ============================================================================
+-- TABLE 7: email_verification
+-- ============================================================================
+-- Purpose: Store OTP and verification state for email verification flow
+-- 
+-- Key Design:
+--   - UNIQUE(user_id): only one pending verification per user at a time
+--   - otp_code: hashed OTP using bcrypt (never store plaintext)
+--   - otp_attempts: failed verification attempts (max 5 before block)
+--   - verification_method: 'otp', 'magic_link', 'password_reset', 'invite' (extensible)
+--   - verified_at: null until successful verification
+--   - otp_resend_count: track resend attempts (max 3 per 10 minutes)
+--   - expires_at: OTP expiration time (typically 10 minutes from otp_sent_at)
+--   - ON DELETE CASCADE: if user deleted, verification records deleted
+
+CREATE TABLE email_verification (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,  -- Email being verified
+  otp_code TEXT,  -- Hashed OTP code (nullable for non-OTP methods like magic_link)
+  otp_attempts INTEGER DEFAULT 0,  -- Failed verification attempts
+  verification_method TEXT NOT NULL CHECK (verification_method IN ('otp', 'magic_link', 'password_reset', 'invite')),
+  verified_at TIMESTAMPTZ,  -- When verification succeeded (null if not verified)
+  otp_sent_at TIMESTAMPTZ DEFAULT NOW(),  -- When OTP was sent
+  otp_last_resend_at TIMESTAMPTZ,  -- Last time OTP was resent
+  otp_resend_count INTEGER DEFAULT 0,  -- Number of times user requested new OTP
+  expires_at TIMESTAMPTZ,  -- When OTP expires (usually otp_sent_at + 10 min)
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)  -- One pending verification per user
+);
+
+-- Indexes for email_verification
+-- user_id: used in WHERE (check if user has pending verification)
+CREATE INDEX idx_email_verification_user_id ON email_verification(user_id);
+-- email: used for lookup during verification process
+CREATE INDEX idx_email_verification_email ON email_verification(email);
+-- verification_method: used for filtering by method type
+CREATE INDEX idx_email_verification_method ON email_verification(verification_method);
+-- verified_at: used to find verified users
+CREATE INDEX idx_email_verification_verified_at ON email_verification(verified_at);
+-- expires_at: used to find expired OTPs for cleanup
+CREATE INDEX idx_email_verification_expires_at ON email_verification(expires_at);
+
+
+-- ============================================================================
 -- FINAL SETUP
 -- ============================================================================
 
@@ -209,11 +256,11 @@ CREATE INDEX idx_xp_events_event_type ON xp_events(event_type);
 -- Run this in Supabase SQL Editor. Verify each table in the Table Editor after running.
 --
 -- Expected results:
---   ✓ 6 tables created (profiles, circles, circle_members, daily_verse_log, reflections, xp_events)
---   ✓ 15+ indexes created (one per critical column)
+--   ✓ 7 tables created (profiles, circles, circle_members, daily_verse_log, reflections, xp_events, email_verification)
+--   ✓ 20+ indexes created (one per critical column)
 --   ✓ All foreign keys with ON DELETE clauses
---   ✓ UNIQUE constraints on profiles(username) and reflections(user_id, date)
---   ✓ CHECK constraint on reflections(mood)
+--   ✓ UNIQUE constraints on profiles(username), reflections(user_id, date), email_verification(user_id)
+--   ✓ CHECK constraints on reflections(mood) and email_verification(verification_method)
 --
 -- If any errors occur, check:
 --   1. Auth.users table exists (required by Supabase)

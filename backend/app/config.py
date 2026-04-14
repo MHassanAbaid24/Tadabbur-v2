@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_expiry_hours: int = 168
     frontend_url: str = "http://localhost:5173"
+    
+    # Gmail SMTP settings for OTP email verification
+    gmail_sender_email: str
+    gmail_app_password: str
+    otp_expiry_minutes: int = 10
+    otp_max_resend_attempts: int = 3
+    otp_resend_cooldown_minutes: int = 10
+    otp_max_verification_attempts: int = 5
 
     class Config:
         env_file = ".env"

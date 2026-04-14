@@ -35,6 +35,42 @@ class AuthResponse(BaseModel):
     display_name: str
 
 
+class VerificationInitResponse(BaseModel):
+    """Response after successful registration initiation (before verification)."""
+
+    user_id: str
+    email: str
+    message: str = "Verification code sent to your email"
+
+
+class VerifyOTPRequest(BaseModel):
+    """Request body for verifying OTP code."""
+
+    user_id: str = Field(description="User ID from registration response")
+    otp_code: str = Field(
+        min_length=6,
+        max_length=6,
+        pattern=r"^\d{6}$",
+        description="6-digit OTP code",
+    )
+
+
+class ResendOTPRequest(BaseModel):
+    """Request body for resending OTP code."""
+
+    user_id: str = Field(description="User ID to resend OTP for")
+
+
+class VerificationStatusResponse(BaseModel):
+    """Response with verification status."""
+
+    verified: bool
+    email: Optional[str]
+    expires_at: Optional[str]
+    method: Optional[str]
+    otp_attempts: int = 0
+
+
 class APIResponse(BaseModel):
     """Wrapper for all API responses (success or error)."""
 

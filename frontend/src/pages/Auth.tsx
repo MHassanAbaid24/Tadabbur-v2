@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import VerifyEmail from '../components/auth/VerifyEmail'
 import { useAuthStore } from '../store/authStore'
 
 type TabType = 'login' | 'register'
@@ -13,11 +14,12 @@ interface FormData {
 
 export default function Auth() {
   const navigate = useNavigate()
-  const { login, register } = useAuthStore()
-
+  const { login, initRegister } = useAuthStore()
   const [activeTab, setActiveTab] = useState<TabType>('login')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showVerification, setShowVerification] = useState(false)
+  const [verificationEmail, setVerificationEmail] = useState('')
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -56,14 +58,35 @@ export default function Auth() {
     setIsLoading(true)
 
     try {
-      await register(formData.email, formData.password, formData.username, formData.displayName)
-      navigate('/onboarding')
+      const { email } = await initRegister(
+        formData.email,
+        formData.password,
+        formData.username,
+        formData.displayName
+      )
+      setVerificationEmail(email)
+      setShowVerification(true)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Registration failed'
       setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleVerificationSuccess = () => {
+    setShowVerification(false)
+    navigate('/onboarding')
+  }
+
+  const handleVerificationCancel = () => {
+    setShowVerification(false)
+    setFormData({
+      email: '',
+      password: '',
+      username: '',
+      displayName: '',
+    })
   }
 
   return (
@@ -230,6 +253,15 @@ export default function Auth() {
           </p>
         </div>
       </div>
+
+      {/* Verification Modal */}
+      {showVerification && (
+        <VerifyEmail
+          email={verificationEmail}
+          onSuccess={handleVerificationSuccess}
+          onCancel={handleVerificationCancel}
+        />
+      )}
     </div>
   )
 }

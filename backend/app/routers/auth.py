@@ -444,6 +444,33 @@ async def qf_connect(current_user: Dict[str, Any] = Depends(get_current_user)) -
         raise HTTPException(status_code=500, detail="Failed to generate authorization URL") from e
 
 
+from fastapi.responses import RedirectResponse
+
+@router.get("/callback")
+async def auth_callback(code: str | None = None, error: str | None = None, state: str | None = None):
+    """
+    Proxy the OAuth callback to the frontend since the QF client has the backend registered as the redirect URI.
+    """
+    from app.config import settings
+    
+    if error or not code:
+        err_msg = error or 'missing_code'
+        url = f"{settings.frontend_url}/auth/qf-callback?error={err_msg}"
+        return RedirectResponse(url=url)
+        
+    url = f"{settings.frontend_url}/auth/qf-callback?code={code}&state={state or ''}"
+    return RedirectResponse(url=url)
+
+
+@router.get("/logout-callback")
+async def logout_callback():
+    """
+    Handle post-logout redirect from Quran Foundation and send user back to frontend.
+    """
+    from app.config import settings
+    return RedirectResponse(url=settings.frontend_url)
+
+
 class QFCallbackRequest(APIResponse):
     """Request body for QF OAuth2 callback."""
 

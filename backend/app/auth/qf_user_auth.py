@@ -13,15 +13,7 @@ from app.db.supabase import supabase_client
 logger = logging.getLogger(__name__)
 
 # QF OAuth2 scopes for User APIs
-QF_USER_SCOPES = (
-    "streaks:read streaks:write "
-    "activity_days:read activity_days:write "
-    "notes:read notes:write "
-    "rooms:read rooms:write "
-    "posts:read posts:write "
-    "goals:read goals:write "
-    "reading_sessions:read reading_sessions:write"
-)
+QF_USER_SCOPES = "streak activity_day note room post goal reading_session"
 
 
 def get_qf_authorization_url(state: str) -> str:
@@ -34,16 +26,20 @@ def get_qf_authorization_url(state: str) -> str:
     Returns:
         Full authorization URL to redirect user to
     """
-    callback_url = f"{settings.frontend_url}/auth/qf-callback"
+    import urllib.parse
+
+    callback_url = f"{settings.frontend_url.replace(':5173', ':8000')}/api/auth/callback"
     
-    auth_url = (
-        f"{settings.qf_oauth2_base_url}/oauth2/authorize"
-        f"?response_type=code"
-        f"&client_id={settings.qf_client_id}"
-        f"&redirect_uri={callback_url}"
-        f"&scope={QF_USER_SCOPES}"
-        f"&state={state}"
-    )
+    params = {
+        "response_type": "code",
+        "client_id": settings.qf_client_id,
+        "redirect_uri": callback_url,
+        "scope": QF_USER_SCOPES,
+        "state": state,
+    }
+    
+    query_string = urllib.parse.urlencode(params)
+    auth_url = f"{settings.qf_oauth2_base_url}/oauth2/auth?{query_string}"
     
     logger.debug("Generated QF authorization URL (state=%s)", state)
     return auth_url
@@ -62,7 +58,7 @@ async def exchange_code_for_token(code: str) -> Dict[str, Any]:
     Raises:
         HTTPException(400): Code exchange failed
     """
-    callback_url = f"{settings.frontend_url}/auth/qf-callback"
+    callback_url = f"{settings.frontend_url.replace(':5173', ':8000')}/api/auth/callback"
     
     try:
         async with httpx.AsyncClient() as client:

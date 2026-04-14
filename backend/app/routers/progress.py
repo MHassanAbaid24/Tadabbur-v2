@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_type
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -68,7 +68,7 @@ async def get_progress_summary(
     """
     Get complete progress summary: streaks, XP, level, and activity heatmap.
 
-    Concurrent fetching of streaks and activity. Never crashes on QF failures.
+    Streak is calculated locally from Supabase reflections table for reliability.
     """
     current_user: dict[str, Any] = await get_current_user(authorization)
     user_id = current_user["sub"]
@@ -80,39 +80,78 @@ async def get_progress_summary(
         xp = profile.get("xp", 0)
         level = calculate_level(xp)
 
-        # Concurrent fetch: streaks and activity days
-        # Calculate date range: 90 days back from today
-        today = datetime.utcnow().date()
-        start_date = today - timedelta(days=90)
-
-        # Gather both calls concurrently
-        streaks_result, activity_dates = await asyncio.gather(
-            get_streaks(user_id),
-            get_activity_days(
-                user_id,
-                start_date.isoformat(),
-                today.isoformat(),
-            ),
-            return_exceptions=True,
+        # --- Calculate streaks locally from reflections table ---
+        all_reflections = (
+            supabase_client.table("reflections")
+            .select("date")
+            .eq("user_id", user_id)
+            .order("date", desc=True)
+            .execute()
         )
 
-        # Handle exceptions (convert to defaults if they occur)
-        if isinstance(streaks_result, Exception):
-            logger.warning("Failed to fetch streaks: %s", str(streaks_result))
-            streaks = {"current_streak": 0, "longest_streak": 0}
-        else:
-            streaks = streaks_result
+        reflection_date_strs = sorted(
+            {r["date"] for r in all_reflections.data if r.get("date")},
+            reverse=True,
+        )
 
-        if isinstance(activity_dates, Exception):
-            logger.warning("Failed to fetch activity days: %s", str(activity_dates))
-            activity_dates = []
+        current_streak = 0
+        longest_streak = 0
+
+        if reflection_date_strs:
+            today = datetime.utcnow().date()
+            parsed = []
+            for d in reflection_date_strs:
+                try:
+                    parsed.append(date_type.fromisoformat(d))
+                except ValueError:
+                    continue
+
+            if parsed:
+                most_recent = parsed[0]
+                gap = (today - most_recent).days
+
+                # Current streak: only active if most recent reflection is today or yesterday
+                if gap <= 1:
+                    current_streak = 1
+                    for i in range(1, len(parsed)):
+                        if (parsed[i - 1] - parsed[i]).days == 1:
+                            current_streak += 1
+                        else:
+                            break
+
+                # Longest streak across all reflection dates
+                run = 1
+                longest_streak = 1
+                for i in range(1, len(parsed)):
+                    if (parsed[i - 1] - parsed[i]).days == 1:
+                        run += 1
+                        if run > longest_streak:
+                            longest_streak = run
+                    else:
+                        run = 1
+
+        # Fetch activity days from QF for heatmap (non-blocking)
+        today_date = datetime.utcnow().date()
+        start_date = today_date - timedelta(days=90)
+        try:
+            activity_dates = await get_activity_days(
+                user_id,
+                start_date.isoformat(),
+                today_date.isoformat(),
+            )
+            if not activity_dates:
+                # Fall back to local reflection dates for heatmap
+                activity_dates = list(reflection_date_strs)
+        except Exception as e:
+            logger.warning("Failed to fetch activity days from QF: %s", str(e))
+            activity_dates = list(reflection_date_strs)
 
         # Calculate XP to next level
         xp_to_next = get_xp_for_next_level(level, xp)
 
         progress_data = {
-            "current_streak": streaks.get("current_streak", 0),
-            "longest_streak": streaks.get("longest_streak", 0),
+            "current_streak": current_streak,
+            "longest_streak": longest_streak,
             "xp": xp,
             "level": level,
             "level_name": LEVEL_NAMES.get(level, "Seeker"),

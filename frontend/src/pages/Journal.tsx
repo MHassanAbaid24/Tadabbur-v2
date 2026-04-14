@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import PageWrapper from '../components/layout/PageWrapper'
 import { useReflectionStore } from '../store/reflectionStore'
 import ReflectionCard from '../components/reflection/ReflectionCard'
 
@@ -31,20 +33,20 @@ export default function Journal() {
           <p className="text-gray-600 text-sm mb-4">
             Your reflection journal is empty. Start today's reflection to begin your journey.
           </p>
-          <a
-            href="/home"
+          <Link
+            to="/home"
             className="inline-block px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
           >
             Go to Today's Reflection
-          </a>
+          </Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white pb-20">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+    <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
+      <div className="py-6 space-y-6">
         {/* Header */}
         <h1 className="text-2xl font-bold text-gray-900">Your Journal</h1>
 
@@ -68,6 +70,6 @@ export default function Journal() {
           ))}
         </div>
       </div>
-    </div>
+    </PageWrapper>
   )
 }

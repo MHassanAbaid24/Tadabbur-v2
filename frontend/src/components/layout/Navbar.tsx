@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function Navbar() {
   return (
     <nav className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-40">
@@ -14,30 +16,30 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-8">
-          <a
-            href="/home"
+          <Link
+            to="/home"
             className="text-gray-700 hover:text-gold-600 transition-colors font-medium"
           >
             Home
-          </a>
-          <a
-            href="/journal"
+          </Link>
+          <Link
+            to="/journal"
             className="text-gray-700 hover:text-gold-600 transition-colors font-medium"
           >
             Journal
-          </a>
-          <a
-            href="/circle"
+          </Link>
+          <Link
+            to="/circle"
             className="text-gray-700 hover:text-gold-600 transition-colors font-medium"
           >
             Circle
-          </a>
-          <a
-            href="/progress"
+          </Link>
+          <Link
+            to="/progress"
             className="text-gray-700 hover:text-gold-600 transition-colors font-medium"
           >
             Progress
-          </a>
+          </Link>
         </div>
       </div>
     </nav>

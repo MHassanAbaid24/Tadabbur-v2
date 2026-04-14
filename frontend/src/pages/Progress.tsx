@@ -4,6 +4,7 @@ import StreakBadge from '../components/progress/StreakBadge'
 import LevelBadge from '../components/progress/LevelBadge'
 import XPBar from '../components/progress/XPBar'
 import ActivityCalendar from '../components/progress/ActivityCalendar'
+import PageWrapper from '../components/layout/PageWrapper'
 
 export default function Progress() {
   const { summary, isLoading } = useProgressStore()
@@ -14,32 +15,34 @@ export default function Progress() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white flex items-center justify-center p-4">
-        <div className="w-full max-w-lg space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse" />
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded animate-pulse" />
-            ))}
+      <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="w-full max-w-lg space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse" />
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-24 bg-gray-200 rounded animate-pulse" />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </PageWrapper>
     )
   }
 
   if (!summary) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white flex items-center justify-center p-4">
-        <div className="text-center">
+      <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
+        <div className="flex items-center justify-center min-h-[60vh] text-center">
           <p className="text-gray-600">Unable to load progress data</p>
         </div>
-      </div>
+      </PageWrapper>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white pb-20">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+    <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
+      <div className="py-6 space-y-6">
         {/* Header */}
         <h1 className="text-2xl font-bold text-gray-900">Your Progress</h1>
 
@@ -73,6 +76,6 @@ export default function Progress() {
         {/* Activity Calendar */}
         <ActivityCalendar activityDays={summary.activity_days} />
       </div>
-    </div>
+    </PageWrapper>
   )
 }

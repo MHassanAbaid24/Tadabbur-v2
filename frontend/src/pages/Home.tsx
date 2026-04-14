@@ -92,10 +92,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white">
+    <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-emerald-700">Today's Reflection</h1>
           {summary && (
             <StreakBadge streak={summary.current_streak} />
@@ -104,7 +104,7 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <div className="py-6 space-y-6">
         {/* Verse Card */}
         <VerseCard
           verseKey={verse.verse_key}
@@ -183,6 +183,6 @@ export default function Home() {
           </div>
         )}
       </div>
-    </div>
+    </PageWrapper>
   )
 }

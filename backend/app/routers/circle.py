@@ -12,7 +12,7 @@ from app.models.schemas import APIResponse, CircleFeedItem, CircleResponse, Crea
 from app.services.qf_user import create_qf_room, like_qf_post
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/circle", tags=["circle"])
+router = APIRouter()
 
 
 @router.post("/create")

@@ -24,7 +24,7 @@ from app.services.qf_user import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/reflection", tags=["reflection"])
+router = APIRouter()
 
 VALID_MOODS = {"peaceful", "grateful", "hopeful", "challenged", "moved"}
 

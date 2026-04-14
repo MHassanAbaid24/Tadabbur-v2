@@ -13,7 +13,7 @@ from app.models.schemas import APIResponse
 from app.services.qf_user import get_activity_days, get_streaks
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/progress", tags=["progress"])
+router = APIRouter()
 
 # Level thresholds and names
 LEVEL_THRESHOLDS = {

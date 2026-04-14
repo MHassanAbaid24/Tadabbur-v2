@@ -37,6 +37,30 @@ function ProtectedRoute({ element }: ProtectedRouteProps) {
   return element
 }
 
+function OnboardingRoute({ element }: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading } = useAuthStore()
+  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const onboarded = localStorage.getItem('tadabbur_onboarded') === 'true'
+    setIsOnboarded(onboarded)
+  }, [])
+
+  if (isLoading || isOnboarded === null) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />
+  }
+
+  if (isOnboarded) {
+    return <Navigate to="/home" replace />
+  }
+
+  return element
+}
+
 export default function App() {
   const { loadUser } = useAuthStore()
 
@@ -60,9 +84,7 @@ export default function App() {
 
         <Route
           path="/onboarding"
-          element={
-            <ProtectedRoute element={<Onboarding />} />
-          }
+          element={<OnboardingRoute element={<Onboarding />} />}
         />
 
         <Route

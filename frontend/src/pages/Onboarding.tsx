@@ -26,7 +26,7 @@ export default function Onboarding() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await api.get('/auth/qf/connect')
+      const response = await api.get('/api/auth/qf/connect')
       const { authorization_url } = response.data.data
       window.location.href = authorization_url
     } catch (err) {

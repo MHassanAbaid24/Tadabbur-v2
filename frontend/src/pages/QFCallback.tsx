@@ -20,7 +20,7 @@ export default function QFCallback() {
 
     const exchangeCode = async () => {
       try {
-        await api.post('/auth/qf/callback', { code, state })
+        await api.post('/api/auth/qf/callback', { code, state })
         // On success, navigate back to onboarding (will be at step 3)
         // Add a small delay to ensure token is persisted
         setTimeout(() => {

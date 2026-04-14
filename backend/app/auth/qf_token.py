@@ -45,7 +45,8 @@ class QFTokenManager:
             )
             response.raise_for_status()
         except httpx.HTTPError as e:
-            logger.error("QF token fetch failed: %s", response.status_code if hasattr(e, 'response') else str(e))
+            status_code = e.response.status_code if hasattr(e, "response") and e.response else "N/A"
+            logger.error("QF token fetch failed (status=%s): %s", status_code, str(e))
             raise RuntimeError(f"QF token fetch failed: {str(e)}") from e
         
         data = response.json()

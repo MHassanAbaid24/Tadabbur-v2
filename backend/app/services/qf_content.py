@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 QF_CONTENT_BASE = f"{settings.qf_api_base_url}/content/api/v4"
 
 # API IDs
-TRANSLATION_ID = 131  # Dr Mustafa Khattab (compatible with prelive & production)
+TRANSLATION_ID = 85   # Abdel Haleem (used for prelive compatibility)
 TAFSIR_ID = 169       # Ibn Kathir English
 RECITATION_ID = 7     # Mishary Rashid Al-Afasy
 
@@ -143,16 +143,18 @@ async def get_verse_by_key(verse_key: str) -> Dict[str, Any]:
     }
 
     data = await _qf_get(url, params)
+    verse_data = data.get("verse", {})
     logger.debug("Fetched verse: %s", verse_key)
 
     # Extract translation text
     translation_text = ""
-    if "translations" in data and data["translations"]:
-        translation_text = data["translations"][0].get("text", "")
+    translations = verse_data.get("translations", [])
+    if translations:
+        translation_text = translations[0].get("text", "")
 
     return {
         "verse_key": verse_key,
-        "text_uthmani": data.get("text_uthmani", ""),
+        "text_uthmani": verse_data.get("text_uthmani", ""),
         "translation": translation_text,
     }
 
@@ -174,15 +176,16 @@ async def get_tafsir_by_key(verse_key: str) -> str:
         url = f"{QF_CONTENT_BASE}/tafsirs/{TAFSIR_ID}/by_ayah/{verse_key}"
         data = await _qf_get(url)
 
-        if "tafsirs" in data and data["tafsirs"]:
-            tafsir_text = data["tafsirs"][0].get("text", "")
+        tafsir_data = data.get("tafsir", {})
+        if tafsir_data:
+            tafsir_text = tafsir_data.get("text", "")
+            logger.debug("Fetched tafsir for verse: %s (length: %d)", verse_key, len(tafsir_text))
             # Strip HTML tags
             tafsir_text = html.unescape(tafsir_text)
             tafsir_text = re.sub(r"<[^>]+>", "", tafsir_text)
-            logger.debug("Fetched tafsir for verse: %s", verse_key)
             return tafsir_text.strip()
 
-        logger.debug("No tafsir found for verse: %s", verse_key)
+        logger.warning("No tafsir found in response for verse: %s. Keys: %s", verse_key, list(data.keys()))
         return ""
 
     except HTTPException:
@@ -210,9 +213,13 @@ async def get_audio_url(verse_key: str) -> Optional[str]:
         url = f"{QF_CONTENT_BASE}/recitations/{RECITATION_ID}/by_ayah/{verse_key}"
         data = await _qf_get(url)
 
-        if "audio_file" in data:
-            audio_url = data["audio_file"].get("url")
-            logger.debug("Fetched audio URL for verse: %s", verse_key)
+        audio_files = data.get("audio_files", [])
+        if audio_files:
+            audio_url = audio_files[0].get("url")
+            # Ensure URL is absolute. Standard QF audio base
+            if audio_url and not audio_url.startswith("http"):
+                audio_url = f"https://verses.quran.com/{audio_url}"
+            logger.debug("Fetched audio URL for verse: %s: %s", verse_key, audio_url)
             return audio_url
 
         logger.debug("No audio found for verse: %s", verse_key)

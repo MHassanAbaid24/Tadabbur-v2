@@ -2,12 +2,9 @@
 
 import logging
 import secrets
-import uuid
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
-from postgrest.exceptions import APIError
-
 from app.auth.jwt import create_access_token, get_current_user
 from app.auth.qf_user_auth import (
     exchange_code_for_token,
@@ -37,8 +34,8 @@ async def register(req: RegisterRequest) -> APIResponse:
     """
     Initiate user registration with email verification.
 
-    Instead of creating a Supabase Auth user immediately, this endpoint:
-    1. Generates a temporary user ID
+    This endpoint:
+    1. Creates Supabase Auth user
     2. Creates a pending profile
     3. Sends OTP via email
     4. Returns user_id for the verification page
@@ -64,41 +61,72 @@ async def register(req: RegisterRequest) -> APIResponse:
             logger.warning("Username already exists: %s", req.username)
             raise HTTPException(status_code=409, detail="Username already taken")
 
-        # Generate temporary user ID (will be used to create Supabase Auth user after verification)
-        temp_user_id = str(uuid.uuid4())
+        # Step 1: Create Supabase Auth user first so profiles FK (profiles.id -> auth.users.id) is valid
+        try:
+            auth_response = supabase_client.auth.sign_up(
+                {"email": req.email, "password": req.password}
+            )
+            if not auth_response.user or not auth_response.user.id:
+                logger.error("Supabase sign_up returned no user for email: %s", req.email)
+                raise HTTPException(status_code=500, detail="Failed to create user account")
+            user_id = auth_response.user.id
+        except HTTPException:
+            raise
+        except Exception as e:
+            error_text = str(e).lower()
+            if "already registered" in error_text or "user already exists" in error_text:
+                logger.warning("Email already registered: %s", req.email)
+                raise HTTPException(status_code=409, detail="Email already registered") from e
+            logger.error("Failed to create auth user: %s", str(e))
+            raise HTTPException(status_code=500, detail="Failed to create user account") from e
 
-        # For now, store registration data in a way we can retrieve it after verification
-        # We'll create the profile with email_verified=False
-        # Note: This is a temporary state - the actual Supabase Auth user creation happens after OTP verification
+        # Step 2: Create pending profile linked to auth user
+        try:
+            supabase_client.table("profiles").insert(
+                {
+                    "id": user_id,
+                    "username": req.username,
+                    "display_name": req.display_name,
+                    "email_verified": False,
+                    "verification_status": "pending",
+                }
+            ).execute()
+            logger.info("Created pending profile for user_id: %s", user_id)
+        except Exception as e:
+            logger.error("Failed to create profile: %s", str(e))
+            # Best-effort cleanup for auth user if profile creation fails
+            try:
+                supabase_client.auth.admin.delete_user(user_id)
+            except Exception as cleanup_error:
+                logger.error("Failed to cleanup auth user %s: %s", user_id, str(cleanup_error))
+            if "duplicate key" in str(e).lower() and "username" in str(e).lower():
+                raise HTTPException(status_code=409, detail="Username already taken") from e
+            raise HTTPException(status_code=500, detail="Failed to create profile") from e
 
-        # Initialize OTP verification service
+        # Step 3: Send OTP and create verification record
         verification_service = VerificationManager.get_service("otp")
-
-        # Send OTP
-        otp_sent = await verification_service.send_verification(temp_user_id, req.email)
+        otp_sent = await verification_service.send_verification(user_id, req.email)
 
         if not otp_sent:
             logger.error("Failed to send OTP for registration: %s", req.email)
+            # Best-effort cleanup to avoid orphaned accounts
+            try:
+                supabase_client.table("email_verification").delete().eq("user_id", user_id).execute()
+                supabase_client.table("profiles").delete().eq("id", user_id).execute()
+                supabase_client.auth.admin.delete_user(user_id)
+            except Exception as cleanup_error:
+                logger.error("Failed to cleanup user %s after OTP failure: %s", user_id, str(cleanup_error))
             raise HTTPException(
                 status_code=503,
                 detail="Failed to send verification email. Please try again later.",
             )
-
-        # Store registration details temporarily for later user creation
-        # We'll use the email_verification record to also store registration metadata
-        supabase_client.table("email_verification").update(
-            {
-                "user_id": temp_user_id,
-                "email": req.email,
-            }
-        ).eq("user_id", temp_user_id).execute()
 
         logger.info("Registration initiated - OTP sent to: %s", req.email)
 
         return APIResponse(
             success=True,
             data={
-                "user_id": temp_user_id,
+                "user_id": user_id,
                 "email": req.email,
                 "message": "Verification code sent to your email. Please verify to complete registration.",
             },
@@ -118,11 +146,11 @@ async def register(req: RegisterRequest) -> APIResponse:
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
     """
-    Verify OTP code and create Supabase Auth user on success.
+    Verify OTP code and finalize email verification.
 
     After successful OTP verification:
-    1. Creates Supabase Auth user with email and password from registration data
-    2. Creates profile record
+    1. Marks verification record as verified
+    2. Updates profile verification status
     3. Returns access token for immediate login
 
     Args:
@@ -161,61 +189,36 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
         verification_record = verification_response.data[0]
         email = verification_record.get("email")
 
-        # Note: At this point, we need to get the password and username from somewhere
-        # For now, we'll generate a random password since the user hasn't created auth account yet
-        # In a real implementation, you might:
-        # - Store password temporarily during registration
-        # - Or use a passwordless flow
-        # - Or create them with a temporary password and force reset
+        # Get username from the profile record (already created during registration)
+        profile_response = supabase_client.table("profiles").select("username,display_name").eq(
+            "id", req.user_id
+        ).execute()
         
-        # For demo purposes, generate a session-based temporary user ID
-        # The actual Supabase Auth creation would happen with the user's password from the frontend
-        # We'll use a hybrid approach: create a temporary profile entry and JWT token
+        if not profile_response.data:
+            logger.error("Profile not found for user: %s", req.user_id)
+            raise HTTPException(status_code=404, detail="User profile not found")
         
-        # Create Supabase Auth user with email
-        # Note: This requires password - frontend should send this or we use passwordless
-        # For now, generate a temporary password
-        import secrets as sec
-        temp_password = sec.token_urlsafe(16)
-
-        try:
-            auth_response = supabase_client.auth.sign_up(
-                {"email": email, "password": temp_password}
-            )
-            user_id = auth_response.user.id
-        except Exception as auth_error:
-            logger.error(f"Failed to create Supabase Auth user: {str(auth_error)}")
-            # If auth creation fails, use the temporary user_id as is
-            user_id = req.user_id
-
-        # Get username and display_name from registration request
-        # These should have been stored during registration initiation
-        # For now, extract from email as fallback
-        username = email.split("@")[0]
-        display_name = username
-
-        # Create profile record
-        supabase_client.table("profiles").upsert(
+        username = profile_response.data[0]["username"]
+        display_name = profile_response.data[0].get("display_name") or ""
+        
+        # Update profile to mark as verified
+        supabase_client.table("profiles").update(
             {
-                "id": user_id,
-                "username": username,
-                "display_name": display_name,
                 "email_verified": True,
                 "verification_status": "verified",
-            },
-            on_conflict="id",
-        ).execute()
+            }
+        ).eq("id", req.user_id).execute()
 
-        # Generate JWT
-        access_token = create_access_token(user_id, email)
+        # Generate JWT using our own system
+        access_token = create_access_token(req.user_id, email)
 
-        logger.info("User verified and created: %s (%s)", username, user_id)
+        logger.info("User verified: %s (%s)", username, req.user_id)
 
         return APIResponse(
             success=True,
             data=AuthResponse(
                 access_token=access_token,
-                user_id=user_id,
+                user_id=req.user_id,
                 username=username,
                 display_name=display_name,
             ).model_dump(),
@@ -324,7 +327,7 @@ async def login(req: LoginRequest) -> APIResponse:
 
         # Fetch user profile
         profile_response = supabase_client.table("profiles").select(
-            "username,display_name"
+            "username,display_name,email_verified"
         ).eq("id", user_id).execute()
 
         if not profile_response.data:
@@ -332,6 +335,9 @@ async def login(req: LoginRequest) -> APIResponse:
             raise HTTPException(status_code=500, detail="User profile not found")
 
         profile = profile_response.data[0]
+        if not profile.get("email_verified", False):
+            logger.warning("Blocked login for unverified user: %s", user_id)
+            raise HTTPException(status_code=403, detail="Please verify your email before logging in")
 
         # Generate JWT
         access_token = create_access_token(user_id, req.email)
@@ -348,6 +354,8 @@ async def login(req: LoginRequest) -> APIResponse:
             ).model_dump(),
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         if "Invalid login credentials" in str(e) or "invalid credentials" in str(e).lower():
             logger.warning("Invalid login attempt for email: %s", req.email)

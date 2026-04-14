@@ -158,12 +158,25 @@ async def get_user_qf_token(user_id: str) -> str:
 
         if expires_at:
             expiry_dt = datetime.fromisoformat(expires_at)
-            if datetime.utcnow() > expiry_dt:
-                logger.warning("QF token expired for user: %s", user_id)
-                raise HTTPException(
-                    status_code=403,
-                    detail="QF token expired. Please reconnect.",
-                )
+            # Supabase may return timezone-aware timestamps; normalize both to UTC
+            from datetime import timezone
+            now_utc = datetime.now(timezone.utc)
+            if expiry_dt.tzinfo is None:
+                # naive — treat as UTC, compare against naive now
+                if datetime.utcnow() > expiry_dt:
+                    logger.warning("QF token expired for user: %s", user_id)
+                    raise HTTPException(
+                        status_code=403,
+                        detail="QF token expired. Please reconnect.",
+                    )
+            else:
+                # aware — compare both as UTC
+                if now_utc > expiry_dt:
+                    logger.warning("QF token expired for user: %s", user_id)
+                    raise HTTPException(
+                        status_code=403,
+                        detail="QF token expired. Please reconnect.",
+                    )
 
         logger.debug("Retrieved valid QF token for user: %s", user_id)
         return access_token

@@ -7,6 +7,7 @@ import QFCallback from './pages/QFCallback'
 import Home from './pages/Home'
 import Journal from './pages/Journal'
 import Circle from './pages/Circle'
+import CircleNew from './pages/CircleNew'
 import Progress from './pages/Progress'
 
 interface ProtectedRouteProps {
@@ -104,7 +105,7 @@ export default function App() {
 
         <Route
           path="/circle/new"
-          element={<ProtectedRoute element={<div className="flex items-center justify-center min-h-screen">Create Circle</div>} />}
+          element={<ProtectedRoute element={<CircleNew />} />}
         />
 
         <Route

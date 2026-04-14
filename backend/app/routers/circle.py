@@ -45,10 +45,15 @@ async def create_circle(
     except Exception as e:
         logger.warning("QF room creation failed for circle '%s': %s", req.name, str(e))
 
+    # If QF room creation failed, use a local placeholder so DB NOT NULL is satisfied.
+    # The real QF room ID can be back-filled later if needed.
+    import uuid
+    effective_room_id = qf_room_id or f"local_{uuid.uuid4().hex[:12]}"
+
     # Create local circle
     try:
         circle_result = supabase_client.table("circles").insert({
-            "qf_room_id": qf_room_id,
+            "qf_room_id": effective_room_id,
             "name": req.name,
             "invite_code": invite_code,
             "created_by": user_id,
@@ -68,7 +73,7 @@ async def create_circle(
             name=req.name,
             invite_code=invite_code,
             member_count=member_count,
-            qf_room_id=qf_room_id,
+            qf_room_id=qf_room_id,  # return None to frontend if QF failed
         )
 
         return APIResponse(success=True, data=circle_data.dict()).dict()
@@ -76,6 +81,7 @@ async def create_circle(
     except Exception as e:
         logger.error("Failed to create circle: %s", str(e))
         raise HTTPException(status_code=500, detail="Failed to create circle")
+
 
 
 @router.get("/join/{invite_code}")

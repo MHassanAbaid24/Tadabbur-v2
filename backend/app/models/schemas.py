@@ -115,6 +115,8 @@ class ReflectionResponse(BaseModel):
     id: str = Field(description="Reflection ID (UUID)")
     verse_key: str
     date: str = Field(description="Date in YYYY-MM-DD format")
+    prompt_1_answer: str = Field(default="", description="Reflection answer 1")
+    prompt_2_answer: str = Field(default="", description="Reflection answer 2")
     mood: Optional[str]
     is_shared: bool
     qf_note_id: Optional[str] = Field(

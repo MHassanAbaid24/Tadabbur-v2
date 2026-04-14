@@ -28,6 +28,8 @@ export interface ReflectionResponse {
   id: string
   verse_key: string
   date: string
+  prompt_1_answer: string
+  prompt_2_answer: string
   mood: Mood | null
   is_shared: boolean
   qf_note_id: string | null

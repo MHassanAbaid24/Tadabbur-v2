@@ -37,6 +37,8 @@ async def register(req: RegisterRequest) -> APIResponse:
         HTTPException(500): Database or auth service error
     """
     try:
+        logger.info("Registration attempt - email: %s, username: %s", req.email, req.username)
+        
         # Sign up with Supabase Auth
         auth_response = supabase_client.auth.sign_up(
             {"email": req.email, "password": req.password}

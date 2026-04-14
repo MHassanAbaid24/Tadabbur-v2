@@ -1,8 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+import logging
 
 from app.config import settings
 from app.routers import audio, auth, circle, daily, progress, reflection, tafsir, verse
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Tadabbur API",
@@ -18,6 +23,22 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+# Custom exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    """Log validation errors with details for debugging."""
+    logger.error(f"Validation error on {request.method} {request.url.path}")
+    for error in exc.errors():
+        logger.error(f"  Field: {error['loc']}, Error: {error['msg']}")
+    
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": exc.errors(),
+            "message": "Validation failed. Check 'detail' for field errors."
+        }
+    )
 
 # Health check endpoint
 @app.get("/health")

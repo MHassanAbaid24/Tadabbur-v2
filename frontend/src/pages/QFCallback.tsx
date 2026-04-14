@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 
@@ -7,6 +7,8 @@ export default function QFCallback() {
   const [searchParams] = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const hasExchanged = useRef(false)
 
   useEffect(() => {
     const code = searchParams.get('code')
@@ -18,10 +20,15 @@ export default function QFCallback() {
       return
     }
 
+    if (hasExchanged.current) return
+    hasExchanged.current = true
+
     const exchangeCode = async () => {
       try {
         await api.post('/api/auth/qf/callback', { code, state })
         // On success, navigate back to onboarding (will be at step 3)
+        localStorage.setItem('tadabbur_onboarding_step', '3')
+        
         // Add a small delay to ensure token is persisted
         setTimeout(() => {
           navigate('/onboarding', { replace: true })

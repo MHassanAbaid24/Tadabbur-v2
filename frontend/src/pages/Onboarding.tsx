@@ -6,7 +6,16 @@ import { api } from '../lib/api'
 
 export default function Onboarding() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(() => {
+    const saved = localStorage.getItem('tadabbur_onboarding_step')
+    return saved ? parseInt(saved, 10) : 1
+  })
+  
+  // Persist step changes
+  useEffect(() => {
+    localStorage.setItem('tadabbur_onboarding_step', step.toString())
+  }, [step])
+
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [circleName, setCircleName] = useState('')
@@ -15,6 +24,7 @@ export default function Onboarding() {
 
   const goToHome = () => {
     localStorage.setItem('tadabbur_onboarded', 'true')
+    localStorage.removeItem('tadabbur_onboarding_step') // Clean up
     navigate('/home')
   }
 

@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { X } from 'lucide-react'
 import { Reflection } from '../../types/reflection'
 
 interface ReflectionCardProps {
@@ -13,6 +15,8 @@ const MOOD_EMOJI: Record<string, string> = {
 }
 
 export default function ReflectionCard({ reflection }: ReflectionCardProps) {
+  const [showSuggestion, setShowSuggestion] = useState(true)
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
@@ -59,12 +63,19 @@ export default function ReflectionCard({ reflection }: ReflectionCardProps) {
       </div>
 
       {/* AI Suggestion */}
-      {reflection.ai_action_suggestion && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-          <p className="text-sm text-emerald-900">
+      {reflection.ai_action_suggestion && showSuggestion && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 relative group">
+          <button
+            onClick={() => setShowSuggestion(false)}
+            className="absolute top-2 right-2 p-1 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100 rounded-full transition-colors"
+            title="Dismiss suggestion"
+          >
+            <X size={14} />
+          </button>
+          <p className="text-sm text-emerald-900 pr-6">
             💡 You might also consider:
           </p>
-          <p className="text-sm text-emerald-800 mt-1">
+          <p className="text-sm text-emerald-800 mt-1 pr-6">
             {reflection.ai_action_suggestion}
           </p>
         </div>

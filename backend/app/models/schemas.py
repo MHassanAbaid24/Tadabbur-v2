@@ -168,6 +168,7 @@ class CircleMemberResponse(BaseModel):
     avatar_url: Optional[str] = None
     joined_at: str
     is_admin: bool
+    is_creator: bool = False
 
 
 class CircleFeedItem(BaseModel):

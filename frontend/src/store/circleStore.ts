@@ -8,6 +8,7 @@ interface CircleMember {
   avatar_url: string | null
   joined_at: string
   is_admin: boolean
+  is_creator: boolean
 }
 
 interface CircleStore {
@@ -23,6 +24,7 @@ interface CircleStore {
   fetchCircleFeed: (force?: boolean) => Promise<void>
   fetchMembers: () => Promise<void>
   makeAdmin: (userId: string) => Promise<void>
+  demoteAdmin: (userId: string) => Promise<void>
   removeMember: (userId: string) => Promise<void>
   likeReflection: (reflectionId: string) => Promise<void>
 }
@@ -122,6 +124,21 @@ export const useCircleStore = create<CircleStore>((set, get) => ({
       }))
     } catch (err) {
       console.error('Failed to grant admin status:', err)
+      throw err
+    }
+  },
+
+  demoteAdmin: async (userId: string) => {
+    try {
+      await api.post(`/api/circle/admin/demote/${userId}`)
+      // Update local state
+      set((state) => ({
+        members: state.members.map((m) =>
+          m.user_id === userId ? { ...m, is_admin: false } : m
+        ),
+      }))
+    } catch (err) {
+      console.error('Failed to demote member:', err)
       throw err
     }
   },

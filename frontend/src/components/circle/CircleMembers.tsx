@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useCircleStore } from '../../store/circleStore'
 import { useAuthStore } from '../../store/authStore'
-import { Loader2, Shield, UserMinus, UserPlus, X, LogOut } from 'lucide-react'
+import { Loader2, Shield, UserMinus, UserPlus, X, LogOut, ShieldOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 interface CircleMembersProps {
@@ -9,7 +9,7 @@ interface CircleMembersProps {
 }
 
 export default function CircleMembers({ onClose }: CircleMembersProps) {
-  const { members, isLoadingMembers, fetchMembers, makeAdmin, removeMember, circle } = useCircleStore()
+  const { members, isLoadingMembers, fetchMembers, makeAdmin, demoteAdmin, removeMember, circle } = useCircleStore()
   const { user } = useAuthStore()
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
@@ -18,13 +18,24 @@ export default function CircleMembers({ onClose }: CircleMembersProps) {
   }, [fetchMembers])
 
   const currentUserMember = members.find(m => m.user_id === user?.id)
-  const isCurrentUserAdmin = currentUserMember?.is_admin || circle?.created_by === user?.id
+  const isCurrentUserAdmin = currentUserMember?.is_admin
+  const isCurrentUserCreator = currentUserMember?.is_creator
 
   const handleMakeAdmin = async (userId: string) => {
     if (!window.confirm('Make this member an admin? They will be able to manage other members.')) return
     setActionLoading(userId)
     try {
       await makeAdmin(userId)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleDemoteAdmin = async (userId: string) => {
+    if (!window.confirm('Remove admin status from this member?')) return
+    setActionLoading(userId)
+    try {
+      await demoteAdmin(userId)
     } finally {
       setActionLoading(null)
     }
@@ -101,6 +112,17 @@ export default function CircleMembers({ onClose }: CircleMembersProps) {
                 </div>
 
                 <div className="flex items-center gap-1">
+                  {isCurrentUserCreator && member.user_id !== user?.id && member.is_admin && (
+                    <button
+                      onClick={() => handleDemoteAdmin(member.user_id)}
+                      disabled={!!actionLoading}
+                      title="Demote Admin"
+                      className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                    >
+                      <ShieldOff size={18} />
+                    </button>
+                  )}
+
                   {isCurrentUserAdmin && member.user_id !== user?.id && !member.is_admin && (
                     <button
                       onClick={() => handleMakeAdmin(member.user_id)}
@@ -112,16 +134,12 @@ export default function CircleMembers({ onClose }: CircleMembersProps) {
                     </button>
                   )}
                   
-                  {(isCurrentUserAdmin || member.user_id === user?.id) && (
+                  {(isCurrentUserAdmin || member.user_id === user?.id) && !member.is_creator && (
                     <button
                       onClick={() => handleRemoveMember(member.user_id)}
                       disabled={!!actionLoading}
                       title={member.user_id === user?.id ? 'Leave Circle' : 'Remove Member'}
-                      className={`p-2 rounded-lg transition-colors ${
-                        member.user_id === user?.id 
-                          ? 'text-gray-400 hover:text-red-600 hover:bg-red-50' 
-                          : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                      }`}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       {actionLoading === member.user_id ? (
                         <Loader2 className="animate-spin" size={18} />
@@ -129,6 +147,21 @@ export default function CircleMembers({ onClose }: CircleMembersProps) {
                         <LogOut size={18} />
                       ) : (
                         <UserMinus size={18} />
+                      )}
+                    </button>
+                  )}
+
+                  {member.user_id === user?.id && member.is_creator && (
+                    <button
+                      onClick={() => handleRemoveMember(member.user_id)}
+                      disabled={!!actionLoading}
+                      title="Leave Circle"
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      {actionLoading === member.user_id ? (
+                        <Loader2 className="animate-spin" size={18} />
+                      ) : (
+                        <LogOut size={18} />
                       )}
                     </button>
                   )}

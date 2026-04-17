@@ -475,8 +475,13 @@ async def get_circle_members(
 
     circle_id = memberships.data[0]["circle_id"]
 
-    # Get all members with profile details
+    # Get all members with profile details and circle creator info
     try:
+        circle_info = await asyncio.to_thread(
+            lambda: supabase_client.table("circles").select("created_by").eq("id", circle_id).execute()
+        )
+        creator_id = circle_info.data[0]["created_by"] if circle_info.data else None
+
         members_query = "user_id, joined_at, is_admin, profiles(username, display_name, avatar_url)"
         members_result = await asyncio.to_thread(
             lambda: supabase_client.table("circle_members").select(members_query).eq("circle_id", circle_id).execute()
@@ -491,7 +496,8 @@ async def get_circle_members(
                 display_name=profile.get("display_name") or profile.get("username") or "Anonymous",
                 avatar_url=profile.get("avatar_url"),
                 joined_at=m["joined_at"],
-                is_admin=m["is_admin"]
+                is_admin=m["is_admin"],
+                is_creator=m["user_id"] == creator_id
             ))
 
         return APIResponse(success=True, data={"members": [m.dict() for m in members]}).dict()
@@ -521,16 +527,46 @@ async def make_admin(
     # Update target user
     try:
         await asyncio.to_thread(
-            lambda: supabase_client.table("circle_members")
-            .update({"is_admin": True})
-            .eq("circle_id", circle_id)
-            .eq("user_id", target_user_id)
-            .execute()
+            lambda: supabase_client.table("circle_members").update({"is_admin": True}).eq("circle_id", circle_id).eq("user_id", target_user_id).execute()
         )
-        return APIResponse(success=True, data={"message": "Admin status granted"}).dict()
+        return APIResponse(success=True, data={"message": "Member promoted to admin"}).dict()
     except Exception as e:
         logger.error("Failed to grant admin status: %s", str(e))
         raise HTTPException(status_code=500, detail="Failed to grant admin status")
+
+
+@router.post("/admin/demote/{target_user_id}")
+async def demote_admin(
+    target_user_id: str,
+    authorization: str = Header(...),
+) -> dict[str, Any]:
+    """Remove admin status from a member (Creator only)."""
+    current_user: dict[str, Any] = await get_current_user(authorization)
+    requester_user_id = current_user["sub"]
+
+    # Get user circle and creator status
+    # First find circle_id for requester
+    requester_membership = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("circle_id").eq("user_id", requester_user_id).execute()
+    )
+    if not requester_membership.data:
+        raise HTTPException(status_code=404, detail="User not in a circle")
+    
+    circle_id = requester_membership.data[0]["circle_id"]
+
+    # Check if requester is creator
+    circle_info = await asyncio.to_thread(
+        lambda: supabase_client.table("circles").select("created_by").eq("id", circle_id).execute()
+    )
+    if not circle_info.data or circle_info.data[0]["created_by"] != requester_user_id:
+        raise HTTPException(status_code=403, detail="Only the circle creator can demote admins")
+
+    # Perform demotion
+    await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").update({"is_admin": False}).eq("circle_id", circle_id).eq("user_id", target_user_id).execute()
+    )
+
+    return APIResponse(success=True, data={"message": "Member demoted from admin"}).dict()
 
 
 @router.delete("/members/{target_user_id}")
@@ -552,14 +588,51 @@ async def remove_member(
     circle_id = requester_status.data[0]["circle_id"]
     is_requester_admin = requester_status.data[0]["is_admin"]
 
-    # Permission check: Admin can remove anyone EXCEPT themselves (must use Leave), user can remove themselves
-    if not (is_requester_admin or requester_user_id == target_user_id):
-        raise HTTPException(status_code=403, detail="Insufficient permission to remove member")
+    # Get circle owner info
+    circle_info = await asyncio.to_thread(
+        lambda: supabase_client.table("circles").select("created_by").eq("id", circle_id).execute()
+    )
+    if not circle_info.data:
+        raise HTTPException(status_code=404, detail="Circle not found")
     
-    # Don't allow admin to remove themselves via DELETE if others are in circle (force them to use specific leave logic or just block accidental delete)
-    # But for now, we'll just allow it if they are the target.
+    creator_id = circle_info.data[0]["created_by"]
 
-    # Remove target user
+    # 1. Protection: Admin CANNOT remove the creator
+    if target_user_id == creator_id and requester_user_id != target_user_id:
+        raise HTTPException(status_code=403, detail="The circle creator cannot be removed by other admins")
+
+    # 2. Succession: If creator is leaving, we must transfer ownership
+    if target_user_id == creator_id:
+        # Find the oldest remaining member (next in hierarchy)
+        other_members = await asyncio.to_thread(
+            lambda: supabase_client.table("circle_members")
+            .select("user_id")
+            .eq("circle_id", circle_id)
+            .neq("user_id", creator_id)
+            .order("joined_at", desc=False)
+            .limit(1)
+            .execute()
+        )
+        
+        if other_members.data:
+            new_owner_id = other_members.data[0]["user_id"]
+            # Transfer created_by in circles table
+            await asyncio.to_thread(
+                lambda: supabase_client.table("circles")
+                .update({"created_by": new_owner_id})
+                .eq("id", circle_id)
+                .execute()
+            )
+            # Also ensure new owner is an admin
+            await asyncio.to_thread(
+                lambda: supabase_client.table("circle_members")
+                .update({"is_admin": True})
+                .eq("circle_id", circle_id)
+                .eq("user_id", new_owner_id)
+                .execute()
+            )
+
+    # 3. Final Removal
     try:
         await asyncio.to_thread(
             lambda: supabase_client.table("circle_members")

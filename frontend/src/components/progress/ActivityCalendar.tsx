@@ -137,7 +137,7 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
                             : getIntensityColor(activityCount)
                         } ${isToday ? 'ring-2 ring-gold-400 ring-offset-2 z-10 scale-110' : 'hover:scale-110 hover:z-10 cursor-help'}`}
                         title={isFuture ? 'Future' : `${date.toLocaleDateString()}: ${
-                          activityCount > 0 ? `${activityCount} activities` : 'No activity'
+                          activityCount > 0 ? `${activityCount} ${activityCount === 1 ? 'activity' : 'activities'}` : 'No activity'
                         }`}
                       />
                     )
@@ -164,7 +164,7 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-emerald-700 font-bold">{Object.keys(activityMap).length}</span>
-            <span className="text-gray-400">Days Active</span>
+            <span className="text-gray-400">{Object.keys(activityMap).length === 1 ? 'Day' : 'Days'} Active</span>
           </div>
           <span className="text-gray-200">|</span>
           <div className="flex items-center gap-2">

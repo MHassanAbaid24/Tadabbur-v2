@@ -54,8 +54,35 @@ export default function TafsirDrawer({ tafsir, verseKey }: TafsirDrawerProps) {
               </div>
 
               {/* Content */}
-              <div className="p-4 text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-                {tafsir}
+              <div className="p-6 space-y-6">
+                {tafsir.split('\n').filter(p => p.trim() !== '').map((para, idx) => {
+                  const parts = para.split(/([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+(?:\s+[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+)*)/g);
+                  return (
+                    <div key={idx} className="space-y-4">
+                      {parts.map((part, i) => {
+                        const trimmedPart = part.trim();
+                        if (!trimmedPart) return null;
+                        
+                        const isArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(trimmedPart);
+                        
+                        return isArabic ? (
+                          <div 
+                            key={i} 
+                            className="font-scheherazade text-2xl leading-relaxed text-right my-2 bg-emerald-50/30 p-3 rounded-lg border-r-4 border-emerald-600/50" 
+                            dir="rtl"
+                            translate="no"
+                          >
+                            {trimmedPart}
+                          </div>
+                        ) : (
+                          <p key={i} className="text-gray-800 text-base leading-relaxed">
+                            {trimmedPart}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           </>

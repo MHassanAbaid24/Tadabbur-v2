@@ -168,9 +168,13 @@ async def get_tafsir_by_key(verse_key: str) -> str:
         if tafsir_data:
             tafsir_text = tafsir_data.get("text", "")
             logger.debug("Fetched tafsir for verse: %s (length: %d)", verse_key, len(tafsir_text))
-            # Strip HTML tags
+            # Strip HTML tags while preserving structure
             tafsir_text = html.unescape(tafsir_text)
+            # Convert block-level tags (opening and closing) to newlines
+            tafsir_text = re.sub(r"</?(p|div|br|h[1-6]|li|ul|ol)[^>]*>", "\n", tafsir_text, flags=re.IGNORECASE)
             tafsir_text = re.sub(r"<[^>]+>", "", tafsir_text)
+            # Remove excessive newlines while ensuring at least one
+            tafsir_text = re.sub(r"\n\s*\n\s*", "\n\n", tafsir_text)
             return tafsir_text.strip()
 
         logger.warning("No tafsir found in response for verse: %s. Keys: %s", verse_key, list(data.keys()))

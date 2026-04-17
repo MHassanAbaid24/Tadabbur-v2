@@ -7,82 +7,41 @@ import PageWrapper from '../components/layout/PageWrapper'
 import api from '../lib/api'
 
 export default function Circle() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [hasCircle, setHasCircle] = useState(false)
-  const [circleData, setCircleData] = useState<any>(null)
-  const [feedItems, setFeedItems] = useState<any[]>([])
+  const { 
+    circle: circleData, 
+    feed: feedItems, 
+    isLoading: storeLoading, 
+    error: storeError, 
+    fetchMyCircle, 
+    fetchCircleFeed 
+  } = useCircleStore()
+
   const [joinCode, setJoinCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Fetch circle + feed in parallel
-        const circleResponse = await api.get('/api/circle/my')
+    fetchMyCircle()
+    fetchCircleFeed()
+  }, [fetchMyCircle, fetchCircleFeed])
 
-        if (circleResponse.data) {
-          const circle = circleResponse.data.data
-          setCircleData(circle)
-          setHasCircle(true)
-
-          // Fetch feed
-          try {
-            const feedResponse = await api.get('/api/circle/feed')
-            setFeedItems(feedResponse.data.data.feed || [])
-          } catch {
-            // Feed fetch failure is non-critical
-          }
-        }
-      } catch (err: any) {
-        if (err?.response?.status === 404) {
-          setHasCircle(false)
-        } else {
-          setError(err instanceof Error ? err.message : 'Failed to load circle')
-        }
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadData()
-  }, [])
-
-  // Poll for feed updates — 30s interval (reduced from 5s)
+  // Poll for feed updates — 30s interval
   useEffect(() => {
-    if (!hasCircle) return;
+    if (!circleData) return;
     
-    const interval = setInterval(async () => {
-      try {
-        const feedResponse = await api.get('/api/circle/feed')
-        setFeedItems(feedResponse.data.data.feed || [])
-      } catch {
-        // ignore background interval errors
-      }
-    }, 30000); // 30 seconds — appropriate for a daily reflection app
+    const interval = setInterval(() => {
+      fetchCircleFeed(true) // force refresh in background
+    }, 30000);
 
     return () => clearInterval(interval);
-  }, [hasCircle])
+  }, [circleData, fetchCircleFeed])
 
   const handleLike = async (reflectionId: string, isUnlike: boolean) => {
     try {
       const endpoint = isUnlike ? `/api/circle/unlike/${reflectionId}` : `/api/circle/like/${reflectionId}`;
-      const response = await api.post(endpoint)
-      if (response.data) {
-        // Optimistically update feed items
-        setFeedItems((prev) =>
-          prev.map((item) =>
-            item.reflection_id === reflectionId
-              ? { 
-                  ...item, 
-                  likes_count: Math.max(0, (item.likes_count || 0) + (isUnlike ? -1 : 1)), 
-                  is_liked: !isUnlike 
-                }
-              : item
-          )
-        )
-      }
+      await api.post(endpoint)
+      // Refresh feed after like to be safe (or we could optimistically update store)
+      fetchCircleFeed(true)
     } catch (err) {
       console.error('Failed to update like status:', err)
       throw err;
@@ -95,19 +54,10 @@ export default function Circle() {
     setJoinError(null)
 
     try {
-      const response = await api.get(`/api/circle/join/${joinCode.trim()}`)
-
-      if (response.data) {
-        setCircleData(response.data.data)
-        setHasCircle(true)
-        // Refresh feed after joining
-        try {
-          const feedResponse = await api.get('/api/circle/feed')
-          setFeedItems(feedResponse.data.data.feed || [])
-        } catch {
-          // non-critical
-        }
-      }
+      await api.get(`/api/circle/join/${joinCode.trim()}`)
+      // Refresh circle data after successful join
+      await fetchMyCircle(true)
+      await fetchCircleFeed(true)
     } catch (err: any) {
       const errorData = err?.response?.data
       setJoinError(errorData?.detail || errorData?.error || 'Failed to join circle')
@@ -116,7 +66,10 @@ export default function Circle() {
     }
   }
 
-  if (isLoading) {
+  // Show loading skeleton ONLY if we have no data at all and it's loading
+  const showSkeleton = storeLoading && !circleData && !feedItems.length
+  
+  if (showSkeleton) {
     return (
       <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -133,12 +86,12 @@ export default function Circle() {
     )
   }
 
-  if (error) {
+  if (storeError) {
     return (
       <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
         <div className="flex items-center justify-center min-h-[60vh] text-center">
           <div>
-            <p className="text-red-600 text-sm mb-4">{error}</p>
+            <p className="text-red-600 text-sm mb-4">{storeError}</p>
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium"
@@ -151,7 +104,7 @@ export default function Circle() {
     )
   }
 
-  if (!hasCircle) {
+  if (!circleData && !storeLoading) {
     return (
       <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
         <div className="py-12 space-y-6">

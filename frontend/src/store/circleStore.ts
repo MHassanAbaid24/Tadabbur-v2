@@ -42,10 +42,14 @@ export const useCircleStore = create<CircleStore>((set, get) => ({
         circle: response.data.data,
         lastCircleFetchedAt: Date.now(),
       })
-    } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : 'Failed to fetch circle',
-      })
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        set({ circle: null })
+      } else {
+        set({
+          error: err instanceof Error ? err.message : 'Failed to fetch circle',
+        })
+      }
     } finally {
       set({ isLoading: false })
     }

@@ -75,7 +75,7 @@ class APIResponse(BaseModel):
     """Wrapper for all API responses (success or error)."""
 
     success: bool
-    data: Optional[dict[str, Any]] = None
+    data: Optional[Any] = None
     error: Optional[str] = None
     code: Optional[str] = None
 

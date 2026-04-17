@@ -58,7 +58,7 @@ async def get_today_verse(
     )
 
 
-@router.get("/{verse_key}")
+@router.get("/by-key/{verse_key}")
 async def get_verse_by_key_endpoint(
     verse_key: str,
     current_user: Dict[str, Any] = Depends(get_current_user),

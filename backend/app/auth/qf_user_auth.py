@@ -153,7 +153,7 @@ async def get_user_qf_token(user_id: str) -> str:
             logger.warning("QF account not connected for user: %s", user_id)
             raise HTTPException(
                 status_code=403,
-                detail="QF account not connected. Please reconnect.",
+                detail="QF_ACCOUNT_NOT_CONNECTED: Please connect your Quran.com account to use this feature.",
             )
 
         if expires_at:

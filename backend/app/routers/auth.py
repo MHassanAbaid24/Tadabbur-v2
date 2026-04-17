@@ -11,6 +11,8 @@ from app.auth.qf_user_auth import (
     get_qf_authorization_url,
     store_user_qf_token,
 )
+from app.config import settings
+from supabase import create_client
 from app.db.supabase import supabase_client
 from app.models.schemas import (
     APIResponse,
@@ -63,9 +65,11 @@ async def register(req: RegisterRequest) -> APIResponse:
 
         # Step 1: Create Supabase Auth user first so profiles FK (profiles.id -> auth.users.id) is valid
         try:
-            auth_response = supabase_client.auth.sign_up(
+            auth_client = create_client(settings.supabase_url, settings.supabase_service_key)
+            auth_response = auth_client.auth.sign_up(
                 {"email": req.email, "password": req.password}
             )
+            auth_client.auth.sign_out()
             if not auth_response.user or not auth_response.user.id:
                 logger.error("Supabase sign_up returned no user for email: %s", req.email)
                 raise HTTPException(status_code=500, detail="Failed to create user account")
@@ -319,10 +323,13 @@ async def login(req: LoginRequest) -> APIResponse:
         HTTPException(500): Auth service error
     """
     try:
-        # Sign in with Supabase Auth
-        auth_response = supabase_client.auth.sign_in_with_password(
+        # Sign in with Supabase Auth to verify credentials (use a temporary client so we don't contaminate the global service role client)
+        auth_client = create_client(settings.supabase_url, settings.supabase_service_key)
+        auth_response = auth_client.auth.sign_in_with_password(
             {"email": req.email, "password": req.password}
         )
+        auth_client.auth.sign_out()
+        
         user_id = auth_response.user.id
 
         # Fetch user profile

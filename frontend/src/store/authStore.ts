@@ -30,6 +30,7 @@ interface AuthStore extends AuthState {
   verification: VerificationState
   setVerification: (state: Partial<VerificationState>) => void
   clearVerification: () => void
+  initiateQFOAuth: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -302,6 +303,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         verificationMessage: null,
       },
     })
+  },
+
+  initiateQFOAuth: async () => {
+    try {
+      const response = await api.get<{ data: { authorization_url: string; state: string } }>(
+        '/api/auth/qf/connect'
+      )
+      const { authorization_url } = response.data.data
+      // Redirect to QF OAuth
+      window.location.href = authorization_url
+    } catch (error) {
+      throw error
+    }
   },
 }))
 

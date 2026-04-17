@@ -290,11 +290,7 @@ WITH CHECK (auth.role() = 'service_role');
 
 CREATE POLICY circle_members_select
 ON circle_members FOR SELECT
-USING (EXISTS (
-  SELECT 1 FROM circle_members cm2
-  WHERE cm2.circle_id = circle_members.circle_id 
-  AND cm2.user_id = auth.uid()
-));
+USING (true);
 
 CREATE POLICY circle_members_insert
 ON circle_members FOR INSERT

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useReflectionStore } from '../../store/reflectionStore'
+import QFAuthModal from '../ui/QFAuthModal'
 import { Mood } from '../../types/reflection'
 
 interface ReflectionFormProps {
@@ -22,6 +23,7 @@ export default function ReflectionForm({
   const { submitReflection } = useReflectionStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [showQFAuthModal, setShowQFAuthModal] = useState(false)
 
   const [formData, setFormData] = useState({
     prompt1: '',
@@ -63,9 +65,15 @@ export default function ReflectionForm({
         circle_id: undefined, // TODO: get from circle store
       })
       onSubmitted()
-    } catch (err) {
+    } catch (err: any) {
       const errorMessage = err instanceof Error ? err.message : 'Submission failed'
-      setError(errorMessage)
+      
+      // Check if this is a QF auth error
+      if (err?.response?.data?.code === 'QF_ACCOUNT_NOT_CONNECTED') {
+        setShowQFAuthModal(true)
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -180,6 +188,12 @@ export default function ReflectionForm({
           'Share Reflection'
         )}
       </button>
+
+      {/* QF Auth Modal */}
+      <QFAuthModal
+        isOpen={showQFAuthModal}
+        onClose={() => setShowQFAuthModal(false)}
+      />
     </form>
   )
 }

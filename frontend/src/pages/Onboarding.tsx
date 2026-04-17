@@ -55,7 +55,7 @@ export default function Onboarding() {
     setIsLoading(true)
     setError(null)
     try {
-      await api.post('/circle/create', { name: circleName })
+      await api.post('/api/circle/create', { name: circleName })
       setStep(4)
     } catch (err) {
       setError(
@@ -74,7 +74,7 @@ export default function Onboarding() {
     setIsLoading(true)
     setError(null)
     try {
-      await api.get(`/circle/join/${inviteCode}`)
+      await api.get(`/api/circle/join/${inviteCode}`)
       setStep(4)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join circle')

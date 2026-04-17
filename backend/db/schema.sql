@@ -240,15 +240,49 @@ CREATE INDEX idx_email_verification_expires_at ON email_verification(expires_at)
 
 
 -- ============================================================================
--- FINAL SETUP
+-- FINAL SETUP: RLS POLICIES
 -- ============================================================================
 
--- Enable Row Level Security (RLS) for auth integration (Supabase will manage)
--- ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE circles ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE circle_members ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE reflections ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE xp_events ENABLE ROW LEVEL SECURITY;
+-- Enable Row Level Security (RLS) on all tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE circles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE circle_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reflections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE xp_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_verification ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_verse_log ENABLE ROW LEVEL SECURITY;
+
+-- Non-recursive circle_members SELECT policy
+-- (Avoids infinite recursion by not querying circle_members in the USING clause)
+CREATE POLICY circle_members_select ON circle_members FOR SELECT USING (true);
+
+-- Other basic policies
+CREATE POLICY circles_select ON circles FOR SELECT USING (true);
+CREATE POLICY profiles_select_own ON profiles FOR SELECT USING (auth.uid() = id);
+
+-- Profiles INSERT policy: allow users to create their own profile
+CREATE POLICY profiles_insert_own ON profiles FOR INSERT 
+  WITH CHECK (auth.uid() = id);
+
+-- Profiles UPDATE policy: allow users to update their own profile
+CREATE POLICY profiles_update_own ON profiles FOR UPDATE 
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+CREATE POLICY reflections_select_own ON reflections FOR SELECT USING (auth.uid() = user_id);
+
+-- Reflections INSERT policy: allow users to insert their own reflections
+CREATE POLICY reflections_insert_own ON reflections FOR INSERT 
+  WITH CHECK (auth.uid() = user_id);
+
+-- Reflections UPDATE policy: allow users to update their own reflections
+CREATE POLICY reflections_update_own ON reflections FOR UPDATE 
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- XP Events INSERT policy: allow users to insert their own XP events (when backend awards XP)
+CREATE POLICY xp_events_insert_own ON xp_events FOR INSERT 
+  WITH CHECK (auth.uid() = user_id);
 
 -- ============================================================================
 -- NOTES FOR VERIFICATION

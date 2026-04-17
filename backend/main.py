@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -6,6 +6,7 @@ import logging
 
 from app.config import settings
 from app.routers import audio, auth, circle, daily, progress, reflection, tafsir, verse
+from app.models.schemas import APIResponse
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,34 @@ async def validation_exception_handler(request, exc):
             "detail": exc.errors(),
             "message": "Validation failed. Check 'detail' for field errors."
         }
+    )
+
+# Custom exception handler for HTTPException
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    """Convert HTTPException to APIResponse format with error code detection."""
+    # Extract error code from detail if present (format: "ERROR_CODE: message")
+    detail = exc.detail or "Unknown error"
+    error_code = None
+    
+    # Check if detail contains our error code prefix
+    if isinstance(detail, str):
+        if detail.startswith("QF_ACCOUNT_NOT_CONNECTED"):
+            error_code = "QF_ACCOUNT_NOT_CONNECTED"
+        elif detail.startswith("QF_"):
+            # Extract any QF error code
+            parts = detail.split(":", 1)
+            error_code = parts[0].strip()
+    
+    response = APIResponse(
+        success=False,
+        error=str(detail),
+        code=error_code
+    )
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=response.model_dump(exclude_none=True)
     )
 
 # Health check endpoint

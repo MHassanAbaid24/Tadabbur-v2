@@ -11,6 +11,9 @@ export default function Circle() {
   const [hasCircle, setHasCircle] = useState(false)
   const [circleData, setCircleData] = useState<any>(null)
   const [feedItems, setFeedItems] = useState<any[]>([])
+  const [joinCode, setJoinCode] = useState('')
+  const [isJoining, setIsJoining] = useState(false)
+  const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -53,14 +56,62 @@ export default function Circle() {
 
   const handleLike = async (reflectionId: string) => {
     try {
-      await fetch(`/api/circle/like/${reflectionId}`, {
+      const response = await fetch(`/api/circle/like/${reflectionId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
         },
       })
+      if (response.ok) {
+        // Optimistically update feed items
+        setFeedItems((prev) =>
+          prev.map((item) =>
+            item.reflection_id === reflectionId
+              ? { ...item, likes_count: (item.likes_count || 0) + 1, is_liked: true }
+              : item
+          )
+        )
+      }
     } catch (err) {
       console.error('Failed to like reflection:', err)
+    }
+  }
+
+  const handleJoin = async () => {
+    if (!joinCode.trim()) return
+    setIsJoining(true)
+    setJoinError(null)
+
+    try {
+      const response = await fetch(`/api/circle/join/${joinCode.trim()}`, {
+        method: 'GET', // Following backend join_circle route which uses GET /join/{code}
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
+        },
+      })
+
+      if (response.ok) {
+        const json = await response.json()
+        setCircleData(json.data)
+        setHasCircle(true)
+        // Refresh feed after joining
+        const feedResponse = await fetch('/api/circle/feed', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
+          },
+        })
+        if (feedResponse.ok) {
+          const feedJson = await feedResponse.json()
+          setFeedItems(feedJson.data.feed || [])
+        }
+      } else {
+        const errorData = await response.json()
+        setJoinError(errorData.detail || 'Failed to join circle')
+      }
+    } catch (err) {
+      setJoinError('Something went wrong. Please try again.')
+    } finally {
+      setIsJoining(false)
     }
   }
 
@@ -128,13 +179,30 @@ export default function Circle() {
             </div>
 
             <div className="space-y-2">
+              {joinError && (
+                <p className="text-xs text-red-500 bg-red-50 p-2 rounded">{joinError}</p>
+              )}
               <input
                 type="text"
                 placeholder="Paste invite code here"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                disabled={isJoining}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-gray-50"
               />
-              <button className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
-                Join Circle
+              <button
+                onClick={handleJoin}
+                disabled={isJoining || !joinCode.trim()}
+                className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                {isJoining ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    Joining...
+                  </>
+                ) : (
+                  'Join Circle'
+                )}
               </button>
             </div>
           </div>

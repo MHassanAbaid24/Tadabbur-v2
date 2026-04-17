@@ -120,8 +120,10 @@ async def submit_reflection(
             except HTTPException as e:
                 if e.status_code in (401, 403):
                     logger.error("QF auth error during sync: %s", e.detail)
-                    raise
-                logger.error("QF sync error: %s", str(e))
+                    # Don't block submission just because QF sync failed
+                    pass
+                else:
+                    logger.error("QF sync error: %s", str(e))
             except Exception as e:
                 logger.error("Unexpected error during QF sync: %s", str(e))
 

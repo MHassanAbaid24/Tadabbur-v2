@@ -226,6 +226,25 @@ async def get_circle_feed(
 
         feed_items: list[CircleFeedItem] = []
 
+        reflection_ids = [ref["id"] for ref in reflections_result.data]
+        all_likes = []
+        if reflection_ids:
+            try:
+                # We fetch likes for all reflections in one batch.
+                likes_result = supabase_client.table("reflection_likes").select("reflection_id, user_id").in_("reflection_id", reflection_ids).execute()
+                all_likes = likes_result.data or []
+            except Exception as e:
+                # If table doesn't exist yet, we catch it gracefully so the feed still loads
+                logger.warning("reflection_likes table error (run migration): %s", str(e))
+                all_likes = []
+
+        likes_by_ref: dict[str, list[str]] = {}
+        for like in all_likes:
+            ref_id = like["reflection_id"]
+            if ref_id not in likes_by_ref:
+                likes_by_ref[ref_id] = []
+            likes_by_ref[ref_id].append(like["user_id"])
+
         for reflection in reflections_result.data:
             # Get author profile
             if reflection["user_id"] == user_id:
@@ -234,8 +253,13 @@ async def get_circle_feed(
                 profile_result = supabase_client.table("profiles").select("display_name").eq("id", reflection["user_id"]).execute()
                 display_name = profile_result.data[0]["display_name"] if profile_result.data else "Anonymous"
 
+            ref_id = reflection["id"]
+            ref_likes = likes_by_ref.get(ref_id, [])
+            likes_count = len(ref_likes)
+            is_liked = user_id in ref_likes
+
             item = CircleFeedItem(
-                reflection_id=reflection["id"],
+                reflection_id=ref_id,
                 user_display_name=display_name,
                 verse_key=reflection["verse_key"],
                 prompt_1_answer=reflection["prompt_1_answer"] or "",
@@ -243,6 +267,8 @@ async def get_circle_feed(
                 mood=reflection["mood"],
                 created_at=reflection["created_at"],
                 qf_post_id=reflection["qf_post_id"],
+                likes_count=likes_count,
+                is_liked=is_liked
             )
             feed_items.append(item)
 
@@ -280,6 +306,16 @@ async def like_reflection(
         # Like on QF if post exists (non-blocking)
         if qf_post_id:
             await like_qf_post(user_id, qf_post_id)
+
+        # Track the like locally in our own database
+        try:
+            supabase_client.table("reflection_likes").insert({
+                "user_id": user_id,
+                "reflection_id": reflection_id
+            }).execute()
+        except Exception as e:
+            # Catch PGRST116 (duplicate key violation if user already liked it) - safe to ignore
+            logger.warning("Duplicate like or reflection_likes missing: %s", str(e))
 
         # Award +3 XP for liking
         xp_amount = 3
@@ -328,6 +364,12 @@ async def unlike_reflection(
 
         if qf_post_id:
             await unlike_qf_post(user_id, qf_post_id)
+
+        # Untrack the like locally
+        try:
+            supabase_client.table("reflection_likes").delete().eq("user_id", user_id).eq("reflection_id", reflection_id).execute()
+        except Exception as e:
+            logger.warning("Unliking failed locally or reflection_likes missing: %s", str(e))
 
         # Deduct XP (optional but consistent)
         xp_amount = -3

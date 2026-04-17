@@ -54,6 +54,29 @@ export default function Circle() {
     loadData()
   }, [])
 
+  // Poll for realtime updates
+  useEffect(() => {
+    if (!hasCircle) return;
+    
+    const interval = setInterval(async () => {
+      try {
+        const feedResponse = await fetch('/api/circle/feed', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
+          },
+        })
+        if (feedResponse.ok) {
+          const feedJson = await feedResponse.json()
+          setFeedItems(feedJson.data.feed || [])
+        }
+      } catch (err) {
+        // ignore background interval errors
+      }
+    }, 5000); // 5 seconds polling
+
+    return () => clearInterval(interval);
+  }, [hasCircle])
+
   const handleLike = async (reflectionId: string, isUnlike: boolean) => {
     try {
       const endpoint = isUnlike ? `/api/circle/unlike/${reflectionId}` : `/api/circle/like/${reflectionId}`;

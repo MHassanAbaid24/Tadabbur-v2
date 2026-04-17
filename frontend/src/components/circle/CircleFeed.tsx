@@ -151,12 +151,15 @@ export default function CircleFeed({ items, onLike }: CircleFeedProps) {
           <button
             onClick={() => handleLike(item.reflection_id)}
             disabled={loadingIds.has(item.reflection_id)}
-            className={`flex items-center gap-1 text-sm ${likedIds.has(item.reflection_id) ? 'text-emerald-600' : 'text-gray-600 hover:text-emerald-600'} disabled:opacity-50 transition-colors`}
+            className={`flex items-center gap-1.5 text-sm ${likedIds.has(item.reflection_id) ? 'text-emerald-600' : 'text-gray-600 hover:text-emerald-600'} disabled:opacity-50 transition-colors`}
           >
             <Heart
               size={16}
               className={likedIds.has(item.reflection_id) ? 'fill-emerald-600' : ''}
             />
+            {item.likes_count && item.likes_count > 1 ? (
+              <span className="font-medium">{item.likes_count}</span>
+            ) : null}
             <span>{likedIds.has(item.reflection_id) ? 'Liked' : 'Like'}</span>
           </button>
         </div>

@@ -180,4 +180,12 @@ class CircleFeedItem(BaseModel):
         None,
         description="QF Post ID (for likes/interactions)",
     )
+    likes_count: Optional[int] = Field(
+        0,
+        description="Number of likes on this reflection",
+    )
+    is_liked: Optional[bool] = Field(
+        False,
+        description="Whether the current user has liked this reflection",
+    )
 

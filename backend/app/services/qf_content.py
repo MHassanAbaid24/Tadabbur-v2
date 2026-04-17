@@ -23,10 +23,11 @@ TAFSIR_ID = 169       # Ibn Kathir English
 RECITATION_ID = 7     # Mishary Rashid Al-Afasy
 
 
-def _qf_headers() -> Dict[str, str]:
+async def _qf_headers() -> Dict[str, str]:
     """Get QF Content API headers with current token."""
+    token = await qf_token_manager.get_token()
     return {
-        "x-auth-token": qf_token_manager.get_token(),
+        "x-auth-token": token,
         "x-client-id": settings.qf_client_id,
     }
 
@@ -58,7 +59,7 @@ async def _qf_get(url: str, params: Optional[Dict[str, Any]] = None) -> Dict[str
     async with httpx.AsyncClient() as client:
         for attempt_429 in range(max_retries_429):
             try:
-                headers = _qf_headers()
+                headers = await _qf_headers()
                 response = await client.get(
                     url, headers=headers, params=params, timeout=10.0
                 )
@@ -69,7 +70,7 @@ async def _qf_get(url: str, params: Optional[Dict[str, Any]] = None) -> Dict[str
 
                     # Retry once with fresh token
                     try:
-                        headers = _qf_headers()
+                        headers = await _qf_headers()
                         response = await client.get(
                             url, headers=headers, params=params, timeout=10.0
                         )
@@ -96,7 +97,7 @@ async def _qf_get(url: str, params: Optional[Dict[str, Any]] = None) -> Dict[str
                     logger.warning("QF API 500 on %s, retrying after 1s", url)
                     await asyncio.sleep(1)
                     try:
-                        headers = _qf_headers()
+                        headers = await _qf_headers()
                         response = await client.get(
                             url, headers=headers, params=params, timeout=10.0
                         )
@@ -233,6 +234,8 @@ async def get_audio_url(verse_key: str) -> Optional[str]:
         return None
 
 
+_verse_cache: Dict[str, Dict[str, Any]] = {}
+
 async def get_verse_with_full_context(verse_key: str) -> Dict[str, Any]:
     """
     Fetch verse with tafsir and audio concurrently.
@@ -247,19 +250,31 @@ async def get_verse_with_full_context(verse_key: str) -> Dict[str, Any]:
         HTTPException(400): Invalid verse_key
         HTTPException(503): QF API error on verse fetch
     """
-    # Fetch verse first (required)
-    verse = await get_verse_by_key(verse_key)
+    # Check cache first
+    if verse_key in _verse_cache:
+        logger.debug("Serving verse %s from memory cache", verse_key)
+        return _verse_cache[verse_key]
 
-    # Fetch tafsir and audio concurrently (optional — don't block)
-    tafsir, audio_url = await asyncio.gather(
-        get_tafsir_by_key(verse_key),
-        get_audio_url(verse_key),
+    # Fetch verse, tafsir, and audio concurrently
+    verse_task = asyncio.create_task(get_verse_by_key(verse_key))
+    tafsir_task = asyncio.create_task(get_tafsir_by_key(verse_key))
+    audio_url_task = asyncio.create_task(get_audio_url(verse_key))
+
+    verse, tafsir, audio_url = await asyncio.gather(
+        verse_task,
+        tafsir_task,
+        audio_url_task,
     )
 
-    return {
+    result = {
         "verse_key": verse_key,
         "text_uthmani": verse["text_uthmani"],
         "translation": verse["translation"],
         "tafsir": tafsir or "",
         "audio_url": audio_url,
     }
+    
+    # Store in memory cache
+    _verse_cache[verse_key] = result
+    
+    return result

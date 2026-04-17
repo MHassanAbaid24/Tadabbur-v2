@@ -75,14 +75,16 @@ async def get_progress_summary(
 
     try:
         # Fetch profile (XP and level from Supabase)
-        profiles = supabase_client.table("profiles").select("xp, level").eq("id", user_id).execute()
+        profiles = await asyncio.to_thread(
+            lambda: supabase_client.table("profiles").select("xp, level").eq("id", user_id).execute()
+        )
         profile = profiles.data[0] if profiles.data else {"xp": 0, "level": 1}
         xp = profile.get("xp", 0)
         level = calculate_level(xp)
 
         # --- Calculate streaks locally from reflections table ---
-        all_reflections = (
-            supabase_client.table("reflections")
+        all_reflections = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections")
             .select("date")
             .eq("user_id", user_id)
             .order("date", desc=True)

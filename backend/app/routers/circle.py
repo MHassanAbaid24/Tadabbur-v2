@@ -1,5 +1,6 @@
 """Circle endpoint router — handles reflection circles and group features."""
 
+import asyncio
 import logging
 import secrets
 from typing import Any, Optional
@@ -151,21 +152,27 @@ async def get_my_circle(
     user_id = current_user["sub"]
 
     # Find user's circle
-    memberships = supabase_client.table("circle_members").select("circle_id").eq("user_id", user_id).execute()
+    memberships = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("circle_id").eq("user_id", user_id).execute()
+    )
     if not memberships.data or len(memberships.data) == 0:
         raise HTTPException(status_code=404, detail="User is not in a circle")
 
     circle_id = memberships.data[0]["circle_id"]
 
     # Get circle details
-    circles = supabase_client.table("circles").select("*").eq("id", circle_id).execute()
+    circles = await asyncio.to_thread(
+        lambda: supabase_client.table("circles").select("*").eq("id", circle_id).execute()
+    )
     if not circles.data or len(circles.data) == 0:
         raise HTTPException(status_code=404, detail="Circle not found")
 
     circle = circles.data[0]
 
     # Get member count
-    members = supabase_client.table("circle_members").select("*").eq("circle_id", circle_id).execute()
+    members = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("*").eq("circle_id", circle_id).execute()
+    )
     member_count = len(members.data) if members.data else 0
 
     circle_data = CircleResponse(

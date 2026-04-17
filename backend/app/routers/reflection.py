@@ -264,9 +264,11 @@ async def get_today_reflection(
     try:
         today = date.today().isoformat()
 
-        response = supabase_client.table("reflections").select("*").eq(
-            "user_id", user_id
-        ).eq("date", today).execute()
+        response = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections").select("*").eq(
+                "user_id", user_id
+            ).eq("date", today).execute()
+        )
 
         if response.data:
             reflection = response.data[0]

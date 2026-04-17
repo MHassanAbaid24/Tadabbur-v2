@@ -7,14 +7,15 @@ import pytest
 from app.auth.qf_token import QFTokenManager
 
 
-def test_token_is_cached() -> None:
+@pytest.mark.asyncio
+async def test_token_is_cached() -> None:
     """Second call returns same token — no extra HTTP request."""
     manager = QFTokenManager()
-    manager._token = "fake_token_12345"
+    manager._token = "fake_token_12345_very_long"
     manager._expires_at = time.time() + 3600
 
-    token1 = manager.get_token()
-    token2 = manager.get_token()
+    token1 = await manager.get_token()
+    token2 = await manager.get_token()
 
     assert token1 == token2
     assert token1 is not None and len(token1) > 20

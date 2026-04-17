@@ -139,18 +139,26 @@ async def get_progress_summary(
         # Fetch activity days from QF for heatmap (non-blocking)
         today_date = datetime.utcnow().date()
         start_date = today_date - timedelta(days=90)
+        # Fetch activity days from QF for heatmap
+        today_date = datetime.utcnow().date()
+        start_date = today_date - timedelta(days=90)
+        
+        # Start with local reflection dates as the baseline
+        combined_activity = set(reflection_date_strs)
+        
         try:
-            activity_dates = await get_activity_days(
+            qf_activity = await get_activity_days(
                 user_id,
                 start_date.isoformat(),
                 today_date.isoformat(),
             )
-            if not activity_dates:
-                # Fall back to local reflection dates for heatmap
-                activity_dates = list(reflection_date_strs)
+            if qf_activity:
+                combined_activity.update(qf_activity)
+            
+            activity_dates = sorted(list(combined_activity), reverse=True)
         except Exception as e:
             logger.warning("Failed to fetch activity days from QF: %s", str(e))
-            activity_dates = list(reflection_date_strs)
+            activity_dates = sorted(list(combined_activity), reverse=True)
 
         # Calculate XP to next level
         xp_to_next = get_xp_for_next_level(level, xp)

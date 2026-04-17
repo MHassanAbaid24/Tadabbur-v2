@@ -48,12 +48,12 @@ export default function Progress() {
 
         {/* Streaks */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-xs font-medium text-gray-600 mb-2">Current Streak</p>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 transition-shadow hover:shadow-md">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Today's Streak</p>
             <StreakBadge streak={summary.current_streak} />
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-xs font-medium text-gray-600 mb-2">Longest Streak</p>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 transition-shadow hover:shadow-md">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">All-Time Peak</p>
             <StreakBadge streak={summary.longest_streak} />
           </div>
         </div>
@@ -74,7 +74,10 @@ export default function Progress() {
         />
 
         {/* Activity Calendar */}
-        <ActivityCalendar activityDays={summary.activity_days} />
+        <ActivityCalendar
+          activityDays={summary.activity_days}
+          currentStreak={summary.current_streak}
+        />
       </div>
     </PageWrapper>
   )

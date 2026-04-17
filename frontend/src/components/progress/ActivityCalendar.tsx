@@ -15,7 +15,6 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
   // Find the start date: Sunday of the first week
   const startDate = new Date(today)
   startDate.setDate(today.getDate() - (totalSlots - 7 + today.getDay())) 
-  // This ensures we always end on the current week's Saturday (or Sunday)
   
   const firstSunday = new Date(startDate)
   while (firstSunday.getDay() !== 0) {
@@ -43,17 +42,16 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
     return `${y}-${m}-${d}`
   }
 
-  // Pre-process activity days into a Set of YYYY-MM-DD strings
-  const activitySet = new Set<string>()
+  // Pre-process activity days into a frequency map of YYYY-MM-DD strings
+  // This allows us to show different shades based on activity "intensity"
+  const activityMap: Record<string, number> = {}
   activityDays.forEach(day => {
     if (!day) return
+    let key = day
     if (day.includes('T') || day.includes('Z')) {
-      // It's an ISO string from API/QF
-      activitySet.add(formatLocalDate(new Date(day)))
-    } else {
-      // It's a YYYY-MM-DD string from our reflections table
-      activitySet.add(day)
+      key = formatLocalDate(new Date(day))
     }
+    activityMap[key] = (activityMap[key] || 0) + 1
   })
 
   // Monthly labels placement
@@ -72,6 +70,15 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
   })
 
   const todayStr = formatLocalDate(new Date())
+
+  // Determine color based on intensity (number of activities)
+  const getIntensityColor = (count: number) => {
+    if (count >= 4) return 'bg-emerald-700 shadow-sm shadow-emerald-200'
+    if (count >= 3) return 'bg-emerald-600 shadow-sm shadow-emerald-100'
+    if (count >= 2) return 'bg-emerald-400'
+    if (count >= 1) return 'bg-emerald-200' // Lighest green for basic activity
+    return 'bg-gray-100'
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
@@ -92,7 +99,7 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
             {monthLabels.map((m, i) => (
               <div
                 key={`${m.label}-${i}`}
-                className="absolute"
+                className="absolute transform -translate-x-1/2"
                 style={{ left: `${m.weekIndex * 1.5}rem` }}
               >
                 {m.label}
@@ -117,7 +124,7 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
                     if (!date) return <div key={dIndex} className="w-[18px] h-[18px]" />
                     
                     const dateStr = formatLocalDate(date)
-                    const hasActivity = activitySet.has(dateStr)
+                    const activityCount = activityMap[dateStr] || 0
                     const isToday = dateStr === todayStr
                     const isFuture = date > today
 
@@ -127,12 +134,10 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
                         className={`w-[18px] h-[18px] rounded-[3px] transition-all duration-300 ${
                           isFuture 
                             ? 'bg-gray-50 opacity-20' 
-                            : hasActivity
-                            ? 'bg-emerald-600 shadow-sm shadow-emerald-100'
-                            : 'bg-gray-100'
+                            : getIntensityColor(activityCount)
                         } ${isToday ? 'ring-2 ring-gold-400 ring-offset-2 z-10 scale-110' : 'hover:scale-110 hover:z-10 cursor-help'}`}
                         title={isFuture ? 'Future' : `${date.toLocaleDateString()}: ${
-                          hasActivity ? 'Reflected' : 'No activity'
+                          activityCount > 0 ? `${activityCount} activities` : 'No activity'
                         }`}
                       />
                     )
@@ -148,17 +153,24 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
         <div className="flex items-center gap-3">
           <span>Less</span>
           <div className="flex gap-1.5">
-            <div className="w-3 h-3 bg-gray-100 rounded-[2px]" />
-            <div className="w-3 h-3 bg-emerald-200 rounded-[2px]" />
-            <div className="w-3 h-3 bg-emerald-400 rounded-[2px]" />
-            <div className="w-3 h-3 bg-emerald-600 rounded-[2px]" />
+            <div className="w-3.5 h-3.5 bg-gray-100 rounded-[2px]" />
+            <div className="w-3.5 h-3.5 bg-emerald-200 rounded-[2px]" />
+            <div className="w-3.5 h-3.5 bg-emerald-400 rounded-[2px]" />
+            <div className="w-3.5 h-3.5 bg-emerald-600 rounded-[2px]" />
+            <div className="w-3.5 h-3.5 bg-emerald-700 rounded-[2px]" />
           </div>
           <span>More</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-emerald-700">{activitySet.size} Days Active</span>
-          <span className="text-gray-300">|</span>
-          <span className="text-gold-600">Streak: {currentStreak} {currentStreak === 1 ? 'Day' : 'Days'}</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-700 font-bold">{Object.keys(activityMap).length}</span>
+            <span className="text-gray-400">Days Active</span>
+          </div>
+          <span className="text-gray-200">|</span>
+          <div className="flex items-center gap-2">
+            <span className="text-gold-600 font-bold">{currentStreak}</span>
+            <span className="text-gray-400">Day Streak</span>
+          </div>
         </div>
       </div>
     </div>

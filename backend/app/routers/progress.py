@@ -143,8 +143,8 @@ async def get_progress_summary(
         today_date = datetime.utcnow().date()
         start_date = today_date - timedelta(days=90)
         
-        # Start with local reflection dates as the baseline
-        combined_activity = set(reflection_date_strs)
+        # Start with local reflection dates
+        combined_activity = list(reflection_date_strs)
         
         try:
             qf_activity = await get_activity_days(
@@ -153,12 +153,13 @@ async def get_progress_summary(
                 today_date.isoformat(),
             )
             if qf_activity:
-                combined_activity.update(qf_activity)
+                combined_activity.extend(qf_activity)
             
-            activity_dates = sorted(list(combined_activity), reverse=True)
+            # Keep as list to allow frontend to count frequency (intensity)
+            activity_dates = combined_activity
         except Exception as e:
             logger.warning("Failed to fetch activity days from QF: %s", str(e))
-            activity_dates = sorted(list(combined_activity), reverse=True)
+            activity_dates = combined_activity
 
         # Calculate XP to next level
         xp_to_next = get_xp_for_next_level(level, xp)

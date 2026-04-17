@@ -159,6 +159,17 @@ class CircleResponse(BaseModel):
     )
 
 
+class CircleMemberResponse(BaseModel):
+    """Data for a single circle member."""
+
+    user_id: str
+    username: str
+    display_name: str
+    avatar_url: Optional[str] = None
+    joined_at: str
+    is_admin: bool
+
+
 class CircleFeedItem(BaseModel):
     """Single reflection item in circle feed."""
 

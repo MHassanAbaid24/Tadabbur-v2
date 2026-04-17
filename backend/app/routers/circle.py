@@ -9,7 +9,13 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.auth.jwt import get_current_user
 from app.db.supabase import supabase_client
-from app.models.schemas import APIResponse, CircleFeedItem, CircleResponse, CreateCircleRequest
+from app.models.schemas import (
+    APIResponse,
+    CircleFeedItem,
+    CircleMemberResponse,
+    CircleResponse,
+    CreateCircleRequest,
+)
 from app.services.qf_user import create_qf_room, like_qf_post
 
 logger = logging.getLogger(__name__)
@@ -66,11 +72,12 @@ async def create_circle(
 
         circle_id = circle_result.data[0]["id"]
 
-        # Add creator as first member
+        # Add creator as first member and set as admin
         await asyncio.to_thread(
             lambda: supabase_client.table("circle_members").insert({
                 "circle_id": circle_id,
                 "user_id": user_id,
+                "is_admin": True,
             }).execute()
         )
 
@@ -449,3 +456,125 @@ async def unlike_reflection(
     except Exception as e:
         logger.error("Failed to unlike reflection: %s", str(e))
         raise HTTPException(status_code=500, detail="Failed to unlike reflection")
+
+
+@router.get("/members")
+async def get_circle_members(
+    authorization: str = Header(...),
+) -> dict[str, Any]:
+    """Get all members of the user's circle."""
+    current_user: dict[str, Any] = await get_current_user(authorization)
+    user_id = current_user["sub"]
+
+    # Find user's circle
+    memberships = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("circle_id").eq("user_id", user_id).execute()
+    )
+    if not memberships.data:
+        raise HTTPException(status_code=404, detail="User is not in a circle")
+
+    circle_id = memberships.data[0]["circle_id"]
+
+    # Get all members with profile details
+    try:
+        members_query = """
+            user_id,
+            joined_at,
+            is_admin,
+            profiles (
+                username,
+                display_name,
+                avatar_url
+            )
+        """
+        members_result = await asyncio.to_thread(
+            lambda: supabase_client.table("circle_members").select(members_query).eq("circle_id", circle_id).execute()
+        )
+
+        members: list[CircleMemberResponse] = []
+        for m in members_result.data:
+            profile = m.get("profiles", {})
+            members.append(CircleMemberResponse(
+                user_id=m["user_id"],
+                username=profile.get("username", "Unknown"),
+                display_name=profile.get("display_name", "Anonymous"),
+                avatar_url=profile.get("avatar_url"),
+                joined_at=m["joined_at"],
+                is_admin=m["is_admin"]
+            ))
+
+        return APIResponse(success=True, data={"members": [m.dict() for m in members]}).dict()
+    except Exception as e:
+        logger.error("Failed to fetch circle members: %s", str(e))
+        raise HTTPException(status_code=500, detail="Failed to fetch circle members")
+
+
+@router.post("/admin/{target_user_id}")
+async def make_admin(
+    target_user_id: str,
+    authorization: str = Header(...),
+) -> dict[str, Any]:
+    """Grant admin status to a member (Admin only)."""
+    current_user: dict[str, Any] = await get_current_user(authorization)
+    requester_user_id = current_user["sub"]
+
+    # Get requester's member status
+    requester_status = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("circle_id, is_admin").eq("user_id", requester_user_id).execute()
+    )
+    if not requester_status.data or not requester_status.data[0]["is_admin"]:
+        raise HTTPException(status_code=403, detail="Only admins can grant admin status")
+
+    circle_id = requester_status.data[0]["circle_id"]
+
+    # Update target user
+    try:
+        await asyncio.to_thread(
+            lambda: supabase_client.table("circle_members")
+            .update({"is_admin": True})
+            .eq("circle_id", circle_id)
+            .eq("user_id", target_user_id)
+            .execute()
+        )
+        return APIResponse(success=True, data={"message": "Admin status granted"}).dict()
+    except Exception as e:
+        logger.error("Failed to grant admin status: %s", str(e))
+        raise HTTPException(status_code=500, detail="Failed to grant admin status")
+
+
+@router.delete("/members/{target_user_id}")
+async def remove_member(
+    target_user_id: str,
+    authorization: str = Header(...),
+) -> dict[str, Any]:
+    """Remove a member from the circle (Admin only, or self-remove)."""
+    current_user: dict[str, Any] = await get_current_user(authorization)
+    requester_user_id = current_user["sub"]
+
+    # Get requester's member status
+    requester_status = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("circle_id, is_admin").eq("user_id", requester_user_id).execute()
+    )
+    if not requester_status.data:
+        raise HTTPException(status_code=404, detail="Requester not in a circle")
+
+    circle_id = requester_status.data[0]["circle_id"]
+    is_requester_admin = requester_status.data[0]["is_admin"]
+
+    # Permission check: Admin can remove anyone, user can remove themselves
+    if not (is_requester_admin or requester_user_id == target_user_id):
+        raise HTTPException(status_code=403, detail="Insufficient permission to remove member")
+
+    # Remove target user
+    try:
+        await asyncio.to_thread(
+            lambda: supabase_client.table("circle_members")
+            .delete()
+            .eq("circle_id", circle_id)
+            .eq("user_id", target_user_id)
+            .execute()
+        )
+        return APIResponse(success=True, data={"message": "Member removed"}).dict()
+    except Exception as e:
+        logger.error("Failed to remove member: %s", str(e))
+        raise HTTPException(status_code=500, detail="Failed to remove member")

@@ -167,20 +167,20 @@ export default function Circle() {
 
   return (
     <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
-      <div className="py-6 space-y-6">
+      <div className="py-6 space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{circleData.name}</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            {circleData.member_count} {circleData.member_count === 1 ? 'member' : 'members'}
-          </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{circleData.name}</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {circleData.member_count} {circleData.member_count === 1 ? 'member' : 'members'}
+            </p>
+          </div>
+          <CircleInvite
+            inviteCode={circleData.invite_code}
+            circleName={circleData.name}
+          />
         </div>
-
-        {/* Invite */}
-        <CircleInvite
-          inviteCode={circleData.invite_code}
-          circleName={circleData.name}
-        />
 
         {/* Feed */}
         <div>

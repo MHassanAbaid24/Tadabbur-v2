@@ -26,7 +26,18 @@ async def test_get_progress_summary_success():
         # Mock profile with XP
         profile_result = MagicMock()
         profile_result.data = [{"xp": 125, "level": 2}]
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = profile_result
+        reflections_result = MagicMock()
+        today = datetime.utcnow().date()
+        recent_dates = [(today - timedelta(days=i)).isoformat() for i in range(7)]
+        old_dates = [(today - timedelta(days=i)).isoformat() for i in range(10, 25)]
+        reflections_result.data = [{"date": d} for d in (recent_dates + old_dates)]
+        def _table_side_effect(table_name):
+            if table_name == "profiles":
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=profile_result))))))
+            elif table_name == "reflections":
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(order=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=reflections_result))))))))
+            return MagicMock()
+        mock_supabase.table.side_effect = _table_side_effect
 
         async with AsyncClient(app=app, base_url="http://test") as client:
             r = await client.get(
@@ -70,7 +81,19 @@ async def test_get_progress_summary_level_calculation():
         for xp, expected_level, expected_name, expected_name_ar in test_cases:
             profile_result = MagicMock()
             profile_result.data = [{"xp": xp, "level": expected_level}]
-            mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = profile_result
+            def _table_side_effect(table_name):
+
+                if table_name == "profiles":
+
+                    return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=profile_result))))))
+
+                elif table_name == "reflections":
+
+                    return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(order=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=MagicMock(data=[])))))))))
+
+                return MagicMock()
+
+            mock_supabase.table.side_effect = _table_side_effect
 
             async with AsyncClient(app=app, base_url="http://test") as client:
                 r = await client.get(
@@ -100,7 +123,19 @@ async def test_get_progress_summary_xp_to_next_level():
         # Test XP to next level: at 40 XP (level 1), need 51-40=11 XP to reach level 2
         profile_result = MagicMock()
         profile_result.data = [{"xp": 40, "level": 1}]
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = profile_result
+        def _table_side_effect(table_name):
+
+            if table_name == "profiles":
+
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=profile_result))))))
+
+            elif table_name == "reflections":
+
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(order=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=MagicMock(data=[])))))))))
+
+            return MagicMock()
+
+        mock_supabase.table.side_effect = _table_side_effect
 
         async with AsyncClient(app=app, base_url="http://test") as client:
             r = await client.get(
@@ -127,7 +162,19 @@ async def test_get_progress_summary_max_level():
         # At max level (5) with 800 XP, should have 0 XP to next level
         profile_result = MagicMock()
         profile_result.data = [{"xp": 800, "level": 5}]
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = profile_result
+        def _table_side_effect(table_name):
+
+            if table_name == "profiles":
+
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=profile_result))))))
+
+            elif table_name == "reflections":
+
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(order=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=MagicMock(data=[])))))))))
+
+            return MagicMock()
+
+        mock_supabase.table.side_effect = _table_side_effect
 
         async with AsyncClient(app=app, base_url="http://test") as client:
             r = await client.get(
@@ -155,7 +202,19 @@ async def test_get_progress_summary_graceful_failure():
 
         profile_result = MagicMock()
         profile_result.data = [{"xp": 100, "level": 2}]
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = profile_result
+        def _table_side_effect(table_name):
+
+            if table_name == "profiles":
+
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=profile_result))))))
+
+            elif table_name == "reflections":
+
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(order=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=MagicMock(data=[])))))))))
+
+            return MagicMock()
+
+        mock_supabase.table.side_effect = _table_side_effect
 
         async with AsyncClient(app=app, base_url="http://test") as client:
             r = await client.get(
@@ -187,7 +246,19 @@ async def test_get_progress_summary_no_profile():
         # Profile not found
         profile_result = MagicMock()
         profile_result.data = []
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = profile_result
+        def _table_side_effect(table_name):
+
+            if table_name == "profiles":
+
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=profile_result))))))
+
+            elif table_name == "reflections":
+
+                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(order=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=MagicMock(data=[])))))))))
+
+            return MagicMock()
+
+        mock_supabase.table.side_effect = _table_side_effect
 
         async with AsyncClient(app=app, base_url="http://test") as client:
             r = await client.get(
@@ -205,7 +276,7 @@ async def test_get_progress_summary_no_profile():
 async def test_get_xp_events_success():
     """Test fetching user's XP events history."""
     with patch("app.routers.progress.get_current_user") as mock_get_user, \
-         patch("app.routers.progress.supabase_client") as mock_supabase:
+         patch("app.routers.progress.async_supabase_client", new_callable=MagicMock) as mock_supabase:
 
         mock_get_user.return_value = {"sub": TEST_USER_ID}
 
@@ -232,7 +303,7 @@ async def test_get_xp_events_success():
             },
         ]
 
-        mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = events_result
+        mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute = AsyncMock(return_value=events_result)
 
         async with AsyncClient(app=app, base_url="http://test") as client:
             r = await client.get(
@@ -254,14 +325,14 @@ async def test_get_xp_events_success():
 async def test_get_xp_events_empty():
     """Test fetching XP events when none exist."""
     with patch("app.routers.progress.get_current_user") as mock_get_user, \
-         patch("app.routers.progress.supabase_client") as mock_supabase:
+         patch("app.routers.progress.async_supabase_client", new_callable=MagicMock) as mock_supabase:
 
         mock_get_user.return_value = {"sub": TEST_USER_ID}
 
         # Mock: no events
         events_result = MagicMock()
         events_result.data = []
-        mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = events_result
+        mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute = AsyncMock(return_value=events_result)
 
         async with AsyncClient(app=app, base_url="http://test") as client:
             r = await client.get(
@@ -279,7 +350,7 @@ async def test_get_xp_events_empty():
 async def test_get_xp_events_limit_20():
     """Test that XP events are limited to 20 most recent."""
     with patch("app.routers.progress.get_current_user") as mock_get_user, \
-         patch("app.routers.progress.supabase_client") as mock_supabase:
+         patch("app.routers.progress.async_supabase_client", new_callable=MagicMock) as mock_supabase:
 
         mock_get_user.return_value = {"sub": TEST_USER_ID}
 
@@ -296,7 +367,7 @@ async def test_get_xp_events_limit_20():
 
         events_result = MagicMock()
         events_result.data = events_list[:20]  # DB should handle limit, but verify
-        mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = events_result
+        mock_supabase.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute = AsyncMock(return_value=events_result)
 
         async with AsyncClient(app=app, base_url="http://test") as client:
             r = await client.get(

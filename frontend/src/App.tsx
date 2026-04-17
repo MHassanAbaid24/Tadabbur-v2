@@ -1,14 +1,28 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
-import Auth from './pages/Auth'
-import Onboarding from './pages/Onboarding'
-import QFCallback from './pages/QFCallback'
-import Home from './pages/Home'
-import Journal from './pages/Journal'
-import Circle from './pages/Circle'
-import CircleNew from './pages/CircleNew'
-import Progress from './pages/Progress'
+
+// Lazy-loaded page components — only loaded when navigated to
+const Auth = lazy(() => import('./pages/Auth'))
+const Onboarding = lazy(() => import('./pages/Onboarding'))
+const QFCallback = lazy(() => import('./pages/QFCallback'))
+const Home = lazy(() => import('./pages/Home'))
+const Journal = lazy(() => import('./pages/Journal'))
+const Circle = lazy(() => import('./pages/Circle'))
+const CircleNew = lazy(() => import('./pages/CircleNew'))
+const Progress = lazy(() => import('./pages/Progress'))
+
+// Shared loading spinner for Suspense fallback
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-cream-50 to-white">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-gray-500">Loading...</p>
+      </div>
+    </div>
+  )
+}
 
 interface ProtectedRouteProps {
   element: React.ReactNode
@@ -24,7 +38,7 @@ function ProtectedRoute({ element }: ProtectedRouteProps) {
   }, [])
 
   if (isLoading || isOnboarded === null) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+    return <PageLoader />
   }
 
   if (!isAuthenticated) {
@@ -48,7 +62,7 @@ function OnboardingRoute({ element }: ProtectedRouteProps) {
   }, [])
 
   if (isLoading || isOnboarded === null) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+    return <PageLoader />
   }
 
   if (!isAuthenticated) {
@@ -72,55 +86,57 @@ export default function App() {
 
   return (
     <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/auth/qf-callback" element={<QFCallback />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/qf-callback" element={<QFCallback />} />
 
-        {/* Protected routes - require auth + onboarding */}
-        <Route
-          path="/"
-          element={<ProtectedRoute element={<Navigate to="/home" replace />} />}
-        />
+          {/* Protected routes - require auth + onboarding */}
+          <Route
+            path="/"
+            element={<ProtectedRoute element={<Navigate to="/home" replace />} />}
+          />
 
-        <Route
-          path="/onboarding"
-          element={<OnboardingRoute element={<Onboarding />} />}
-        />
+          <Route
+            path="/onboarding"
+            element={<OnboardingRoute element={<Onboarding />} />}
+          />
 
-        <Route
-          path="/home"
-          element={<ProtectedRoute element={<Home />} />}
-        />
+          <Route
+            path="/home"
+            element={<ProtectedRoute element={<Home />} />}
+          />
 
-        <Route
-          path="/journal"
-          element={<ProtectedRoute element={<Journal />} />}
-        />
+          <Route
+            path="/journal"
+            element={<ProtectedRoute element={<Journal />} />}
+          />
 
-        <Route
-          path="/circle"
-          element={<ProtectedRoute element={<Circle />} />}
-        />
+          <Route
+            path="/circle"
+            element={<ProtectedRoute element={<Circle />} />}
+          />
 
-        <Route
-          path="/circle/new"
-          element={<ProtectedRoute element={<CircleNew />} />}
-        />
+          <Route
+            path="/circle/new"
+            element={<ProtectedRoute element={<CircleNew />} />}
+          />
 
-        <Route
-          path="/circle/join/:code"
-          element={<ProtectedRoute element={<div className="flex items-center justify-center min-h-screen">Join Circle</div>} />}
-        />
+          <Route
+            path="/circle/join/:code"
+            element={<ProtectedRoute element={<div className="flex items-center justify-center min-h-screen">Join Circle</div>} />}
+          />
 
-        <Route
-          path="/progress"
-          element={<ProtectedRoute element={<Progress />} />}
-        />
+          <Route
+            path="/progress"
+            element={<ProtectedRoute element={<Progress />} />}
+          />
 
-        {/* Fallback for unknown routes */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Fallback for unknown routes */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Router>
   )
 }

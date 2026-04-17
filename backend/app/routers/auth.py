@@ -1,5 +1,6 @@
 """Authentication routes: register, login, get current user profile."""
 
+import asyncio
 import logging
 import secrets
 from typing import Any, Dict
@@ -56,9 +57,9 @@ async def register(req: RegisterRequest) -> APIResponse:
         logger.info("Registration attempt - email: %s, username: %s", req.email, req.username)
 
         # Check if username already exists
-        username_check = supabase_client.table("profiles").select("id").eq(
+        username_check = await asyncio.to_thread(supabase_client.table("profiles").select("id").eq(
             "username", req.username
-        ).execute()
+        ).execute)
         if username_check.data:
             logger.warning("Username already exists: %s", req.username)
             raise HTTPException(status_code=409, detail="Username already taken")
@@ -86,7 +87,7 @@ async def register(req: RegisterRequest) -> APIResponse:
 
         # Step 2: Create pending profile linked to auth user
         try:
-            supabase_client.table("profiles").insert(
+            await asyncio.to_thread(supabase_client.table("profiles").insert(
                 {
                     "id": user_id,
                     "username": req.username,
@@ -94,7 +95,7 @@ async def register(req: RegisterRequest) -> APIResponse:
                     "email_verified": False,
                     "verification_status": "pending",
                 }
-            ).execute()
+            ).execute)
             logger.info("Created pending profile for user_id: %s", user_id)
         except Exception as e:
             logger.error("Failed to create profile: %s", str(e))
@@ -115,8 +116,8 @@ async def register(req: RegisterRequest) -> APIResponse:
             logger.error("Failed to send OTP for registration: %s", req.email)
             # Best-effort cleanup to avoid orphaned accounts
             try:
-                supabase_client.table("email_verification").delete().eq("user_id", user_id).execute()
-                supabase_client.table("profiles").delete().eq("id", user_id).execute()
+                await asyncio.to_thread(supabase_client.table("email_verification").delete().eq("user_id", user_id).execute)
+                await asyncio.to_thread(supabase_client.table("profiles").delete().eq("id", user_id).execute)
                 supabase_client.auth.admin.delete_user(user_id)
             except Exception as cleanup_error:
                 logger.error("Failed to cleanup user %s after OTP failure: %s", user_id, str(cleanup_error))
@@ -182,9 +183,9 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
             raise HTTPException(status_code=400, detail=message)
 
         # Retrieve registration data from email_verification record
-        verification_response = supabase_client.table("email_verification").select("*").eq(
+        verification_response = await asyncio.to_thread(supabase_client.table("email_verification").select("*").eq(
             "user_id", req.user_id
-        ).execute()
+        ).execute)
 
         if not verification_response.data:
             logger.error("Email verification record not found for user: %s", req.user_id)
@@ -194,9 +195,9 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
         email = verification_record.get("email")
 
         # Get username from the profile record (already created during registration)
-        profile_response = supabase_client.table("profiles").select("username,display_name").eq(
+        profile_response = await asyncio.to_thread(supabase_client.table("profiles").select("username,display_name").eq(
             "id", req.user_id
-        ).execute()
+        ).execute)
         
         if not profile_response.data:
             logger.error("Profile not found for user: %s", req.user_id)
@@ -206,12 +207,12 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
         display_name = profile_response.data[0].get("display_name") or ""
         
         # Update profile to mark as verified
-        supabase_client.table("profiles").update(
+        await asyncio.to_thread(supabase_client.table("profiles").update(
             {
                 "email_verified": True,
                 "verification_status": "verified",
             }
-        ).eq("id", req.user_id).execute()
+        ).eq("id", req.user_id).execute)
 
         # Generate JWT using our own system
         access_token = create_access_token(req.user_id, email)
@@ -333,9 +334,9 @@ async def login(req: LoginRequest) -> APIResponse:
         user_id = auth_response.user.id
 
         # Fetch user profile
-        profile_response = supabase_client.table("profiles").select(
+        profile_response = await asyncio.to_thread(supabase_client.table("profiles").select(
             "username,display_name,email_verified"
-        ).eq("id", user_id).execute()
+        ).eq("id", user_id).execute)
 
         if not profile_response.data:
             logger.error("Profile not found for user: %s", user_id)
@@ -389,9 +390,9 @@ async def get_profile(current_user: Dict[str, Any] = Depends(get_current_user)) 
     user_id = current_user["sub"]
 
     try:
-        profile_response = supabase_client.table("profiles").select("*").eq(
+        profile_response = await asyncio.to_thread(supabase_client.table("profiles").select("*").eq(
             "id", user_id
-        ).execute()
+        ).execute)
 
         if not profile_response.data:
             logger.warning("Profile not found for user: %s", user_id)

@@ -82,9 +82,11 @@ async def submit_reflection(
         today = date.today().isoformat()
 
         # Check if already submitted today (UNIQUE constraint in DB)
-        existing = supabase_client.table("reflections").select("id").eq(
-            "user_id", user_id
-        ).eq("date", today).execute()
+        existing = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections").select("id").eq(
+                "user_id", user_id
+            ).eq("date", today).execute()
+        )
 
         if existing.data:
             logger.warning("User %s already submitted reflection today", user_id)
@@ -157,22 +159,24 @@ async def submit_reflection(
         except Exception as e:
             logger.warning("Could not fetch streaks for bonus: %s", str(e))
 
-        # Insert into Supabase reflections
-        reflection_response = supabase_client.table("reflections").insert(
-            {
-                "user_id": user_id,
-                "verse_key": req.verse_key,
-                "date": today,
-                "prompt_1_answer": prompt_1_clean,
-                "prompt_2_answer": prompt_2_clean,
-                "mood": req.mood,
-                "is_shared": req.is_shared,
-                "qf_note_id": qf_note_id,
-                "qf_post_id": qf_post_id,
-                "ai_action_suggestion": ai_suggestion,
-                "xp_earned": xp_earned,
-            }
-        ).execute()
+        # Store reflection using asyncio.to_thread
+        reflection_response = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections").insert(
+                {
+                    "user_id": user_id,
+                    "verse_key": req.verse_key,
+                    "date": today,
+                    "prompt_1_answer": prompt_1_clean,
+                    "prompt_2_answer": prompt_2_clean,
+                    "mood": req.mood,
+                    "is_shared": req.is_shared,
+                    "qf_note_id": qf_note_id,
+                    "qf_post_id": qf_post_id,
+                    "ai_action_suggestion": ai_suggestion,
+                    "xp_earned": xp_earned,
+                }
+            ).execute()
+        )
 
         if not reflection_response.data:
             logger.error("Failed to insert reflection into Supabase")
@@ -184,19 +188,26 @@ async def submit_reflection(
 
         # Award XP (update profiles table and write to xp_events)
         try:
-            supabase_client.table("profiles").update(
-                {"xp": supabase_client.table("profiles").select("xp").eq(
-                    "id", user_id
-                ).execute().data[0]["xp"] + xp_earned}
-            ).eq("id", user_id).execute()
+            profile_data = await asyncio.to_thread(
+                lambda: supabase_client.table("profiles").select("xp").eq("id", user_id).execute()
+            )
+            current_xp = profile_data.data[0]["xp"] if profile_data.data else 0
+            
+            await asyncio.to_thread(
+                lambda: supabase_client.table("profiles").update(
+                    {"xp": current_xp + xp_earned}
+                ).eq("id", user_id).execute()
+            )
 
-            supabase_client.table("xp_events").insert(
-                {
-                    "user_id": user_id,
-                    "event_type": "reflection_submitted",
-                    "xp_amount": xp_earned,
-                }
-            ).execute()
+            await asyncio.to_thread(
+                lambda: supabase_client.table("xp_events").insert(
+                    {
+                        "user_id": user_id,
+                        "event_type": "reflection_submitted",
+                        "xp_amount": xp_earned,
+                    }
+                ).execute()
+            )
 
             logger.info("Awarded %d XP to user %s", xp_earned, user_id)
         except Exception as e:
@@ -318,9 +329,11 @@ async def get_reflection_history(
     limit = min(limit, 100)  # Cap at 100
 
     try:
-        response = supabase_client.table("reflections").select("*").eq(
-            "user_id", user_id
-        ).order("date", desc=True).limit(limit).execute()
+        response = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections").select("*").eq(
+                "user_id", user_id
+            ).order("date", desc=True).limit(limit).execute()
+        )
 
         reflections = [
             {

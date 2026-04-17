@@ -6,9 +6,10 @@ from datetime import datetime, timedelta, date as date_type
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.responses import JSONResponse
 
 from app.auth.jwt import get_current_user
-from app.db.supabase import supabase_client
+from app.db.supabase import supabase_client, async_supabase_client
 from app.models.schemas import APIResponse
 from app.services.qf_user import get_activity_days, get_streaks
 
@@ -64,26 +65,22 @@ def get_xp_for_next_level(current_level: int, current_xp: int) -> int:
 @router.get("/summary")
 async def get_progress_summary(
     authorization: str = Header(...),
-) -> dict[str, Any]:
+) -> JSONResponse:
     """
     Get complete progress summary: streaks, XP, level, and activity heatmap.
 
     Streak is calculated locally from Supabase reflections table for reliability.
+    Parallelizes independent DB/API calls for speed.
     """
     current_user: dict[str, Any] = await get_current_user(authorization)
     user_id = current_user["sub"]
 
     try:
-        # Fetch profile (XP and level from Supabase)
-        profiles = await asyncio.to_thread(
+        # --- Run profile fetch AND reflections fetch in PARALLEL ---
+        profile_task = asyncio.to_thread(
             lambda: supabase_client.table("profiles").select("xp, level").eq("id", user_id).execute()
         )
-        profile = profiles.data[0] if profiles.data else {"xp": 0, "level": 1}
-        xp = profile.get("xp", 0)
-        level = calculate_level(xp)
-
-        # --- Calculate streaks locally from reflections table ---
-        all_reflections = await asyncio.to_thread(
+        reflections_task = asyncio.to_thread(
             lambda: supabase_client.table("reflections")
             .select("date")
             .eq("user_id", user_id)
@@ -91,6 +88,13 @@ async def get_progress_summary(
             .execute()
         )
 
+        profiles, all_reflections = await asyncio.gather(profile_task, reflections_task)
+
+        profile = profiles.data[0] if profiles.data else {"xp": 0, "level": 1}
+        xp = profile.get("xp", 0)
+        level = calculate_level(xp)
+
+        # --- Calculate streaks locally from reflections table ---
         reflection_date_strs = sorted(
             {r["date"] for r in all_reflections.data if r.get("date")},
             reverse=True,
@@ -162,7 +166,11 @@ async def get_progress_summary(
             "xp_to_next_level": xp_to_next,
         }
 
-        return APIResponse(success=True, data=progress_data).dict()
+        response = APIResponse(success=True, data=progress_data).dict()
+        return JSONResponse(
+            content=response,
+            headers={"Cache-Control": "private, max-age=120"},
+        )
 
     except Exception as e:
         logger.error("Failed to fetch progress summary: %s", str(e))
@@ -182,8 +190,8 @@ async def get_xp_events(
     user_id = current_user["sub"]
 
     try:
-        events = (
-            supabase_client.table("xp_events")
+        events = await (
+            async_supabase_client.table("xp_events")
             .select("*")
             .eq("user_id", user_id)
             .order("created_at", desc=True)

@@ -22,8 +22,8 @@ def test_qf_authorization_url_structure() -> None:
     assert f"client_id={settings.qf_client_id}" in url
     assert "redirect_uri=" in url
     assert f"state={state}" in url
-    assert "streaks:read" in url
-    assert "notes:read" in url
+    assert "streak" in url
+    assert "note" in url
 
 
 def test_qf_authorization_url_uses_correct_env() -> None:
@@ -82,7 +82,8 @@ async def test_exchange_code_for_token_failure() -> None:
         mock_response_obj = MagicMock()
         mock_response_obj.status_code = 400
         mock_response_obj.json.return_value = {"error": "invalid_code"}
-        mock_response_obj.raise_for_status.side_effect = Exception("Bad request")
+        import httpx
+        mock_response_obj.raise_for_status.side_effect = httpx.HTTPError("Bad request")
 
         mock_client.post = AsyncMock(return_value=mock_response_obj)
         mock_client.__aenter__.return_value = mock_client
@@ -107,9 +108,9 @@ async def test_store_user_qf_token_success() -> None:
         "token_type": "Bearer",
     }
 
-    with patch("app.auth.qf_user_auth.supabase_client") as mock_supabase:
+    with patch("app.auth.qf_user_auth.async_supabase_client", new_callable=MagicMock) as mock_supabase:
         mock_update = MagicMock()
-        mock_update.eq.return_value.execute.return_value = MagicMock()
+        mock_update.eq.return_value.execute = AsyncMock(return_value=MagicMock())
 
         mock_supabase.table.return_value.update.return_value = mock_update
 
@@ -142,8 +143,10 @@ async def test_get_user_qf_token_not_connected() -> None:
     with patch("app.auth.qf_user_auth.settings") as mock_settings:
         mock_settings.qf_test_user_token = None
 
-        with patch("app.auth.qf_user_auth.supabase_client") as mock_supabase:
-            mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        with patch("app.auth.qf_user_auth.async_supabase_client", new_callable=MagicMock) as mock_supabase:
+            mock_execute = AsyncMock()
+            mock_supabase.table.return_value.select.return_value.eq.return_value.execute = mock_execute
+            mock_execute.return_value.data = [
                 {"id": user_id, "qf_access_token": None, "qf_token_expires_at": None}
             ]
 
@@ -151,7 +154,7 @@ async def test_get_user_qf_token_not_connected() -> None:
                 await get_user_qf_token(user_id)
 
             assert exc_info.value.status_code == 403
-            assert "not connected" in exc_info.value.detail
+            assert "NOT_CONNECTED" in exc_info.value.detail
 
 
 @pytest.mark.asyncio
@@ -165,8 +168,10 @@ async def test_get_user_qf_token_expired() -> None:
     with patch("app.auth.qf_user_auth.settings") as mock_settings:
         mock_settings.qf_test_user_token = None
 
-        with patch("app.auth.qf_user_auth.supabase_client") as mock_supabase:
-            mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        with patch("app.auth.qf_user_auth.async_supabase_client", new_callable=MagicMock) as mock_supabase:
+            mock_execute = AsyncMock()
+            mock_supabase.table.return_value.select.return_value.eq.return_value.execute = mock_execute
+            mock_execute.return_value.data = [
                 {
                     "id": user_id,
                     "qf_access_token": "old_token",
@@ -191,8 +196,10 @@ async def test_get_user_qf_token_valid() -> None:
     with patch("app.auth.qf_user_auth.settings") as mock_settings:
         mock_settings.qf_test_user_token = None
 
-        with patch("app.auth.qf_user_auth.supabase_client") as mock_supabase:
-            mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+        with patch("app.auth.qf_user_auth.async_supabase_client", new_callable=MagicMock) as mock_supabase:
+            mock_execute = AsyncMock()
+            mock_supabase.table.return_value.select.return_value.eq.return_value.execute = mock_execute
+            mock_execute.return_value.data = [
                 {
                     "id": user_id,
                     "qf_access_token": valid_token,

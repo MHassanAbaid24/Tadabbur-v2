@@ -185,9 +185,10 @@ async def test_log_activity_day_calls_qf_user_post() -> None:
     with patch("app.services.qf_user._qf_user_post", new_callable=AsyncMock) as mock_post:
         mock_post.return_value = expected_response
 
+        # log_activity_day returns None and catches exceptions
         result = await log_activity_day(user_id, date)
 
-        assert result == expected_response
+        assert result is None
         mock_post.assert_called_once_with(user_id, "activity-days", {"date": date})
 
 
@@ -239,7 +240,7 @@ async def test_create_note_with_tags() -> None:
         assert result == expected_response
         mock_post.assert_called_once()
         call_args = mock_post.call_args
-        assert call_args[0] == (user_id, "notes")
+        assert call_args[0][:2] == (user_id, "notes")
         assert call_args[0][2]["verse_key"] == verse_key
         assert call_args[0][2]["tags"] == tags
 

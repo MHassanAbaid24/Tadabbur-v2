@@ -4,6 +4,7 @@ import asyncio
 import html
 import logging
 import re
+import time
 from typing import Any, Dict, Optional
 
 import httpx
@@ -21,6 +22,20 @@ QF_CONTENT_BASE = f"{settings.qf_api_base_url}/content/api/v4"
 TRANSLATION_ID = 85   # Abdel Haleem (used for prelive compatibility)
 TAFSIR_ID = 169       # Ibn Kathir English
 RECITATION_ID = 7     # Mishary Rashid Al-Afasy
+
+# Shared httpx.AsyncClient — reuses TCP connections across requests
+_http_client: Optional[httpx.AsyncClient] = None
+
+
+def _get_http_client() -> httpx.AsyncClient:
+    """Get or create the shared httpx.AsyncClient."""
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(
+            timeout=10.0,
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
+    return _http_client
 
 
 async def _qf_headers() -> Dict[str, str]:
@@ -40,81 +55,63 @@ async def _qf_get(url: str, params: Optional[Dict[str, Any]] = None) -> Dict[str
     - 401: Clear token cache, retry once with fresh token
     - 429: Exponential backoff (1s, 2s, 4s) max 3 retries
     - 500: Retry once after 1s
-
-    Args:
-        url: Full URL to QF API endpoint
-        params: Query parameters
-
-    Returns:
-        Parsed JSON response
-
-    Raises:
-        HTTPException(401): After 401 retry fails
-        HTTPException(503): On 429 exhausted or 500 retry fails
-        HTTPException(503): On other HTTP errors
     """
     max_retries_429 = 3
     backoff_times_429 = [1, 2, 4]
+    client = _get_http_client()
 
-    async with httpx.AsyncClient() as client:
-        for attempt_429 in range(max_retries_429):
-            try:
-                headers = await _qf_headers()
-                response = await client.get(
-                    url, headers=headers, params=params, timeout=10.0
-                )
+    for attempt_429 in range(max_retries_429):
+        try:
+            headers = await _qf_headers()
+            response = await client.get(url, headers=headers, params=params)
 
-                if response.status_code == 401:
-                    logger.warning("QF API 401 on %s, clearing token and retrying", url)
-                    qf_token_manager.clear()
+            if response.status_code == 401:
+                logger.warning("QF API 401 on %s, clearing token and retrying", url)
+                qf_token_manager.clear()
 
-                    # Retry once with fresh token
-                    try:
-                        headers = await _qf_headers()
-                        response = await client.get(
-                            url, headers=headers, params=params, timeout=10.0
-                        )
-                        if response.status_code == 401:
-                            logger.error("QF API 401 still after retry on %s", url)
-                            raise HTTPException(status_code=401, detail="QF authentication failed")
-                        response.raise_for_status()
-                        return response.json()
-                    except httpx.HTTPError as e:
-                        logger.error("QF API error after 401 retry on %s: %s", url, str(e))
-                        raise HTTPException(status_code=503, detail="QF API error") from e
-
-                elif response.status_code == 429:
-                    if attempt_429 < max_retries_429 - 1:
-                        wait_time = backoff_times_429[attempt_429]
-                        logger.warning("QF API 429 on %s, backoff %ds", url, wait_time)
-                        await asyncio.sleep(wait_time)
-                        continue
-                    else:
-                        logger.error("QF API 429 exhausted retries on %s", url)
-                        raise HTTPException(status_code=503, detail="QF API rate limited")
-
-                elif response.status_code == 500:
-                    logger.warning("QF API 500 on %s, retrying after 1s", url)
-                    await asyncio.sleep(1)
-                    try:
-                        headers = await _qf_headers()
-                        response = await client.get(
-                            url, headers=headers, params=params, timeout=10.0
-                        )
-                        response.raise_for_status()
-                        return response.json()
-                    except httpx.HTTPError as e:
-                        logger.error("QF API 500 still after retry on %s: %s", url, str(e))
-                        raise HTTPException(status_code=503, detail="QF API error") from e
-
-                response.raise_for_status()
-                return response.json()
-
-            except httpx.HTTPError as e:
-                if "429" not in str(e):
-                    logger.error("QF API error on %s: %s", url, str(e))
+                # Retry once with fresh token
+                try:
+                    headers = await _qf_headers()
+                    response = await client.get(url, headers=headers, params=params)
+                    if response.status_code == 401:
+                        logger.error("QF API 401 still after retry on %s", url)
+                        raise HTTPException(status_code=401, detail="QF authentication failed")
+                    response.raise_for_status()
+                    return response.json()
+                except httpx.HTTPError as e:
+                    logger.error("QF API error after 401 retry on %s: %s", url, str(e))
                     raise HTTPException(status_code=503, detail="QF API error") from e
-                continue
+
+            elif response.status_code == 429:
+                if attempt_429 < max_retries_429 - 1:
+                    wait_time = backoff_times_429[attempt_429]
+                    logger.warning("QF API 429 on %s, backoff %ds", url, wait_time)
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    logger.error("QF API 429 exhausted retries on %s", url)
+                    raise HTTPException(status_code=503, detail="QF API rate limited")
+
+            elif response.status_code == 500:
+                logger.warning("QF API 500 on %s, retrying after 1s", url)
+                await asyncio.sleep(1)
+                try:
+                    headers = await _qf_headers()
+                    response = await client.get(url, headers=headers, params=params)
+                    response.raise_for_status()
+                    return response.json()
+                except httpx.HTTPError as e:
+                    logger.error("QF API 500 still after retry on %s: %s", url, str(e))
+                    raise HTTPException(status_code=503, detail="QF API error") from e
+
+            response.raise_for_status()
+            return response.json()
+
+        except httpx.HTTPError as e:
+            if "429" not in str(e):
+                logger.error("QF API error on %s: %s", url, str(e))
+                raise HTTPException(status_code=503, detail="QF API error") from e
+            continue
 
     raise HTTPException(status_code=503, detail="QF API error")
 
@@ -128,10 +125,6 @@ async def get_verse_by_key(verse_key: str) -> Dict[str, Any]:
 
     Returns:
         Dict with verse_key, text_uthmani, translation
-
-    Raises:
-        HTTPException(400): Invalid verse_key format
-        HTTPException(503): QF API error
     """
     if not re.match(r"^\d{1,3}:\d{1,3}$", verse_key):
         logger.warning("Invalid verse_key format: %s", verse_key)
@@ -164,14 +157,8 @@ async def get_tafsir_by_key(verse_key: str) -> str:
     """
     Fetch tafsir for a verse from QF Tafsir API.
 
-    Args:
-        verse_key: Format "chapter:verse" (e.g., "2:255")
-
     Returns:
         Tafsir text (HTML stripped), or empty string if not found
-
-    Raises:
-        None — returns empty string on error (non-blocking)
     """
     try:
         url = f"{QF_CONTENT_BASE}/tafsirs/{TAFSIR_ID}/by_ayah/{verse_key}"
@@ -201,14 +188,8 @@ async def get_audio_url(verse_key: str) -> Optional[str]:
     """
     Fetch audio URL for a verse from QF Recitation API.
 
-    Args:
-        verse_key: Format "chapter:verse" (e.g., "2:255")
-
     Returns:
         Audio file URL, or None if not found (non-blocking)
-
-    Raises:
-        None — returns None on error (non-blocking)
     """
     try:
         url = f"{QF_CONTENT_BASE}/recitations/{RECITATION_ID}/by_ayah/{verse_key}"
@@ -234,36 +215,44 @@ async def get_audio_url(verse_key: str) -> Optional[str]:
         return None
 
 
-_verse_cache: Dict[str, Dict[str, Any]] = {}
+# TTL-based verse cache: {verse_key: (data, expiry_timestamp)}
+_verse_cache: Dict[str, tuple[Dict[str, Any], float]] = {}
+_VERSE_CACHE_TTL = 300  # 5 minutes
+_VERSE_CACHE_MAX_SIZE = 50
+
+
+def _clean_verse_cache() -> None:
+    """Remove expired entries and enforce max size."""
+    now = time.time()
+    expired = [k for k, (_, exp) in _verse_cache.items() if now >= exp]
+    for k in expired:
+        del _verse_cache[k]
+    # If still over limit, remove oldest entries
+    if len(_verse_cache) > _VERSE_CACHE_MAX_SIZE:
+        sorted_keys = sorted(_verse_cache, key=lambda k: _verse_cache[k][1])
+        for k in sorted_keys[: len(_verse_cache) - _VERSE_CACHE_MAX_SIZE]:
+            del _verse_cache[k]
+
 
 async def get_verse_with_full_context(verse_key: str) -> Dict[str, Any]:
     """
     Fetch verse with tafsir and audio concurrently.
 
-    Args:
-        verse_key: Format "chapter:verse" (e.g., "2:255")
-
-    Returns:
-        Dict with verse_key, text_uthmani, translation, tafsir, audio_url
-
-    Raises:
-        HTTPException(400): Invalid verse_key
-        HTTPException(503): QF API error on verse fetch
+    Uses TTL-based in-memory cache (5 min expiry, max 50 entries).
     """
     # Check cache first
+    now = time.time()
     if verse_key in _verse_cache:
-        logger.debug("Serving verse %s from memory cache", verse_key)
-        return _verse_cache[verse_key]
+        cached_data, expiry = _verse_cache[verse_key]
+        if now < expiry:
+            logger.debug("Serving verse %s from memory cache", verse_key)
+            return cached_data
 
     # Fetch verse, tafsir, and audio concurrently
-    verse_task = asyncio.create_task(get_verse_by_key(verse_key))
-    tafsir_task = asyncio.create_task(get_tafsir_by_key(verse_key))
-    audio_url_task = asyncio.create_task(get_audio_url(verse_key))
-
     verse, tafsir, audio_url = await asyncio.gather(
-        verse_task,
-        tafsir_task,
-        audio_url_task,
+        get_verse_by_key(verse_key),
+        get_tafsir_by_key(verse_key),
+        get_audio_url(verse_key),
     )
 
     result = {
@@ -273,8 +262,9 @@ async def get_verse_with_full_context(verse_key: str) -> Dict[str, Any]:
         "tafsir": tafsir or "",
         "audio_url": audio_url,
     }
-    
-    # Store in memory cache
-    _verse_cache[verse_key] = result
-    
+
+    # Store in cache with TTL
+    _clean_verse_cache()
+    _verse_cache[verse_key] = (result, now + _VERSE_CACHE_TTL)
+
     return result

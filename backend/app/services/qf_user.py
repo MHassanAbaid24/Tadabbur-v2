@@ -11,44 +11,44 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Shared httpx.AsyncClient — reuses TCP connections across requests
+_http_client: Optional[httpx.AsyncClient] = None
+
+
+def _get_http_client() -> httpx.AsyncClient:
+    """Get or create the shared httpx.AsyncClient."""
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(
+            timeout=10.0,
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
+    return _http_client
+
 
 async def _qf_user_get(user_id: str, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Make authenticated GET request to QF User API.
-
-    Args:
-        user_id: Supabase user ID (for retrieving their QF token)
-        path: API path relative to /api/v1 (e.g., "streaks", "notes?verse_key=2:255")
-        params: Optional query parameters
-
-    Returns:
-        JSON response from QF API
-
-    Raises:
-        HTTPException(401): QF token expired or not connected
-        HTTPException(403): Scope issue or access denied
-        HTTPException(503): QF API error
     """
     try:
         token = await get_user_qf_token(user_id)
-
         headers = {"Authorization": f"Bearer {token}"}
+        client = _get_http_client()
 
-        async with httpx.AsyncClient() as client:
-            url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
-            response = await client.get(url, headers=headers, params=params, timeout=10)
+        url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
+        response = await client.get(url, headers=headers, params=params)
 
-            if response.status_code == 401:
-                logger.warning("QF User API 401 for user: %s (token expired)", user_id)
-                raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
+        if response.status_code == 401:
+            logger.warning("QF User API 401 for user: %s (token expired)", user_id)
+            raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
 
-            if response.status_code == 403:
-                logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
-                raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
+        if response.status_code == 403:
+            logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
 
-            response.raise_for_status()
-            logger.debug("QF User API GET %s succeeded for user: %s", path, user_id)
-            return response.json()
+        response.raise_for_status()
+        logger.debug("QF User API GET %s succeeded for user: %s", path, user_id)
+        return response.json()
 
     except HTTPException:
         raise
@@ -60,40 +60,26 @@ async def _qf_user_get(user_id: str, path: str, params: Optional[Dict[str, Any]]
 async def _qf_user_post(user_id: str, path: str, body: Dict[str, Any]) -> Dict[str, Any]:
     """
     Make authenticated POST request to QF User API.
-
-    Args:
-        user_id: Supabase user ID (for retrieving their QF token)
-        path: API path relative to /api/v1 (e.g., "notes", "posts")
-        body: Request body
-
-    Returns:
-        JSON response from QF API
-
-    Raises:
-        HTTPException(401): QF token expired or not connected
-        HTTPException(403): Scope issue or access denied
-        HTTPException(503): QF API error
     """
     try:
         token = await get_user_qf_token(user_id)
-
         headers = {"Authorization": f"Bearer {token}"}
+        client = _get_http_client()
 
-        async with httpx.AsyncClient() as client:
-            url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
-            response = await client.post(url, headers=headers, json=body, timeout=10)
+        url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
+        response = await client.post(url, headers=headers, json=body)
 
-            if response.status_code == 401:
-                logger.warning("QF User API 401 for user: %s (token expired)", user_id)
-                raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
+        if response.status_code == 401:
+            logger.warning("QF User API 401 for user: %s (token expired)", user_id)
+            raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
 
-            if response.status_code == 403:
-                logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
-                raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
+        if response.status_code == 403:
+            logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
 
-            response.raise_for_status()
-            logger.debug("QF User API POST %s succeeded for user: %s", path, user_id)
-            return response.json()
+        response.raise_for_status()
+        logger.debug("QF User API POST %s succeeded for user: %s", path, user_id)
+        return response.json()
 
     except HTTPException:
         raise
@@ -108,28 +94,27 @@ async def _qf_user_delete(user_id: str, path: str) -> Dict[str, Any]:
     """
     try:
         token = await get_user_qf_token(user_id)
-
         headers = {"Authorization": f"Bearer {token}"}
+        client = _get_http_client()
 
-        async with httpx.AsyncClient() as client:
-            url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
-            response = await client.delete(url, headers=headers, timeout=10)
+        url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
+        response = await client.delete(url, headers=headers)
 
-            if response.status_code == 401:
-                logger.warning("QF User API 401 for user: %s (token expired)", user_id)
-                raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
+        if response.status_code == 401:
+            logger.warning("QF User API 401 for user: %s (token expired)", user_id)
+            raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
 
-            if response.status_code == 403:
-                logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
-                raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
+        if response.status_code == 403:
+            logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
 
-            response.raise_for_status()
-            logger.debug("QF User API DELETE %s succeeded for user: %s", path, user_id)
-            
-            # 204 typically has no content
-            if response.status_code == 204:
-                return {}
-            return response.json()
+        response.raise_for_status()
+        logger.debug("QF User API DELETE %s succeeded for user: %s", path, user_id)
+
+        # 204 typically has no content
+        if response.status_code == 204:
+            return {}
+        return response.json()
 
     except HTTPException:
         raise
@@ -139,52 +124,24 @@ async def _qf_user_delete(user_id: str, path: str) -> Dict[str, Any]:
 
 
 async def get_streaks(user_id: str) -> Dict[str, Any]:
-    """
-    Fetch user's current and longest streak.
-
-    Args:
-        user_id: Supabase user ID
-
-    Returns:
-        Streak data from QF API
-
-    Raises:
-        HTTPException(401/403/503): See _qf_user_get
-    """
+    """Fetch user's current and longest streak."""
     return await _qf_user_get(user_id, "streaks")
 
 
-async def log_activity_day(user_id: str, date: str) -> Dict[str, Any]:
+async def log_activity_day(user_id: str, date_str: str) -> None:
     """
-    Log an activity day for the user (mark reflection completion).
-
-    Args:
-        user_id: Supabase user ID
-        date: Date string in YYYY-MM-DD format
-
-    Returns:
-        Activity day response from QF API
-
-    Raises:
-        HTTPException(401/403/503): See _qf_user_post
+    Log an activity day (reflection completion).
+    Non-blocking: logs error but does not raise.
     """
-    return await _qf_user_post(user_id, "activity-days", {"date": date})
+    try:
+        await _qf_user_post(user_id, "activity-days", {"date": date_str})
+        logger.debug("Logged activity day for user %s on %s", user_id, date_str)
+    except Exception as e:
+        logger.warning("Failed to log activity day: %s", str(e))
 
 
 async def get_notes(user_id: str, verse_key: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Get user's notes (optionally filtered by verse).
-
-    Args:
-        user_id: Supabase user ID
-        verse_key: Optional verse key filter (e.g., "2:255")
-
-    Returns:
-        Notes from QF API
-
-    Raises:
-        HTTPException(401/403/503): See _qf_user_get
-    """
+    """Get user's notes (optionally filtered by verse)."""
     params = {}
     if verse_key:
         params["verse_key"] = verse_key
@@ -192,59 +149,20 @@ async def get_notes(user_id: str, verse_key: Optional[str] = None) -> Dict[str, 
 
 
 async def create_note(user_id: str, verse_key: str, body: str, tags: Optional[list] = None) -> Dict[str, Any]:
-    """
-    Create a new note (reflection) for a verse.
-
-    Args:
-        user_id: Supabase user ID
-        verse_key: Verse key (e.g., "2:255")
-        body: Note text
-        tags: Optional list of tags (e.g., ["tadabbur"])
-
-    Returns:
-        Note response from QF API with note ID
-
-    Raises:
-        HTTPException(401/403/503): See _qf_user_post
-    """
-    note_body = {"verse_key": verse_key, "body": body}
+    """Create a new note (reflection) for a verse."""
+    note_body: Dict[str, Any] = {"verse_key": verse_key, "body": body}
     if tags:
         note_body["tags"] = tags
     return await _qf_user_post(user_id, "notes", note_body)
 
 
 async def create_reading_session(user_id: str, verse_key: str) -> Dict[str, Any]:
-    """
-    Log a reading session for a verse.
-
-    Args:
-        user_id: Supabase user ID
-        verse_key: Verse key (e.g., "2:255")
-
-    Returns:
-        Reading session response from QF API
-
-    Raises:
-        HTTPException(401/403/503): See _qf_user_post
-    """
+    """Log a reading session for a verse."""
     return await _qf_user_post(user_id, "reading-sessions", {"verse_key": verse_key})
 
 
 async def create_qf_note(user_id: str, verse_key: str, body: str) -> Optional[str]:
-    """
-    Create a note (reflection) in QF Notes API.
-
-    Args:
-        user_id: Supabase user ID
-        verse_key: Verse key (e.g., "2:255")
-        body: Note text
-
-    Returns:
-        Note ID string from QF API, or None if creation fails
-
-    Raises:
-        HTTPException(401/403): Via _qf_user_post (will raise and be caught by caller)
-    """
+    """Create a note (reflection) in QF Notes API."""
     try:
         response = await _qf_user_post(user_id, "notes", {
             "verse_key": verse_key,
@@ -270,18 +188,7 @@ async def create_qf_post(
     verse_key: str,
     room_id: str,
 ) -> Optional[str]:
-    """
-    Create a shared post in a QF Room.
-
-    Args:
-        user_id: Supabase user ID
-        body: Post text (reflection)
-        verse_key: Verse key (e.g., "2:255")
-        room_id: QF Room ID
-
-    Returns:
-        Post ID string from QF API, or None if creation fails
-    """
+    """Create a shared post in a QF Room."""
     try:
         response = await _qf_user_post(user_id, "posts", {
             "body": body,
@@ -301,33 +208,8 @@ async def create_qf_post(
         return None
 
 
-async def log_activity_day(user_id: str, date_str: str) -> None:
-    """
-    Log an activity day (reflection completion).
-
-    Non-blocking: logs error but does not raise.
-
-    Args:
-        user_id: Supabase user ID
-        date_str: Date in YYYY-MM-DD format
-    """
-    try:
-        await _qf_user_post(user_id, "activity-days", {"date": date_str})
-        logger.debug("Logged activity day for user %s on %s", user_id, date_str)
-    except Exception as e:
-        logger.warning("Failed to log activity day: %s", str(e))
-
-
 async def log_reading_session(user_id: str, verse_key: str) -> None:
-    """
-    Log a reading session for a verse.
-
-    Non-blocking: logs warning but does not raise.
-
-    Args:
-        user_id: Supabase user ID
-        verse_key: Verse key (e.g., "2:255")
-    """
+    """Log a reading session. Non-blocking."""
     try:
         await _qf_user_post(user_id, "reading-sessions", {"verse_key": verse_key})
         logger.debug("Logged reading session for user %s on %s", user_id, verse_key)
@@ -336,16 +218,7 @@ async def log_reading_session(user_id: str, verse_key: str) -> None:
 
 
 async def create_qf_room(user_id: str, name: str) -> Optional[str]:
-    """
-    Create a new QF Room (reflection circle).
-
-    Args:
-        user_id: Supabase user ID
-        name: Room name
-
-    Returns:
-        Room ID string from QF API, or None if creation fails
-    """
+    """Create a new QF Room (reflection circle)."""
     try:
         response = await _qf_user_post(user_id, "rooms/groups", {"name": name})
         room_id = response.get("id")
@@ -362,18 +235,7 @@ async def create_qf_room(user_id: str, name: str) -> Optional[str]:
 
 
 async def like_qf_post(user_id: str, qf_post_id: str) -> bool:
-    """
-    Like a QF Post (reflection from circle member).
-
-    Non-blocking: returns False on failure, never raises.
-
-    Args:
-        user_id: Supabase user ID
-        qf_post_id: QF Post ID to like
-
-    Returns:
-        True if like succeeded, False otherwise
-    """
+    """Like a QF Post. Non-blocking: returns False on failure."""
     try:
         await _qf_user_post(user_id, f"posts/{qf_post_id}/like", {})
         logger.debug("Liked QF post %s for user %s", qf_post_id, user_id)
@@ -384,9 +246,7 @@ async def like_qf_post(user_id: str, qf_post_id: str) -> bool:
 
 
 async def unlike_qf_post(user_id: str, qf_post_id: str) -> bool:
-    """
-    Unlike a QF Post.
-    """
+    """Unlike a QF Post."""
     try:
         await _qf_user_delete(user_id, f"posts/{qf_post_id}/like")
         logger.debug("Unliked QF post %s for user %s", qf_post_id, user_id)
@@ -397,26 +257,13 @@ async def unlike_qf_post(user_id: str, qf_post_id: str) -> bool:
 
 
 async def get_activity_days(user_id: str, from_date: str, to_date: str) -> list[str]:
-    """
-    Fetch activity days (reflection completion dates) for date range.
-
-    Non-blocking: returns empty list on failure.
-
-    Args:
-        user_id: Supabase user ID
-        from_date: Start date in YYYY-MM-DD format
-        to_date: End date in YYYY-MM-DD format
-
-    Returns:
-        List of date strings where user completed a reflection
-    """
+    """Fetch activity days for date range. Returns empty list on failure."""
     try:
         response = await _qf_user_get(user_id, "activity-days", {
             "from": from_date,
             "to": to_date,
         })
 
-        # Extract dates from response (assuming array of objects with 'date' field)
         dates = []
         if isinstance(response, dict) and "data" in response:
             data = response["data"]

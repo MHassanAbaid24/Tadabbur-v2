@@ -15,7 +15,7 @@ export default function MobileNav() {
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
       <div className="max-w-lg mx-auto px-4 flex items-center justify-around h-16">
         {tabs.map(({ path, label, icon: Icon }) => {
           const active = isActive(path)

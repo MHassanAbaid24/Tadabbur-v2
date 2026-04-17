@@ -41,7 +41,7 @@ async def test_submit_reflection_saves_to_supabase() -> None:
 
                     # Mock Supabase checks
                     mock_existing = MagicMock()
-                    mock_existing.eq.return_value.eq.return_value.execute.return_value.data = []
+                    mock_existing.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
 
                     mock_insert = MagicMock()
                     mock_insert_result = MagicMock()
@@ -73,7 +73,7 @@ async def test_submit_syncs_to_qf_notes() -> None:
                     mock_note.return_value = "qf_note_id_123"
 
                     mock_existing = MagicMock()
-                    mock_existing.eq.return_value.eq.return_value.execute.return_value.data = []
+                    mock_existing.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
 
                     mock_insert = MagicMock()
                     mock_insert_result = MagicMock()
@@ -98,7 +98,7 @@ async def test_submit_second_reflection_same_day_returns_409() -> None:
 
     with patch("app.routers.reflection.supabase_client") as mock_supabase:
         mock_existing = MagicMock()
-        mock_existing.eq.return_value.eq.return_value.execute.return_value.data = [
+        mock_existing.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
             {"id": "existing_reflection_uuid"}
         ]
 
@@ -127,7 +127,7 @@ async def test_shared_reflection_creates_qf_post() -> None:
                         mock_post.return_value = "post_uuid_456"
 
                         mock_existing = MagicMock()
-                        mock_existing.eq.return_value.eq.return_value.execute.return_value.data = []
+                        mock_existing.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
 
                         mock_insert = MagicMock()
                         mock_insert_result = MagicMock()
@@ -158,7 +158,7 @@ async def test_private_reflection_has_no_post() -> None:
                 with patch("app.routers.reflection.create_qf_post", new_callable=AsyncMock) as mock_post:
                     with patch("app.routers.reflection.get_streaks", new_callable=AsyncMock):
                         mock_existing = MagicMock()
-                        mock_existing.eq.return_value.eq.return_value.execute.return_value.data = []
+                        mock_existing.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
 
                         mock_insert = MagicMock()
                         mock_insert_result = MagicMock()

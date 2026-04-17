@@ -8,7 +8,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.config import settings
-from app.db.supabase import supabase_client
+from app.db.supabase import async_supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ async def store_user_qf_token(user_id: str, token_data: Dict[str, Any]) -> None:
         expires_in = token_data.get("expires_in", 3600)
         expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
 
-        supabase_client.table("profiles").update(
+        await async_supabase_client.table("profiles").update(
             {
                 "qf_access_token": access_token,
                 "qf_token_expires_at": expires_at.isoformat(),
@@ -136,7 +136,7 @@ async def get_user_qf_token(user_id: str) -> str:
         return settings.qf_test_user_token
 
     try:
-        profile_response = supabase_client.table("profiles").select(
+        profile_response = await async_supabase_client.table("profiles").select(
             "qf_access_token,qf_token_expires_at"
         ).eq("id", user_id).execute()
 

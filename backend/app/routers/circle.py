@@ -32,7 +32,9 @@ async def create_circle(
     user_id = current_user["sub"]
 
     # Check user not already in a circle
-    existing = supabase_client.table("circle_members").select("*").eq("user_id", user_id).execute()
+    existing = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("*").eq("user_id", user_id).execute()
+    )
     if existing.data and len(existing.data) > 0:
         raise HTTPException(status_code=409, detail="User is already in a circle")
 
@@ -53,20 +55,24 @@ async def create_circle(
 
     # Create local circle
     try:
-        circle_result = supabase_client.table("circles").insert({
-            "qf_room_id": effective_room_id,
-            "name": req.name,
-            "invite_code": invite_code,
-            "created_by": user_id,
-        }).execute()
+        circle_result = await asyncio.to_thread(
+            lambda: supabase_client.table("circles").insert({
+                "qf_room_id": effective_room_id,
+                "name": req.name,
+                "invite_code": invite_code,
+                "created_by": user_id,
+            }).execute()
+        )
 
         circle_id = circle_result.data[0]["id"]
 
         # Add creator as first member
-        supabase_client.table("circle_members").insert({
-            "circle_id": circle_id,
-            "user_id": user_id,
-        }).execute()
+        await asyncio.to_thread(
+            lambda: supabase_client.table("circle_members").insert({
+                "circle_id": circle_id,
+                "user_id": user_id,
+            }).execute()
+        )
 
         member_count = 1
         circle_data = CircleResponse(
@@ -100,7 +106,9 @@ async def join_circle(
     user_id = current_user["sub"]
 
     # Find circle by invite code
-    circles = supabase_client.table("circles").select("*").eq("invite_code", invite_code).execute()
+    circles = await asyncio.to_thread(
+        lambda: supabase_client.table("circles").select("*").eq("invite_code", invite_code).execute()
+    )
     if not circles.data or len(circles.data) == 0:
         raise HTTPException(status_code=404, detail="Circle not found")
 
@@ -108,19 +116,25 @@ async def join_circle(
     circle_id = circle["id"]
 
     # Check user not already in a circle
-    existing = supabase_client.table("circle_members").select("*").eq("user_id", user_id).execute()
+    existing = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("*").eq("user_id", user_id).execute()
+    )
     if existing.data and len(existing.data) > 0:
         raise HTTPException(status_code=409, detail="User is already in a circle")
 
     # Add user to circle
     try:
-        supabase_client.table("circle_members").insert({
-            "circle_id": circle_id,
-            "user_id": user_id,
-        }).execute()
+        await asyncio.to_thread(
+            lambda: supabase_client.table("circle_members").insert({
+                "circle_id": circle_id,
+                "user_id": user_id,
+            }).execute()
+        )
 
         # Get updated member count
-        members = supabase_client.table("circle_members").select("*").eq("circle_id", circle_id).execute()
+        members = await asyncio.to_thread(
+            lambda: supabase_client.table("circle_members").select("*").eq("circle_id", circle_id).execute()
+        )
         member_count = len(members.data) if members.data else 0
 
         circle_data = CircleResponse(
@@ -160,19 +174,19 @@ async def get_my_circle(
 
     circle_id = memberships.data[0]["circle_id"]
 
-    # Get circle details
-    circles = await asyncio.to_thread(
+    # Run circle details + member count fetch IN PARALLEL
+    circles_task = asyncio.to_thread(
         lambda: supabase_client.table("circles").select("*").eq("id", circle_id).execute()
     )
+    members_task = asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("user_id").eq("circle_id", circle_id).execute()
+    )
+    circles, members = await asyncio.gather(circles_task, members_task)
+
     if not circles.data or len(circles.data) == 0:
         raise HTTPException(status_code=404, detail="Circle not found")
 
     circle = circles.data[0]
-
-    # Get member count
-    members = await asyncio.to_thread(
-        lambda: supabase_client.table("circle_members").select("*").eq("circle_id", circle_id).execute()
-    )
     member_count = len(members.data) if members.data else 0
 
     circle_data = CircleResponse(
@@ -200,14 +214,18 @@ async def get_circle_feed(
     user_id = current_user["sub"]
 
     # Find user's circle
-    memberships = supabase_client.table("circle_members").select("circle_id").eq("user_id", user_id).execute()
+    memberships = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("circle_id").eq("user_id", user_id).execute()
+    )
     if not memberships.data or len(memberships.data) == 0:
         raise HTTPException(status_code=404, detail="User is not in a circle")
 
     circle_id = memberships.data[0]["circle_id"]
 
     # Get all members in circle
-    members_result = supabase_client.table("circle_members").select("user_id").eq("circle_id", circle_id).execute()
+    members_result = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("user_id").eq("circle_id", circle_id).execute()
+    )
     if not members_result.data:
         return APIResponse(success=True, data={"feed": []}).dict()
 
@@ -218,8 +236,8 @@ async def get_circle_feed(
 
     # Fetch shared reflections from circle members, with profile info
     try:
-        reflections_result = (
-            supabase_client.table("reflections")
+        reflections_result = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections")
             .select("id, user_id, verse_key, prompt_1_answer, prompt_2_answer, mood, created_at, qf_post_id")
             .in_("user_id", member_user_ids)
             .eq("is_shared", True)
@@ -231,19 +249,29 @@ async def get_circle_feed(
         if not reflections_result.data:
             return APIResponse(success=True, data={"feed": []}).dict()
 
-        feed_items: list[CircleFeedItem] = []
-
+        # Batch-fetch likes and profiles IN PARALLEL
         reflection_ids = [ref["id"] for ref in reflections_result.data]
-        all_likes = []
+        all_likes: list = []
+
+        likes_task = None
         if reflection_ids:
             try:
-                # We fetch likes for all reflections in one batch.
-                likes_result = supabase_client.table("reflection_likes").select("reflection_id, user_id").in_("reflection_id", reflection_ids).execute()
-                all_likes = likes_result.data or []
+                likes_task = asyncio.to_thread(
+                    lambda: supabase_client.table("reflection_likes").select("reflection_id, user_id").in_("reflection_id", reflection_ids).execute()
+                )
             except Exception as e:
-                # If table doesn't exist yet, we catch it gracefully so the feed still loads
                 logger.warning("reflection_likes table error (run migration): %s", str(e))
-                all_likes = []
+
+        profiles_task = asyncio.to_thread(
+            lambda: supabase_client.table("profiles").select("id, display_name").in_("id", member_user_ids).execute()
+        )
+
+        # Await both in parallel
+        if likes_task:
+            likes_result, profiles_result = await asyncio.gather(likes_task, profiles_task)
+            all_likes = likes_result.data or []
+        else:
+            profiles_result = await profiles_task
 
         likes_by_ref: dict[str, list[str]] = {}
         for like in all_likes:
@@ -252,13 +280,15 @@ async def get_circle_feed(
                 likes_by_ref[ref_id] = []
             likes_by_ref[ref_id].append(like["user_id"])
 
+        display_names: dict[str, str] = {p["id"]: p["display_name"] for p in (profiles_result.data or [])}
+
+        feed_items: list[CircleFeedItem] = []
         for reflection in reflections_result.data:
             # Get author profile
             if reflection["user_id"] == user_id:
                 display_name = "You"
             else:
-                profile_result = supabase_client.table("profiles").select("display_name").eq("id", reflection["user_id"]).execute()
-                display_name = profile_result.data[0]["display_name"] if profile_result.data else "Anonymous"
+                display_name = display_names.get(reflection["user_id"], "Anonymous")
 
             ref_id = reflection["id"]
             ref_likes = likes_by_ref.get(ref_id, [])
@@ -303,7 +333,9 @@ async def like_reflection(
 
     try:
         # Get reflection
-        reflections = supabase_client.table("reflections").select("*").eq("id", reflection_id).execute()
+        reflections = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections").select("*").eq("id", reflection_id).execute()
+        )
         if not reflections.data or len(reflections.data) == 0:
             raise HTTPException(status_code=404, detail="Reflection not found")
 
@@ -316,28 +348,36 @@ async def like_reflection(
 
         # Track the like locally in our own database
         try:
-            supabase_client.table("reflection_likes").insert({
-                "user_id": user_id,
-                "reflection_id": reflection_id
-            }).execute()
+            await asyncio.to_thread(
+                lambda: supabase_client.table("reflection_likes").insert({
+                    "user_id": user_id,
+                    "reflection_id": reflection_id
+                }).execute()
+            )
         except Exception as e:
             # Catch PGRST116 (duplicate key violation if user already liked it) - safe to ignore
             logger.warning("Duplicate like or reflection_likes missing: %s", str(e))
 
         # Award +3 XP for liking
         xp_amount = 3
-        supabase_client.table("xp_events").insert({
-            "user_id": user_id,
-            "event_type": "like_reflection",
-            "xp_amount": xp_amount,
-        }).execute()
+        await asyncio.to_thread(
+            lambda: supabase_client.table("xp_events").insert({
+                "user_id": user_id,
+                "event_type": "like_reflection",
+                "xp_amount": xp_amount,
+            }).execute()
+        )
 
         # Update user's total XP
-        profiles = supabase_client.table("profiles").select("xp").eq("id", user_id).execute()
+        profiles = await asyncio.to_thread(
+            lambda: supabase_client.table("profiles").select("xp").eq("id", user_id).execute()
+        )
         current_xp = profiles.data[0]["xp"] if profiles.data else 0
         new_xp = current_xp + xp_amount
 
-        supabase_client.table("profiles").update({"xp": new_xp}).eq("id", user_id).execute()
+        await asyncio.to_thread(
+            lambda: supabase_client.table("profiles").update({"xp": new_xp}).eq("id", user_id).execute()
+        )
 
         logger.info("User %s liked reflection %s, awarded %d XP", user_id, reflection_id, xp_amount)
 
@@ -362,7 +402,9 @@ async def unlike_reflection(
 
     try:
         from app.services.qf_user import unlike_qf_post
-        reflections = supabase_client.table("reflections").select("*").eq("id", reflection_id).execute()
+        reflections = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections").select("*").eq("id", reflection_id).execute()
+        )
         if not reflections.data or len(reflections.data) == 0:
             raise HTTPException(status_code=404, detail="Reflection not found")
 
@@ -374,22 +416,30 @@ async def unlike_reflection(
 
         # Untrack the like locally
         try:
-            supabase_client.table("reflection_likes").delete().eq("user_id", user_id).eq("reflection_id", reflection_id).execute()
+            await asyncio.to_thread(
+                lambda: supabase_client.table("reflection_likes").delete().eq("user_id", user_id).eq("reflection_id", reflection_id).execute()
+            )
         except Exception as e:
             logger.warning("Unliking failed locally or reflection_likes missing: %s", str(e))
 
         # Deduct XP (optional but consistent)
         xp_amount = -3
-        supabase_client.table("xp_events").insert({
-            "user_id": user_id,
-            "event_type": "unlike_reflection",
-            "xp_amount": xp_amount,
-        }).execute()
+        await asyncio.to_thread(
+            lambda: supabase_client.table("xp_events").insert({
+                "user_id": user_id,
+                "event_type": "unlike_reflection",
+                "xp_amount": xp_amount,
+            }).execute()
+        )
 
-        profiles = supabase_client.table("profiles").select("xp").eq("id", user_id).execute()
+        profiles = await asyncio.to_thread(
+            lambda: supabase_client.table("profiles").select("xp").eq("id", user_id).execute()
+        )
         current_xp = profiles.data[0]["xp"] if profiles.data else 0
         new_xp = max(0, current_xp + xp_amount)
-        supabase_client.table("profiles").update({"xp": new_xp}).eq("id", user_id).execute()
+        await asyncio.to_thread(
+            lambda: supabase_client.table("profiles").update({"xp": new_xp}).eq("id", user_id).execute()
+        )
 
         logger.info("User %s unliked reflection %s, deducted %d XP", user_id, reflection_id, abs(xp_amount))
         return APIResponse(success=True, data={"liked": False, "xp_earned": xp_amount}).dict()

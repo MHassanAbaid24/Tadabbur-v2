@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 
 from app.auth.jwt import get_current_user
 from app.models.schemas import APIResponse
@@ -50,7 +51,11 @@ async def get_today_verse(
 
     logger.info("Served verse %s to user %s", verse_key, user_id)
 
-    return APIResponse(success=True, data=verse_context)
+    response = APIResponse(success=True, data=verse_context)
+    return JSONResponse(
+        content=response.dict(),
+        headers={"Cache-Control": "private, max-age=300"},
+    )
 
 
 @router.get("/{verse_key}")

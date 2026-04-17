@@ -4,6 +4,7 @@ import CircleFeed from '../components/circle/CircleFeed'
 import CircleInvite from '../components/circle/CircleInvite'
 import { Link } from 'react-router-dom'
 import PageWrapper from '../components/layout/PageWrapper'
+import api from '../lib/api'
 
 export default function Circle() {
   const [isLoading, setIsLoading] = useState(true)
@@ -18,34 +19,28 @@ export default function Circle() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Try to fetch user's circle
-        const circleResponse = await fetch('/api/circle/my', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
-          },
-        })
+        // Fetch circle + feed in parallel
+        const circleResponse = await api.get('/api/circle/my')
 
-        if (circleResponse.ok) {
-          const circleJson = await circleResponse.json()
-          const circle = circleJson.data
+        if (circleResponse.data) {
+          const circle = circleResponse.data.data
           setCircleData(circle)
           setHasCircle(true)
 
           // Fetch feed
-          const feedResponse = await fetch('/api/circle/feed', {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
-            },
-          })
-          if (feedResponse.ok) {
-            const feedJson = await feedResponse.json()
-            setFeedItems(feedJson.data.feed || [])
+          try {
+            const feedResponse = await api.get('/api/circle/feed')
+            setFeedItems(feedResponse.data.data.feed || [])
+          } catch {
+            // Feed fetch failure is non-critical
           }
-        } else {
-          setHasCircle(false)
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load circle')
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          setHasCircle(false)
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load circle')
+        }
       } finally {
         setIsLoading(false)
       }
@@ -54,25 +49,18 @@ export default function Circle() {
     loadData()
   }, [])
 
-  // Poll for realtime updates
+  // Poll for feed updates — 30s interval (reduced from 5s)
   useEffect(() => {
     if (!hasCircle) return;
     
     const interval = setInterval(async () => {
       try {
-        const feedResponse = await fetch('/api/circle/feed', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
-          },
-        })
-        if (feedResponse.ok) {
-          const feedJson = await feedResponse.json()
-          setFeedItems(feedJson.data.feed || [])
-        }
-      } catch (err) {
+        const feedResponse = await api.get('/api/circle/feed')
+        setFeedItems(feedResponse.data.data.feed || [])
+      } catch {
         // ignore background interval errors
       }
-    }, 5000); // 5 seconds polling
+    }, 30000); // 30 seconds — appropriate for a daily reflection app
 
     return () => clearInterval(interval);
   }, [hasCircle])
@@ -80,13 +68,8 @@ export default function Circle() {
   const handleLike = async (reflectionId: string, isUnlike: boolean) => {
     try {
       const endpoint = isUnlike ? `/api/circle/unlike/${reflectionId}` : `/api/circle/like/${reflectionId}`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
-        },
-      })
-      if (response.ok) {
+      const response = await api.post(endpoint)
+      if (response.data) {
         // Optimistically update feed items
         setFeedItems((prev) =>
           prev.map((item) =>
@@ -99,12 +82,10 @@ export default function Circle() {
               : item
           )
         )
-      } else {
-        throw new Error('Failed to update like status');
       }
     } catch (err) {
       console.error('Failed to update like status:', err)
-      throw err; // throw to let the feed component know it failed, so it could revert the optimistic UI if you added that logic
+      throw err;
     }
   }
 
@@ -114,33 +95,22 @@ export default function Circle() {
     setJoinError(null)
 
     try {
-      const response = await fetch(`/api/circle/join/${joinCode.trim()}`, {
-        method: 'GET', // Following backend join_circle route which uses GET /join/{code}
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
-        },
-      })
+      const response = await api.get(`/api/circle/join/${joinCode.trim()}`)
 
-      if (response.ok) {
-        const json = await response.json()
-        setCircleData(json.data)
+      if (response.data) {
+        setCircleData(response.data.data)
         setHasCircle(true)
         // Refresh feed after joining
-        const feedResponse = await fetch('/api/circle/feed', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
-          },
-        })
-        if (feedResponse.ok) {
-          const feedJson = await feedResponse.json()
-          setFeedItems(feedJson.data.feed || [])
+        try {
+          const feedResponse = await api.get('/api/circle/feed')
+          setFeedItems(feedResponse.data.data.feed || [])
+        } catch {
+          // non-critical
         }
-      } else {
-        const errorData = await response.json()
-        setJoinError(errorData.detail || 'Failed to join circle')
       }
-    } catch (err) {
-      setJoinError('Something went wrong. Please try again.')
+    } catch (err: any) {
+      const errorData = err?.response?.data
+      setJoinError(errorData?.detail || errorData?.error || 'Failed to join circle')
     } finally {
       setIsJoining(false)
     }

@@ -86,9 +86,9 @@ export default function Home() {
 
   const handleReflectionSubmitted = () => {
     setFormSubmitted(true)
-    // Refresh today's reflection and progress after submission
-    useReflectionStore.getState().fetchTodayReflection()
-    useProgressStore.getState().fetchSummary()
+    // Force refresh (bypass staleness check) after submission
+    useReflectionStore.getState().fetchTodayReflection(true)
+    useProgressStore.getState().fetchSummary(true)
   }
 
   return (

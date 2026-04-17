@@ -78,18 +78,18 @@ class TestAuthRoutes:
         headers = {"Authorization": "Bearer invalid.token.format"}
         response = client.get("/api/auth/me", headers=headers)
         assert response.status_code == 401
-        assert response.json()["detail"] == "Invalid or expired token"
+        assert response.json()["error"] == "Invalid or expired token"
 
     def test_me_wrong_scheme(self) -> None:
         """GET /me fails with wrong auth scheme."""
         headers = {"Authorization": "Basic dGVzdDp0ZXN0"}
         response = client.get("/api/auth/me", headers=headers)
         assert response.status_code == 401
-        assert response.json()["detail"] == "Invalid Authorization scheme"
+        assert response.json()["error"] == "Invalid Authorization scheme"
 
     def test_me_malformed_header(self) -> None:
         """GET /me fails with malformed Authorization header."""
         headers = {"Authorization": "NoSpaceHere"}
         response = client.get("/api/auth/me", headers=headers)
         assert response.status_code == 401
-        assert response.json()["detail"] == "Malformed Authorization header"
+        assert response.json()["error"] == "Malformed Authorization header"

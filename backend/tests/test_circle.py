@@ -263,9 +263,10 @@ async def test_get_circle_feed_success():
 
         # Mock: get author profile
         profile = MagicMock()
-        profile.data = [{"display_name": "Sister Aisha"}]
+        profile.data = [{"id": TEST_USER_ID_2, "display_name": "Sister Aisha"}]
 
         call_count = 0
+
         def side_effect(name):
             nonlocal call_count
             call_count += 1
@@ -287,8 +288,12 @@ async def test_get_circle_feed_success():
                         ))
                     ))
                 )
+            elif name == "reflection_likes":
+                likes_mock = MagicMock()
+                likes_mock.data = [{"reflection_id": "refl-1", "user_id": TEST_USER_ID_2}]
+                return MagicMock(select=MagicMock(return_value=MagicMock(in_=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=likes_mock))))))
             else:  # profiles
-                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=profile))))))
+                return MagicMock(select=MagicMock(return_value=MagicMock(in_=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=profile))))))
 
         mock_supabase.table.side_effect = side_effect
 

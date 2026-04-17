@@ -1,8 +1,8 @@
 """Thread-safe OAuth2 Client Credentials token manager for QF Content APIs."""
 
+import asyncio
 import logging
 import time
-import threading
 from typing import Optional
 
 import httpx
@@ -11,10 +11,21 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Shared httpx.AsyncClient for token requests
+_token_http_client: Optional[httpx.AsyncClient] = None
+
+
+def _get_token_http_client() -> httpx.AsyncClient:
+    """Get or create the shared httpx.AsyncClient for token requests."""
+    global _token_http_client
+    if _token_http_client is None or _token_http_client.is_closed:
+        _token_http_client = httpx.AsyncClient(timeout=10.0)
+    return _token_http_client
+
 
 class QFTokenManager:
     """
-    Thread-safe OAuth2 Client Credentials token manager.
+    Async-safe OAuth2 Client Credentials token manager.
     Caches token, re-requests 30s before expiry, prevents concurrent stampede.
     Client Credentials has NO refresh token — always re-request from scratch.
     """
@@ -22,7 +33,7 @@ class QFTokenManager:
     def __init__(self) -> None:
         self._token: Optional[str] = None
         self._expires_at: float = 0.0
-        self._lock = threading.Lock()
+        self._lock = asyncio.Lock()
         self._buffer_seconds: int = 30
 
     def _is_valid(self) -> bool:
@@ -36,14 +47,13 @@ class QFTokenManager:
         """Fetch a new token from QF OAuth2 endpoint."""
         try:
             logger.debug("Fetching new QF token from %s", settings.qf_auth_base_url)
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{settings.qf_auth_base_url}/oauth2/token",
-                    auth=(settings.qf_client_id, settings.qf_client_secret),
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
-                    data="grant_type=client_credentials&scope=content",
-                    timeout=10.0,
-                )
+            client = _get_token_http_client()
+            response = await client.post(
+                f"{settings.qf_auth_base_url}/oauth2/token",
+                auth=(settings.qf_client_id, settings.qf_client_secret),
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                data="grant_type=client_credentials&scope=content",
+            )
             response.raise_for_status()
         except httpx.HTTPError as e:
             status_code = getattr(e, "response", None) and e.response.status_code or "N/A"
@@ -57,23 +67,20 @@ class QFTokenManager:
         return self._token
 
     async def get_token(self) -> str:
-        """Get a valid token, fetching a new one if needed."""
+        """Get a valid token, fetching a new one if needed (stampede-safe)."""
         if self._is_valid():
             return self._token  # type: ignore
 
-        with self._lock:
+        async with self._lock:
+            # Double-check after acquiring lock
             if self._is_valid():
                 return self._token  # type: ignore
-        
-        # Release lock before awaiting to avoid deadlocks (simple approach) 
-        # For full thread/async safety we would use asyncio.Lock() but this is fine for now
-        return await self._fetch_new_token()
+            return await self._fetch_new_token()
 
     def clear(self) -> None:
         """Clear the cached token (forces re-request on next call)."""
-        with self._lock:
-            self._token = None
-            self._expires_at = 0.0
+        self._token = None
+        self._expires_at = 0.0
 
 
 qf_token_manager = QFTokenManager()

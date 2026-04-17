@@ -14,7 +14,12 @@
     @apply bg-cream-50 text-gray-900;
   }
 
-  .font-scheherazade {
+  .font-scheherazade,
+  .font-arabic {
+    font-family: 'Scheherazade New', 'Amiri', 'Lateef', serif;
+  }
+
+  [lang='ar'] {
     font-family: 'Scheherazade New', 'Amiri', 'Lateef', serif;
   }
 

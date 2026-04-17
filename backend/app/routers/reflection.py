@@ -81,19 +81,15 @@ async def submit_reflection(
 
         today = date.today().isoformat()
 
-        # Check if already submitted today (UNIQUE constraint in DB)
+        # Check for previous submissions today to adjust XP
         existing = await asyncio.to_thread(
-            lambda: supabase_client.table("reflections").select("id").eq(
-                "user_id", user_id
-            ).eq("date", today).execute()
+            lambda: supabase_client.table("reflections")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("date", today)
+            .execute()
         )
-
-        if existing.data:
-            logger.warning("User %s already submitted reflection today", user_id)
-            raise HTTPException(
-                status_code=409,
-                detail="You have already submitted a reflection today",
-            )
+        is_first_today = len(existing.data) == 0
 
         # Fetch verse translation for AI prompt
         verse_data = await get_verse_by_key(req.verse_key)
@@ -144,9 +140,14 @@ async def submit_reflection(
         )
 
         # Calculate XP
-        xp_earned = 10  # Base for completing reflection
-        if req.is_shared:
-            xp_earned += 5  # Bonus for sharing
+        if is_first_today:
+            xp_earned = 10  # Base for first reflection
+            if req.is_shared:
+                xp_earned += 5  # Bonus for sharing
+        else:
+            xp_earned = 2  # Reduced base for subsequent reflections
+            if req.is_shared:
+                xp_earned += 1  # Reduced bonus
 
         # Check streaks for bonus
         try:
@@ -278,9 +279,13 @@ async def get_today_reflection(
         today = date.today().isoformat()
 
         response = await asyncio.to_thread(
-            lambda: supabase_client.table("reflections").select("*").eq(
-                "user_id", user_id
-            ).eq("date", today).execute()
+            lambda: supabase_client.table("reflections")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("date", today)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
         )
 
         if response.data:

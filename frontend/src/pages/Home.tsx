@@ -114,44 +114,35 @@ export default function Home() {
           audioUrl={verse.audio_url}
         />
 
-        {/* Reflection Form or Card */}
-        {todayReflection && !formSubmitted ? (
-          <>
-            {/* Completed State */}
+        {/* Reflection Section */}
+        <div className="space-y-8">
+          {todayReflection && (
             <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900">Today's Latest Reflection</h2>
               <ReflectionCard reflection={todayReflection} />
-
               <Link
                 to="/circle"
                 className="block w-full px-4 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium rounded-lg hover:bg-emerald-100 transition-colors text-center"
               >
                 See your circle's reflections
               </Link>
-
-              <p className="text-center text-sm text-gray-600">
-                You've already reflected on today's verse.
-              </p>
             </div>
-          </>
-        ) : (
-          <>
-            {/* Reflection Form */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Share Your Reflection
-              </h2>
-              <ReflectionForm
-                verseKey={verse.verse_key}
-                onSubmitted={handleReflectionSubmitted}
-              />
-            </div>
+          )}
 
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {todayReflection ? "Add Another Reflection" : "Share Your Reflection"}
+            </h2>
+            <ReflectionForm
+              verseKey={verse.verse_key}
+              onSubmitted={handleReflectionSubmitted}
+            />
             {/* Tip */}
             <p className="text-sm text-gray-600 text-center italic">
               Your reflection is private by default. Share with your circle if you'd like feedback.
             </p>
-          </>
-        )}
+          </div>
+        </div>
 
         {/* Progress Summary Card */}
         {summary && (

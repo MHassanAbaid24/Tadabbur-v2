@@ -182,7 +182,7 @@ export default function Onboarding() {
               </div>
               <button
                 onClick={() => setStep(2)}
-                className="w-full bg-gold-500 hover:bg-gold-600 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                className="w-full bg-gold-500 hover:bg-gold-600 text-white font-semibold py-3 px-6 rounded-full flex items-center justify-center gap-2 transition-colors"
               >
                 Let's Get Started
                 <ChevronRight size={20} />
@@ -225,14 +225,14 @@ export default function Onboarding() {
                 <button
                   onClick={handleQFConnect}
                   disabled={isLoading}
-                  className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-full flex items-center justify-center gap-2 transition-colors"
                 >
                   {isLoading ? 'Connecting...' : 'Connect quran.com'}
                   <ChevronRight size={20} />
                 </button>
                 <button
                   onClick={() => setStep(3)}
-                  className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-6 rounded-lg transition-colors"
+                  className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-6 rounded-full transition-colors"
                 >
                   Skip for Now
                 </button>
@@ -358,7 +358,7 @@ export default function Onboarding() {
                     }
                   }}
                   disabled={isLoading}
-                  className="w-full bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  className="w-full bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-full flex items-center justify-center gap-2 transition-colors"
                 >
                   {isLoading ? 'Setting up...' : 'Continue'}
                   <ChevronRight size={20} />
@@ -404,7 +404,7 @@ export default function Onboarding() {
 
               <button
                 onClick={handleCompleteOnboarding}
-                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 px-6 rounded-full flex items-center justify-center gap-2 transition-colors"
               >
                 Start Reflecting
                 <ChevronRight size={20} />

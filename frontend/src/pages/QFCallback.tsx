@@ -72,7 +72,7 @@ export default function QFCallback() {
             <p className="text-gray-600 mb-6">{error}</p>
             <button
               onClick={() => navigate('/onboarding', { replace: true })}
-              className="w-full bg-gold-500 hover:bg-gold-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              className="w-full bg-gold-500 hover:bg-gold-600 text-white font-semibold py-3 px-6 rounded-full transition-colors"
             >
               Back to Onboarding
             </button>

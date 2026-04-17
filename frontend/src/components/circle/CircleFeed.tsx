@@ -106,7 +106,7 @@ export default function CircleFeed({ items, onLike }: CircleFeedProps) {
       {items.map((item) => (
         <div
           key={item.reflection_id}
-          className="bg-white rounded-lg border border-gray-200 p-4 space-y-3"
+          className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-5 space-y-4"
         >
           {/* Header */}
           <div className="flex items-center justify-between">

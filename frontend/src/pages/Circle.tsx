@@ -94,7 +94,7 @@ export default function Circle() {
             <p className="text-red-600 text-sm mb-4">{storeError}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-medium"
             >
               Retry
             </button>
@@ -147,7 +147,7 @@ export default function Circle() {
               <button
                 onClick={handleJoin}
                 disabled={isJoining || !joinCode.trim()}
-                className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-full transition-colors flex items-center justify-center gap-2"
               >
                 {isJoining ? (
                   <>

@@ -167,7 +167,7 @@ export default function Auth() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold py-2 rounded-lg transition-colors"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold py-2 rounded-full transition-colors"
               >
                 {isLoading ? 'Logging in...' : 'Login'}
               </button>
@@ -240,7 +240,7 @@ export default function Auth() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold py-2 rounded-lg transition-colors"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold py-2 rounded-full transition-colors"
               >
                 {isLoading ? 'Creating account...' : 'Create Account'}
               </button>

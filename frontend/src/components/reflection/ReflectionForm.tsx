@@ -140,7 +140,7 @@ export default function ReflectionForm({
               type="button"
               onClick={() => handleMoodSelect(value)}
               disabled={isSubmitting}
-              className={`text-2xl p-2 rounded-lg transition-colors disabled:opacity-50 ${
+              className={`text-2xl p-2 rounded-full transition-colors disabled:opacity-50 ${
                 formData.mood === value
                   ? 'bg-emerald-100'
                   : 'bg-gray-100 hover:bg-gray-200'
@@ -177,7 +177,7 @@ export default function ReflectionForm({
       <button
         type="submit"
         disabled={isSubmitting || !formData.prompt1 || !formData.prompt2}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-full transition-colors flex items-center justify-center gap-2"
       >
         {isSubmitting ? (
           <>

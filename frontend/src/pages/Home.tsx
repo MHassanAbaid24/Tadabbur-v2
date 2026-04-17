@@ -75,7 +75,7 @@ export default function Home() {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="w-full px-6 py-3 min-h-11 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+            className="w-full px-6 py-3 min-h-11 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full font-semibold transition-colors flex items-center justify-center gap-2"
           >
             🔄 Retry
           </button>

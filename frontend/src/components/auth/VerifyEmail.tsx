@@ -191,7 +191,7 @@ export default function VerifyEmail({ email, onSuccess, onCancel }: VerifyEmailP
           <button
             type="submit"
             disabled={isLoading || otp.some((d) => !d)}
-            className="w-full bg-emerald-700 text-white py-3 rounded-lg font-semibold hover:bg-emerald-800 disabled:bg-gray-400 transition"
+            className="w-full bg-emerald-700 text-white py-3 rounded-full font-semibold hover:bg-emerald-800 disabled:bg-gray-400 transition"
           >
             {isLoading ? 'Verifying...' : 'Verify'}
           </button>

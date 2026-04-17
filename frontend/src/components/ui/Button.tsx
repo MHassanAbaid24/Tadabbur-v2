@@ -19,10 +19,10 @@ export default function Button({
   disabled = false,
   className = '',
 }: ButtonProps) {
-  const baseStyles = 'min-h-11 px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-base disabled:opacity-50 disabled:cursor-not-allowed'
+  const baseStyles = 'min-h-11 px-6 py-3 rounded-full font-semibold transition-all duration-200 flex items-center justify-center gap-2 text-base disabled:opacity-50 disabled:cursor-not-allowed'
 
   const variants = {
-    primary: 'bg-gold-500 hover:bg-gold-600 text-white',
+    primary: 'bg-gold-500 hover:bg-gold-600 text-white shadow-sm hover:shadow active:scale-95',
     secondary: 'border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50',
     ghost: 'text-gray-700 hover:bg-gray-100',
   }

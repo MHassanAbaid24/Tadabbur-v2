@@ -23,7 +23,7 @@ export default function ReflectionCard({ reflection }: ReflectionCardProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

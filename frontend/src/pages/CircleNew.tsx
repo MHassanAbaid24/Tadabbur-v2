@@ -155,7 +155,7 @@ export default function CircleNew() {
                 <button
                   type="submit"
                   disabled={isSubmitting || circleName.trim().length < 2}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-semibold py-3 rounded-full transition-colors flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
@@ -208,7 +208,7 @@ export default function CircleNew() {
                     />
                     <button
                       onClick={copyLink}
-                      className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-1 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
                         copied
                           ? 'bg-emerald-100 text-emerald-700'
                           : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -232,7 +232,7 @@ export default function CircleNew() {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => navigate('/circle')}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors text-center"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-full transition-colors text-center"
                   >
                     Go to My Circle
                   </button>

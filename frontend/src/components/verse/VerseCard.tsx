@@ -31,7 +31,7 @@ export default function VerseCard({
   const surahName = surahNames[surahNum] || `Chapter ${surahNum}`
 
   return (
-    <div className="bg-cream-50 border-2 border-gold-500 rounded-lg p-6 space-y-6">
+    <div className="bg-gradient-to-br from-white to-cream-50 shadow-lg rounded-2xl p-8 space-y-6">
       {/* Arabic Text */}
       <div className="text-center">
         <ArabicText text={textUthmani} />

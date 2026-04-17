@@ -14,7 +14,7 @@ export default function TafsirDrawer({ tafsir, verseKey }: TafsirDrawerProps) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full px-4 py-2 text-sm font-medium text-emerald-700 border border-emerald-300 rounded-lg hover:bg-emerald-50 transition-colors"
+        className="w-full px-4 py-2 text-sm font-medium text-emerald-700 border border-emerald-300 rounded-full hover:bg-emerald-50 transition-colors"
       >
         Read Tafsir (Ibn Kathir)
       </button>
@@ -46,7 +46,7 @@ export default function TafsirDrawer({ tafsir, verseKey }: TafsirDrawerProps) {
                 </h3>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
                   aria-label="Close"
                 >
                   <X size={20} />

@@ -54,9 +54,10 @@ export default function Circle() {
     loadData()
   }, [])
 
-  const handleLike = async (reflectionId: string) => {
+  const handleLike = async (reflectionId: string, isUnlike: boolean) => {
     try {
-      const response = await fetch(`/api/circle/like/${reflectionId}`, {
+      const endpoint = isUnlike ? `/api/circle/unlike/${reflectionId}` : `/api/circle/like/${reflectionId}`;
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('tadabbur_token')}`,
@@ -67,13 +68,20 @@ export default function Circle() {
         setFeedItems((prev) =>
           prev.map((item) =>
             item.reflection_id === reflectionId
-              ? { ...item, likes_count: (item.likes_count || 0) + 1, is_liked: true }
+              ? { 
+                  ...item, 
+                  likes_count: Math.max(0, (item.likes_count || 0) + (isUnlike ? -1 : 1)), 
+                  is_liked: !isUnlike 
+                }
               : item
           )
         )
+      } else {
+        throw new Error('Failed to update like status');
       }
     } catch (err) {
-      console.error('Failed to like reflection:', err)
+      console.error('Failed to update like status:', err)
+      throw err; // throw to let the feed component know it failed, so it could revert the optimistic UI if you added that logic
     }
   }
 

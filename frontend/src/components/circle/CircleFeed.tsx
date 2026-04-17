@@ -1,10 +1,10 @@
 import { Heart } from 'lucide-react'
 import { CircleFeedItem } from '../../types/reflection'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface CircleFeedProps {
   items: CircleFeedItem[]
-  onLike?: (reflectionId: string) => void
+  onLike?: (reflectionId: string, isUnlike: boolean) => void
 }
 
 const MOOD_EMOJI: Record<string, string> = {
@@ -16,12 +16,67 @@ const MOOD_EMOJI: Record<string, string> = {
 }
 
 export default function CircleFeed({ items, onLike }: CircleFeedProps) {
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
+  const [likedIds, setLikedIds] = useState<Set<string>>(() => {
+    const initialLiked = new Set<string>();
+    items.forEach(item => {
+      if (item.is_liked) initialLiked.add(item.reflection_id);
+    });
+    return initialLiked;
+  });
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set())
+
+  // update likedIds when items change (e.g. initial load vs refetch)
+  useEffect(() => {
+    setLikedIds(() => {
+      const next = new Set<string>();
+      items.forEach(item => {
+        if (item.is_liked) next.add(item.reflection_id);
+      });
+      return next;
+    });
+  }, [items]);
+
 
   const handleLike = async (reflectionId: string) => {
-    if (likedIds.has(reflectionId)) return
-    setLikedIds((prev) => new Set(prev).add(reflectionId))
-    onLike?.(reflectionId)
+    if (loadingIds.has(reflectionId)) return;
+    
+    setLoadingIds((prev) => new Set(prev).add(reflectionId));
+    const isUnlike = likedIds.has(reflectionId);
+    
+    try {
+      if (isUnlike) {
+        setLikedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(reflectionId);
+          return next;
+        });
+      } else {
+        setLikedIds((prev) => new Set(prev).add(reflectionId));
+      }
+      
+      if (onLike) {
+        try {
+          await onLike(reflectionId, isUnlike);
+        } catch (e) {
+          // Revert on error
+          if (isUnlike) {
+            setLikedIds((prev) => new Set(prev).add(reflectionId));
+          } else {
+            setLikedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(reflectionId);
+              return next;
+            });
+          }
+        }
+      }
+    } finally {
+      setLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(reflectionId);
+        return next;
+      });
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -68,12 +123,26 @@ export default function CircleFeed({ items, onLike }: CircleFeedProps) {
             <p className="text-xs text-gray-500">{formatDate(item.created_at)}</p>
           </div>
 
-          {/* Preview */}
-          <p className="text-gray-700 text-sm leading-relaxed">
-            {item.prompt_1_preview.length > 200
-              ? `${item.prompt_1_preview.substring(0, 200)}...`
-              : item.prompt_1_preview}
-          </p>
+          {/* Answers */}
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-medium text-gray-600 mb-1">
+                What does this ayah mean to you?
+              </p>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {item.prompt_1_answer}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium text-gray-600 mb-1">
+                What will you do differently today?
+              </p>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {item.prompt_2_answer}
+              </p>
+            </div>
+          </div>
 
           {/* Verse Reference */}
           <p className="text-xs font-medium text-gray-500">{item.verse_key}</p>
@@ -81,14 +150,14 @@ export default function CircleFeed({ items, onLike }: CircleFeedProps) {
           {/* Like Button */}
           <button
             onClick={() => handleLike(item.reflection_id)}
-            disabled={likedIds.has(item.reflection_id)}
-            className="flex items-center gap-1 text-sm text-gray-600 hover:text-emerald-600 disabled:opacity-50 transition-colors"
+            disabled={loadingIds.has(item.reflection_id)}
+            className={`flex items-center gap-1 text-sm ${likedIds.has(item.reflection_id) ? 'text-emerald-600' : 'text-gray-600 hover:text-emerald-600'} disabled:opacity-50 transition-colors`}
           >
             <Heart
               size={16}
               className={likedIds.has(item.reflection_id) ? 'fill-emerald-600' : ''}
             />
-            <span>Like</span>
+            <span>{likedIds.has(item.reflection_id) ? 'Liked' : 'Like'}</span>
           </button>
         </div>
       ))}

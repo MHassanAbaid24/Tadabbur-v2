@@ -102,6 +102,42 @@ async def _qf_user_post(user_id: str, path: str, body: Dict[str, Any]) -> Dict[s
         raise HTTPException(status_code=503, detail="QF API error") from e
 
 
+async def _qf_user_delete(user_id: str, path: str) -> Dict[str, Any]:
+    """
+    Make authenticated DELETE request to QF User API.
+    """
+    try:
+        token = await get_user_qf_token(user_id)
+
+        headers = {"Authorization": f"Bearer {token}"}
+
+        async with httpx.AsyncClient() as client:
+            url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
+            response = await client.delete(url, headers=headers, timeout=10)
+
+            if response.status_code == 401:
+                logger.warning("QF User API 401 for user: %s (token expired)", user_id)
+                raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
+
+            if response.status_code == 403:
+                logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
+                raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
+
+            response.raise_for_status()
+            logger.debug("QF User API DELETE %s succeeded for user: %s", path, user_id)
+            
+            # 204 typically has no content
+            if response.status_code == 204:
+                return {}
+            return response.json()
+
+    except HTTPException:
+        raise
+    except httpx.HTTPError as e:
+        logger.error("QF User API DELETE error for user %s: %s", user_id, str(e))
+        raise HTTPException(status_code=503, detail="QF API error") from e
+
+
 async def get_streaks(user_id: str) -> Dict[str, Any]:
     """
     Fetch user's current and longest streak.
@@ -344,6 +380,19 @@ async def like_qf_post(user_id: str, qf_post_id: str) -> bool:
         return True
     except Exception as e:
         logger.warning("Failed to like QF post %s: %s", qf_post_id, str(e))
+        return False
+
+
+async def unlike_qf_post(user_id: str, qf_post_id: str) -> bool:
+    """
+    Unlike a QF Post.
+    """
+    try:
+        await _qf_user_delete(user_id, f"posts/{qf_post_id}/like")
+        logger.debug("Unliked QF post %s for user %s", qf_post_id, user_id)
+        return True
+    except Exception as e:
+        logger.warning("Failed to unlike QF post %s: %s", qf_post_id, str(e))
         return False
 
 

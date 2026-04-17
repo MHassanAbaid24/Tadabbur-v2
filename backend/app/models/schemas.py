@@ -165,8 +165,11 @@ class CircleFeedItem(BaseModel):
     reflection_id: str = Field(description="Reflection ID (UUID)")
     user_display_name: str = Field(description="Display name of reflection author")
     verse_key: str = Field(description="Verse key (e.g., '2:255')")
-    prompt_1_preview: str = Field(
-        description="First 200 chars of reflection on verse meaning",
+    prompt_1_answer: str = Field(
+        description="Full answer for first prompt",
+    )
+    prompt_2_answer: str = Field(
+        description="Full answer for second prompt",
     )
     mood: Optional[str] = Field(
         None,

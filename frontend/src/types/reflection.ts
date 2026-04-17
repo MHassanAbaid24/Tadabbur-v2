@@ -42,7 +42,8 @@ export interface CircleFeedItem {
   reflection_id: string
   user_display_name: string
   mood: Mood
-  prompt_1_preview: string
+  prompt_1_answer: string
+  prompt_2_answer: string
   verse_key: string
   created_at: string
   likes_count?: number

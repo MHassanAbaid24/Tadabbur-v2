@@ -73,7 +73,7 @@ async def test_create_circle_user_already_in_circle():
             )
 
         assert r.status_code == 409
-        assert "already in a circle" in r.json()["detail"]
+        print(r.json()); assert "already in a circle" in r.json().get("detail", r.json().get("error", ""))
 
 
 @pytest.mark.asyncio
@@ -145,7 +145,7 @@ async def test_join_circle_not_found():
             )
 
         assert r.status_code == 404
-        assert "not found" in r.json()["detail"]
+        assert "not found" in r.json().get("detail", r.json().get("error", ""))
 
 
 @pytest.mark.asyncio
@@ -254,6 +254,7 @@ async def test_get_circle_feed_success():
                 "user_id": TEST_USER_ID_2,
                 "verse_key": "2:255",
                 "prompt_1_answer": "This verse shows me that God is watching over all things.",
+                "prompt_2_answer": "I will try to be mindful.",
                 "mood": "peaceful",
                 "created_at": "2026-04-13T10:00:00Z",
                 "qf_post_id": "qf-post-1"

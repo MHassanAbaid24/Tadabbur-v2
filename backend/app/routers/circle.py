@@ -206,11 +206,14 @@ async def get_circle_feed(
 
     member_user_ids = [m["user_id"] for m in members_result.data]
 
-    # Fetch shared reflections from all circle members, with profile info
+    if not member_user_ids:
+        return APIResponse(success=True, data={"feed": []}).dict()
+
+    # Fetch shared reflections from circle members, with profile info
     try:
         reflections_result = (
             supabase_client.table("reflections")
-            .select("id, user_id, verse_key, prompt_1_answer, mood, created_at, qf_post_id")
+            .select("id, user_id, verse_key, prompt_1_answer, prompt_2_answer, mood, created_at, qf_post_id")
             .in_("user_id", member_user_ids)
             .eq("is_shared", True)
             .order("created_at", desc=True)
@@ -225,18 +228,18 @@ async def get_circle_feed(
 
         for reflection in reflections_result.data:
             # Get author profile
-            profile_result = supabase_client.table("profiles").select("display_name").eq("id", reflection["user_id"]).execute()
-            display_name = profile_result.data[0]["display_name"] if profile_result.data else "Anonymous"
-
-            # Create preview of prompt_1
-            prompt_1 = reflection["prompt_1_answer"] or ""
-            preview = (prompt_1[:200] + "...") if len(prompt_1) > 200 else prompt_1
+            if reflection["user_id"] == user_id:
+                display_name = "You"
+            else:
+                profile_result = supabase_client.table("profiles").select("display_name").eq("id", reflection["user_id"]).execute()
+                display_name = profile_result.data[0]["display_name"] if profile_result.data else "Anonymous"
 
             item = CircleFeedItem(
                 reflection_id=reflection["id"],
                 user_display_name=display_name,
                 verse_key=reflection["verse_key"],
-                prompt_1_preview=preview,
+                prompt_1_answer=reflection["prompt_1_answer"] or "",
+                prompt_2_answer=reflection["prompt_2_answer"] or "",
                 mood=reflection["mood"],
                 created_at=reflection["created_at"],
                 qf_post_id=reflection["qf_post_id"],
@@ -302,3 +305,48 @@ async def like_reflection(
     except Exception as e:
         logger.error("Failed to like reflection: %s", str(e))
         raise HTTPException(status_code=500, detail="Failed to like reflection")
+
+@router.post("/unlike/{reflection_id}")
+async def unlike_reflection(
+    reflection_id: str,
+    authorization: str = Header(...),
+) -> dict[str, Any]:
+    """
+    Unlike a reflection in the circle feed.
+    """
+    current_user: dict[str, Any] = await get_current_user(authorization)
+    user_id = current_user["sub"]
+
+    try:
+        from app.services.qf_user import unlike_qf_post
+        reflections = supabase_client.table("reflections").select("*").eq("id", reflection_id).execute()
+        if not reflections.data or len(reflections.data) == 0:
+            raise HTTPException(status_code=404, detail="Reflection not found")
+
+        reflection = reflections.data[0]
+        qf_post_id = reflection.get("qf_post_id")
+
+        if qf_post_id:
+            await unlike_qf_post(user_id, qf_post_id)
+
+        # Deduct XP (optional but consistent)
+        xp_amount = -3
+        supabase_client.table("xp_events").insert({
+            "user_id": user_id,
+            "event_type": "unlike_reflection",
+            "xp_amount": xp_amount,
+        }).execute()
+
+        profiles = supabase_client.table("profiles").select("xp").eq("id", user_id).execute()
+        current_xp = profiles.data[0]["xp"] if profiles.data else 0
+        new_xp = max(0, current_xp + xp_amount)
+        supabase_client.table("profiles").update({"xp": new_xp}).eq("id", user_id).execute()
+
+        logger.info("User %s unliked reflection %s, deducted %d XP", user_id, reflection_id, abs(xp_amount))
+        return APIResponse(success=True, data={"liked": False, "xp_earned": xp_amount}).dict()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to unlike reflection: %s", str(e))
+        raise HTTPException(status_code=500, detail="Failed to unlike reflection")

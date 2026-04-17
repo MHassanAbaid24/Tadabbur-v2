@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from app.auth.jwt import get_current_user
-from app.models.schemas import APIResponse
 from app.services.daily_verse import get_today_verse_key
-from app.services.qf_content import get_verse_with_full_context
+from app.services.qf_content import get_verse_with_full_context, get_chapters, get_verses_by_chapter
+from app.models.schemas import APIResponse, ChapterResponse, VerseListResponse
 
 logger = logging.getLogger(__name__)
 
@@ -88,3 +88,30 @@ async def get_verse_by_key_endpoint(
     logger.info("Served verse %s to user %s", verse_key, user_id)
 
     return APIResponse(success=True, data=verse_context)
+
+
+@router.get("/chapters", response_model=APIResponse)
+async def list_chapters(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+) -> APIResponse:
+    """
+    List all Quran chapters.
+    """
+    chapters = await get_chapters()
+    return APIResponse(success=True, data=chapters)
+
+
+@router.get("/chapters/{chapter_number}/verses", response_model=APIResponse)
+async def list_verses(
+    chapter_number: int,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+) -> APIResponse:
+    """
+    List all verses for a specific chapter.
+    """
+    if not (1 <= chapter_number <= 114):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Invalid chapter number")
+        
+    verses = await get_verses_by_chapter(chapter_number)
+    return APIResponse(success=True, data=verses)

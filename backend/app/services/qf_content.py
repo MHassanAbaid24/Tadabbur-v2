@@ -272,3 +272,45 @@ async def get_verse_with_full_context(verse_key: str) -> Dict[str, Any]:
     _verse_cache[verse_key] = (result, now + _VERSE_CACHE_TTL)
 
     return result
+
+
+async def get_chapters() -> list[Dict[str, Any]]:
+    """
+    Fetch all Quran chapters (Surahs) from QF Content API.
+    """
+    url = f"{QF_CONTENT_BASE}/chapters"
+    data = await _qf_get(url)
+    return data.get("chapters", [])
+
+
+async def get_verses_by_chapter(chapter_number: int) -> list[Dict[str, Any]]:
+    """
+    Fetch all verses for a chapter from QF Content API.
+    Includes Uthmani text and default English translation.
+    """
+    url = f"{QF_CONTENT_BASE}/verses/by_chapter/{chapter_number}"
+    params = {
+        "translations": TRANSLATION_ID,
+        "fields": "text_uthmani,translations",
+    }
+    
+    data = await _qf_get(url, params)
+    verses_raw = data.get("verses", [])
+    
+    # Format for frontend consumption
+    formatted_verses = []
+    for v in verses_raw:
+        translation = ""
+        translations = v.get("translations", [])
+        if translations:
+            translation = translations[0].get("text", "")
+            
+        formatted_verses.append({
+            "id": v["id"],
+            "verse_number": v["verse_number"],
+            "verse_key": v["verse_key"],
+            "text_uthmani": v.get("text_uthmani", ""),
+            "translation": translation
+        })
+        
+    return formatted_verses

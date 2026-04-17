@@ -210,3 +210,25 @@ class ProfileUpdateRequest(BaseModel):
     daily_reminder_time: Optional[str] = Field(None, description="Format HH:MM:SS or HH:MM")
     timezone: Optional[str] = Field(None)
 
+
+class ChapterResponse(BaseModel):
+    """Quran chapter (Surah) metadata."""
+    id: int
+    revelation_place: str
+    revelation_order: int
+    bismillah_pre: bool
+    name_simple: str
+    name_complex: str
+    name_arabic: str
+    verses_count: int
+    pages: list[int]
+
+
+class VerseListResponse(BaseModel):
+    """A verse within a chapter list."""
+    id: int
+    verse_number: int
+    verse_key: str
+    text_uthmani: str
+    translation: str
+

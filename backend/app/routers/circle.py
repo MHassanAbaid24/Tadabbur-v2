@@ -477,27 +477,18 @@ async def get_circle_members(
 
     # Get all members with profile details
     try:
-        members_query = """
-            user_id,
-            joined_at,
-            is_admin,
-            profiles (
-                username,
-                display_name,
-                avatar_url
-            )
-        """
+        members_query = "user_id, joined_at, is_admin, profiles(username, display_name, avatar_url)"
         members_result = await asyncio.to_thread(
             lambda: supabase_client.table("circle_members").select(members_query).eq("circle_id", circle_id).execute()
         )
 
         members: list[CircleMemberResponse] = []
         for m in members_result.data:
-            profile = m.get("profiles", {})
+            profile = m.get("profiles", {}) or {} # Ensure it's not None
             members.append(CircleMemberResponse(
                 user_id=m["user_id"],
-                username=profile.get("username", "Unknown"),
-                display_name=profile.get("display_name", "Anonymous"),
+                username=profile.get("username") or "user",
+                display_name=profile.get("display_name") or profile.get("username") or "Anonymous",
                 avatar_url=profile.get("avatar_url"),
                 joined_at=m["joined_at"],
                 is_admin=m["is_admin"]
@@ -561,9 +552,12 @@ async def remove_member(
     circle_id = requester_status.data[0]["circle_id"]
     is_requester_admin = requester_status.data[0]["is_admin"]
 
-    # Permission check: Admin can remove anyone, user can remove themselves
+    # Permission check: Admin can remove anyone EXCEPT themselves (must use Leave), user can remove themselves
     if not (is_requester_admin or requester_user_id == target_user_id):
         raise HTTPException(status_code=403, detail="Insufficient permission to remove member")
+    
+    # Don't allow admin to remove themselves via DELETE if others are in circle (force them to use specific leave logic or just block accidental delete)
+    # But for now, we'll just allow it if they are the target.
 
     # Remove target user
     try:

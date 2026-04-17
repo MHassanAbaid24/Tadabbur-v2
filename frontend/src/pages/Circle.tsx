@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 import { useCircleStore } from '../store/circleStore'
 import CircleFeed from '../components/circle/CircleFeed'
 import CircleInvite from '../components/circle/CircleInvite'
+import CircleMembers from '../components/circle/CircleMembers'
 import { Link } from 'react-router-dom'
 import PageWrapper from '../components/layout/PageWrapper'
+import { Users } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
 import api from '../lib/api'
 
 export default function Circle() {
@@ -19,6 +22,7 @@ export default function Circle() {
   const [joinCode, setJoinCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
+  const [showMembers, setShowMembers] = useState(false)
 
   useEffect(() => {
     fetchMyCircle()
@@ -176,11 +180,34 @@ export default function Circle() {
               {circleData.member_count} {circleData.member_count === 1 ? 'member' : 'members'}
             </p>
           </div>
-          <CircleInvite
-            inviteCode={circleData.invite_code}
-            circleName={circleData.name}
-          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowMembers(true)}
+              className="p-2 text-emerald-700 hover:bg-emerald-50 rounded-full transition-colors flex items-center gap-2"
+              title="View Members"
+            >
+              <Users size={20} />
+              <span className="text-sm font-medium hidden sm:inline">Members</span>
+            </button>
+            <CircleInvite
+              inviteCode={circleData.invite_code}
+              circleName={circleData.name}
+            />
+          </div>
         </div>
+
+        {/* Members Drawer Overlay */}
+        <AnimatePresence>
+          {showMembers && (
+            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+              <div 
+                className="absolute inset-0 z-0" 
+                onClick={() => setShowMembers(false)} 
+              />
+              <CircleMembers onClose={() => setShowMembers(false)} />
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* Feed */}
         <div>

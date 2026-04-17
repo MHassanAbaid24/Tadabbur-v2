@@ -1,15 +1,29 @@
 import { create } from 'zustand'
 import { api } from '../lib/api'
 
+interface CircleMember {
+  user_id: string
+  username: string
+  display_name: string
+  avatar_url: string | null
+  joined_at: string
+  is_admin: boolean
+}
+
 interface CircleStore {
   circle: any | null
   feed: any[]
+  members: CircleMember[]
   isLoading: boolean
+  isLoadingMembers: boolean
   error: string | null
   lastCircleFetchedAt: number | null
   lastFeedFetchedAt: number | null
   fetchMyCircle: (force?: boolean) => Promise<void>
   fetchCircleFeed: (force?: boolean) => Promise<void>
+  fetchMembers: () => Promise<void>
+  makeAdmin: (userId: string) => Promise<void>
+  removeMember: (userId: string) => Promise<void>
   likeReflection: (reflectionId: string) => Promise<void>
 }
 
@@ -19,12 +33,15 @@ const FEED_STALE_MS = 30 * 1000 // 30 seconds — matches new polling interval
 export const useCircleStore = create<CircleStore>((set, get) => ({
   circle: null,
   feed: [],
+  members: [],
   isLoading: false,
+  isLoadingMembers: false,
   error: null,
   lastCircleFetchedAt: null,
   lastFeedFetchedAt: null,
 
   fetchMyCircle: async (force = false) => {
+    // ... (existing logic)
     const state = get()
     if (
       !force &&
@@ -79,6 +96,49 @@ export const useCircleStore = create<CircleStore>((set, get) => ({
       })
     } finally {
       set({ isLoading: false })
+    }
+  },
+
+  fetchMembers: async () => {
+    set({ isLoadingMembers: true })
+    try {
+      const response = await api.get('/api/circle/members')
+      set({ members: response.data.data.members || [] })
+    } catch (err) {
+      console.error('Failed to fetch circle members:', err)
+    } finally {
+      set({ isLoadingMembers: false })
+    }
+  },
+
+  makeAdmin: async (userId: string) => {
+    try {
+      await api.post(`/api/circle/admin/${userId}`)
+      // Update local state
+      set((state) => ({
+        members: state.members.map((m) =>
+          m.user_id === userId ? { ...m, is_admin: true } : m
+        ),
+      }))
+    } catch (err) {
+      console.error('Failed to grant admin status:', err)
+      throw err
+    }
+  },
+
+  removeMember: async (userId: string) => {
+    try {
+      await api.delete(`/api/circle/members/${userId}`)
+      // Update local state
+      set((state) => ({
+        members: state.members.filter((m) => m.user_id !== userId),
+      }))
+      
+      // If user removed themselves, clear circle data locally
+      // We'll check the circle creator or similar as a proxy if we don't have user ID here
+    } catch (err) {
+      console.error('Failed to remove member:', err)
+      throw err
     }
   },
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Verse } from '../types/verse'
+import type { Verse, Chapter, VerseListItem } from '../types/verse'
 import api from '../lib/api'
 
 interface VerseStore {
@@ -7,7 +7,16 @@ interface VerseStore {
   isLoading: boolean
   error: string | null
   lastFetchedAt: number | null
+  
+  // Explore state
+  chapters: Chapter[]
+  isLoadingChapters: boolean
+  versesList: VerseListItem[]
+  isLoadingVerses: boolean
+  
   fetchTodayVerse: (force?: boolean) => Promise<void>
+  fetchChapters: () => Promise<void>
+  fetchVersesByChapter: (chapterNumber: number) => Promise<void>
 }
 
 const VERSE_STALE_MS = 5 * 60 * 1000 // 5 minutes — today's verse is the same all day
@@ -17,16 +26,15 @@ export const useVerseStore = create<VerseStore>((set, get) => ({
   isLoading: false,
   error: null,
   lastFetchedAt: null,
+  
+  chapters: [],
+  isLoadingChapters: false,
+  versesList: [],
+  isLoadingVerses: false,
 
   fetchTodayVerse: async (force = false) => {
     const state = get()
-    // Skip fetch if data is fresh (< 5 min old) and not forced
-    if (
-      !force &&
-      state.verse &&
-      state.lastFetchedAt &&
-      Date.now() - state.lastFetchedAt < VERSE_STALE_MS
-    ) {
+    if (!force && state.verse && state.lastFetchedAt && Date.now() - state.lastFetchedAt < VERSE_STALE_MS) {
       return
     }
 
@@ -38,12 +46,31 @@ export const useVerseStore = create<VerseStore>((set, get) => ({
         isLoading: false,
         lastFetchedAt: Date.now(),
       })
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch verse'
+    } catch (error: any) {
       set({
-        error: errorMessage,
+        error: error.response?.data?.detail || error.message || 'Failed to fetch verse',
         isLoading: false,
       })
     }
   },
+
+  fetchChapters: async () => {
+    try {
+      set({ isLoadingChapters: true })
+      const response = await api.get<{ data: Chapter[] }>('/api/verse/chapters')
+      set({ chapters: response.data.data, isLoadingChapters: false })
+    } catch (error: any) {
+      set({ error: error.message, isLoadingChapters: false })
+    }
+  },
+
+  fetchVersesByChapter: async (chapterNumber: number) => {
+    try {
+      set({ isLoadingVerses: true, versesList: [] })
+      const response = await api.get<{ data: VerseListItem[] }>(`/api/verse/chapters/${chapterNumber}/verses`)
+      set({ versesList: response.data.data, isLoadingVerses: false })
+    } catch (error: any) {
+      set({ error: error.message, isLoadingVerses: false })
+    }
+  }
 }))

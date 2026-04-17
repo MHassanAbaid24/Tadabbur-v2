@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom'
-import { Home, BookOpen, Users, BarChart3, User as UserIcon } from 'lucide-react'
+import { Home, BookOpen, Users, BarChart3, User as UserIcon, Book } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export default function MobileNav() {
@@ -10,6 +10,7 @@ export default function MobileNav() {
   const tabs = [
     { path: '/home', label: 'Home', icon: Home },
     { path: '/journal', label: 'Journal', icon: BookOpen },
+    { path: '/explore', label: 'Explore', icon: Book },
     { path: '/circle', label: 'Circle', icon: Users },
     { path: '/progress', label: 'Progress', icon: BarChart3 },
     { path: '/profile', label: 'Profile', icon: UserIcon },

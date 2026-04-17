@@ -29,6 +29,12 @@ export default function Navbar() {
             Journal
           </Link>
           <Link
+            to="/explore"
+            className="text-gray-700 hover:text-gold-600 transition-colors font-medium"
+          >
+            Explore
+          </Link>
+          <Link
             to="/circle"
             className="text-gray-700 hover:text-gold-600 transition-colors font-medium"
           >

@@ -24,6 +24,7 @@ from app.models.schemas import (
     VerificationInitResponse,
     VerificationStatusResponse,
     VerifyOTPRequest,
+    ProfileUpdateRequest,
 )
 from app.services.verification import VerificationManager
 
@@ -417,6 +418,51 @@ async def get_profile(current_user: Dict[str, Any] = Depends(get_current_user)) 
     except Exception as e:
         logger.error("Error fetching profile for user %s: %s", user_id, str(e))
         raise HTTPException(status_code=500, detail="Failed to fetch profile") from e
+
+
+@router.put("/profile")
+async def update_profile(
+    req: ProfileUpdateRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> APIResponse:
+    """
+    Update current authenticated user's profile.
+
+    Args:
+        req: ProfileUpdateRequest with fields to update
+        current_user: Current user from JWT
+
+    Returns:
+        APIResponse with updated profile data
+    """
+    user_id = current_user["sub"]
+
+    # Only update fields that were provided
+    update_data = {k: v for k, v in req.model_dump().items() if v is not None}
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No updates provided")
+
+    try:
+        response = await asyncio.to_thread(supabase_client.table("profiles").update(
+            update_data
+        ).eq("id", user_id).execute)
+
+        if not response.data:
+            logger.warning("Profile not found for update: %s", user_id)
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+        updated_profile = response.data[0]
+        logger.info("Updated profile for user: %s", user_id)
+
+        return APIResponse(
+            success=True,
+            data=updated_profile,
+        )
+
+    except Exception as e:
+        logger.error("Error updating profile for user %s: %s", user_id, str(e))
+        raise HTTPException(status_code=500, detail="Failed to update profile") from e
 
 
 @router.get("/qf/connect")

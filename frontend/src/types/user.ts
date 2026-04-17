@@ -7,6 +7,9 @@ export interface User {
   xp: number
   level: number
   qf_connected: boolean
+  avatar_url?: string
+  daily_reminder_time?: string
+  timezone?: string
 }
 
 export interface AuthState {

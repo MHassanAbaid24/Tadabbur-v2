@@ -31,6 +31,7 @@ interface AuthStore extends AuthState {
   setVerification: (state: Partial<VerificationState>) => void
   clearVerification: () => void
   initiateQFOAuth: () => Promise<void>
+  updateProfile: (data: any) => Promise<void>
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -314,6 +315,23 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Redirect to QF OAuth
       window.location.href = authorization_url
     } catch (error) {
+      throw error
+    }
+  },
+
+  updateProfile: async (data: any) => {
+    try {
+      set({ isLoading: true })
+      const response = await api.put<{ data: any }>('/api/auth/profile', data)
+      const updatedUser = response.data.data
+      
+      // Update local user state
+      set((state) => ({
+        user: state.user ? { ...state.user, ...updatedUser } : updatedUser,
+        isLoading: false,
+      }))
+    } catch (error) {
+      set({ isLoading: false })
       throw error
     }
   },

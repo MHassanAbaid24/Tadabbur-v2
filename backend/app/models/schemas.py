@@ -189,3 +189,12 @@ class CircleFeedItem(BaseModel):
         description="Whether the current user has liked this reflection",
     )
 
+
+class ProfileUpdateRequest(BaseModel):
+    """Request body for updating user profile."""
+
+    display_name: Optional[str] = Field(None, max_length=50)
+    avatar_url: Optional[str] = Field(None)
+    daily_reminder_time: Optional[str] = Field(None, description="Format HH:MM:SS or HH:MM")
+    timezone: Optional[str] = Field(None)
+

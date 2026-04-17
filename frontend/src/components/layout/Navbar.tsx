@@ -40,6 +40,12 @@ export default function Navbar() {
           >
             Progress
           </Link>
+          <Link
+            to="/profile"
+            className="text-gray-700 hover:text-gold-600 transition-colors font-medium"
+          >
+            Profile
+          </Link>
         </div>
       </div>
     </nav>

@@ -11,6 +11,7 @@ const Journal = lazy(() => import('./pages/Journal'))
 const Circle = lazy(() => import('./pages/Circle'))
 const CircleNew = lazy(() => import('./pages/CircleNew'))
 const Progress = lazy(() => import('./pages/Progress'))
+const Profile = lazy(() => import('./pages/Profile'))
 
 // Shared loading spinner for Suspense fallback
 function PageLoader() {
@@ -131,6 +132,10 @@ export default function App() {
           <Route
             path="/progress"
             element={<ProtectedRoute element={<Progress />} />}
+          />
+          <Route
+            path="/profile"
+            element={<ProtectedRoute element={<Profile />} />}
           />
 
           {/* Fallback for unknown routes */}

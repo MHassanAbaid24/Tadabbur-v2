@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Copy, Check, X, Share2 } from 'lucide-react'
 
 interface CircleInviteProps {
   inviteCode: string
@@ -8,6 +8,14 @@ interface CircleInviteProps {
 
 export default function CircleInvite({ inviteCode, circleName }: CircleInviteProps) {
   const [copied, setCopied] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+
+  useEffect(() => {
+    const isDismissed = localStorage.getItem(`dismissed_invite_${inviteCode}`)
+    if (isDismissed) {
+      setDismissed(true)
+    }
+  }, [inviteCode])
 
   const inviteLink = `${window.location.origin}/circle/join/${inviteCode}`
 
@@ -17,9 +25,36 @@ export default function CircleInvite({ inviteCode, circleName }: CircleInvitePro
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const handleDismiss = () => {
+    localStorage.setItem(`dismissed_invite_${inviteCode}`, 'true')
+    setDismissed(true)
+  }
+
+  if (dismissed) {
+    return (
+      <div className="flex justify-end">
+        <button
+          onClick={handleCopy}
+          className="flex items-center justify-center w-12 h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-md transition-all active:scale-95"
+          title="Copy invite link"
+        >
+          {copied ? <Check size={20} /> : <Share2 size={20} />}
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-3">
-      <h3 className="font-semibold text-emerald-900">Invite to {circleName}</h3>
+    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-3 relative">
+      <button
+        onClick={handleDismiss}
+        className="absolute top-3 right-3 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100 rounded-full p-1 transition-colors"
+        title="Dismiss invite box"
+      >
+        <X size={16} />
+      </button>
+
+      <h3 className="font-semibold text-emerald-900 pr-6">Invite to {circleName}</h3>
 
       <div className="flex items-center gap-2">
         <input

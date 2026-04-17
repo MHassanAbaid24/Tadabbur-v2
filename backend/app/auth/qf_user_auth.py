@@ -100,12 +100,17 @@ async def store_user_qf_token(user_id: str, token_data: Dict[str, Any]) -> None:
         expires_in = token_data.get("expires_in", 3600)
         expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
 
-        await async_supabase_client.table("profiles").update(
-            {
-                "qf_access_token": access_token,
-                "qf_token_expires_at": expires_at.isoformat(),
-            }
-        ).eq("id", user_id).execute()
+        # Use the sync client because we are in a simple script or the async one is being problematic
+        # But wait, we want async. Let's fix the import if needed.
+        from app.db.supabase import supabase_client
+        await asyncio.to_thread(
+            lambda: supabase_client.table("profiles").update(
+                {
+                    "qf_access_token": access_token,
+                    "qf_token_expires_at": expires_at.isoformat(),
+                }
+            ).eq("id", user_id).execute()
+        )
 
         logger.info("Stored QF token for user %s (expires in %d seconds)", user_id, expires_in)
 
@@ -136,9 +141,12 @@ async def get_user_qf_token(user_id: str) -> str:
         return settings.qf_test_user_token
 
     try:
-        profile_response = await async_supabase_client.table("profiles").select(
-            "qf_access_token,qf_token_expires_at"
-        ).eq("id", user_id).execute()
+        from app.db.supabase import supabase_client
+        profile_response = await asyncio.to_thread(
+            lambda: supabase_client.table("profiles").select(
+                "qf_access_token,qf_token_expires_at"
+            ).eq("id", user_id).execute()
+        )
 
         if not profile_response.data:
             logger.warning("Profile not found for user: %s", user_id)

@@ -289,6 +289,17 @@ async def get_circle_feed(
 
         display_names: dict[str, str] = {p["id"]: p["display_name"] for p in (profiles_result.data or [])}
 
+        # Batch fetch verse data
+        from app.services.qf_content import get_verse_by_key
+        verse_keys = list(set(ref["verse_key"] for ref in reflections_result.data))
+        verse_cache = {}
+        for vk in verse_keys:
+            try:
+                verse_cache[vk] = await get_verse_by_key(vk)
+            except Exception as e:
+                logger.warning("Failed to fetch verse context for %s in feed: %s", vk, str(e))
+                verse_cache[vk] = {}
+
         feed_items: list[CircleFeedItem] = []
         for reflection in reflections_result.data:
             # Get author profile
@@ -312,7 +323,9 @@ async def get_circle_feed(
                 created_at=reflection["created_at"],
                 qf_post_id=reflection["qf_post_id"],
                 likes_count=likes_count,
-                is_liked=is_liked
+                is_liked=is_liked,
+                verse_text=verse_cache.get(reflection["verse_key"], {}).get("text_uthmani"),
+                verse_translation=verse_cache.get(reflection["verse_key"], {}).get("translation"),
             )
             feed_items.append(item)
 

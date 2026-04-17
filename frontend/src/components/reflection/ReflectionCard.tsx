@@ -38,7 +38,28 @@ export default function ReflectionCard({ reflection }: ReflectionCardProps) {
       </div>
 
       {/* Reflection Answers */}
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Verse Context */}
+        {(reflection.verse_text || reflection.verse_translation) && (
+          <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50">
+            {reflection.verse_text && (
+              <p 
+                className="text-right text-lg font-arabic text-emerald-900 leading-loose mb-2" 
+                dir="rtl" 
+                translate="no"
+              >
+                {reflection.verse_text}
+              </p>
+            )}
+            {reflection.verse_translation && (
+              <p className="text-xs text-emerald-700 italic leading-relaxed">
+                "{reflection.verse_translation}"
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-4">
         <div>
           <p className="text-xs font-medium text-gray-600 mb-1">
             What does this ayah mean to you?
@@ -55,6 +76,7 @@ export default function ReflectionCard({ reflection }: ReflectionCardProps) {
           <p className="text-gray-700 text-sm leading-relaxed">
             {reflection.prompt_2_answer}
           </p>
+        </div>
         </div>
       </div>
 

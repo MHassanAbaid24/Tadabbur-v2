@@ -241,6 +241,8 @@ async def submit_reflection(
                 qf_post_id=qf_post_id,
                 ai_action_suggestion=ai_suggestion,
                 xp_earned=xp_earned,
+                verse_text=verse_data.get("text_uthmani"),
+                verse_translation=verse_translation,
             ).model_dump(),
         )
 
@@ -283,6 +285,13 @@ async def get_today_reflection(
 
         if response.data:
             reflection = response.data[0]
+            # Fetch verse context
+            verse_data = {}
+            try:
+                verse_data = await get_verse_by_key(reflection["verse_key"])
+            except Exception as e:
+                logger.warning("Failed to fetch verse context for today's reflection: %s", str(e))
+
             return APIResponse(
                 success=True,
                 data={
@@ -297,6 +306,8 @@ async def get_today_reflection(
                     "qf_post_id": reflection["qf_post_id"],
                     "ai_action_suggestion": reflection["ai_action_suggestion"],
                     "xp_earned": reflection["xp_earned"],
+                    "verse_text": verse_data.get("text_uthmani"),
+                    "verse_translation": verse_data.get("translation"),
                 },
             )
 
@@ -335,6 +346,18 @@ async def get_reflection_history(
             ).order("date", desc=True).limit(limit).execute()
         )
 
+        # Batch fetch verse data
+        verse_keys = list(set(r["verse_key"] for r in response.data))
+        verse_cache = {}
+        
+        # We fetch them sequentially for now or could gather if many
+        for vk in verse_keys:
+            try:
+                verse_cache[vk] = await get_verse_by_key(vk)
+            except Exception as e:
+                logger.warning("Failed to fetch verse context for %s in history: %s", vk, str(e))
+                verse_cache[vk] = {}
+
         reflections = [
             {
                 "id": r["id"],
@@ -348,6 +371,8 @@ async def get_reflection_history(
                 "qf_post_id": r["qf_post_id"],
                 "ai_action_suggestion": r["ai_action_suggestion"],
                 "xp_earned": r["xp_earned"],
+                "verse_text": verse_cache.get(r["verse_key"], {}).get("text_uthmani"),
+                "verse_translation": verse_cache.get(r["verse_key"], {}).get("translation"),
             }
             for r in response.data
         ]

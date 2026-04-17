@@ -124,23 +124,45 @@ export default function CircleFeed({ items, onLike }: CircleFeedProps) {
           </div>
 
           {/* Answers */}
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-gray-600 mb-1">
-                What does this ayah mean to you?
-              </p>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {item.prompt_1_answer}
-              </p>
-            </div>
+          <div className="space-y-6">
+            {/* Verse Context */}
+            {(item.verse_text || item.verse_translation) && (
+              <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50">
+                {item.verse_text && (
+                  <p 
+                    className="text-right text-lg font-arabic text-emerald-900 leading-loose mb-2" 
+                    dir="rtl" 
+                    translate="no"
+                  >
+                    {item.verse_text}
+                  </p>
+                )}
+                {item.verse_translation && (
+                  <p className="text-xs text-emerald-700 italic leading-relaxed">
+                    "{item.verse_translation}"
+                  </p>
+                )}
+              </div>
+            )}
 
-            <div>
-              <p className="text-xs font-medium text-gray-600 mb-1">
-                What will you do differently today?
-              </p>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {item.prompt_2_answer}
-              </p>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-gray-600 mb-1">
+                  What does this ayah mean to you?
+                </p>
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  {item.prompt_1_answer}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-gray-600 mb-1">
+                  What will you do differently today?
+                </p>
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  {item.prompt_2_answer}
+                </p>
+              </div>
             </div>
           </div>
 

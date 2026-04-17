@@ -134,6 +134,8 @@ class ReflectionResponse(BaseModel):
     xp_earned: int = Field(
         description="XP points awarded for this reflection",
     )
+    verse_text: Optional[str] = None
+    verse_translation: Optional[str] = None
 
 
 class CreateCircleRequest(BaseModel):
@@ -200,6 +202,8 @@ class CircleFeedItem(BaseModel):
         False,
         description="Whether the current user has liked this reflection",
     )
+    verse_text: Optional[str] = None
+    verse_translation: Optional[str] = None
 
 
 class ProfileUpdateRequest(BaseModel):

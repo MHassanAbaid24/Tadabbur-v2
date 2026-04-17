@@ -11,6 +11,8 @@ export interface Reflection {
   qf_note_id: string | null
   ai_action_suggestion: string | null
   xp_earned: number
+  verse_text?: string | null
+  verse_translation?: string | null
 }
 
 export type Mood = 'peaceful' | 'grateful' | 'hopeful' | 'challenged' | 'moved'
@@ -36,6 +38,8 @@ export interface ReflectionResponse {
   qf_post_id: string | null
   ai_action_suggestion: string | null
   xp_earned: number
+  verse_text?: string | null
+  verse_translation?: string | null
 }
 
 export interface CircleFeedItem {
@@ -48,4 +52,6 @@ export interface CircleFeedItem {
   created_at: string
   likes_count?: number
   is_liked?: boolean
+  verse_text?: string | null
+  verse_translation?: string | null
 }

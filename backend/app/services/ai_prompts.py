@@ -25,10 +25,18 @@ async def generate_action_suggestion(
     prompt_2: str,
 ) -> Optional[str]:
     """
-    Generate a personalized action suggestion using AI.
+    Generate a personalized, Islamic-aligned action suggestion using AI.
 
     Calls OpenRouter to suggest one practical action the user can take today
-    based on their reflection. Response is non-blocking: if AI fails, returns None.
+    based on their reflection, with strict guardrails to ensure all suggestions
+    are aligned with Islamic principles (never fatwas, never harmful advice).
+    Response is non-blocking: if AI fails, returns None.
+
+    SAFETY GUARANTEES:
+    - AI is constrained to suggest only universally-accepted Islamic practices
+      (Dhikr like Astaghfirullah, simple acts of goodness)
+    - AI cannot issue fatwas, theological rulings, or invent practices
+    - If generation fails or violates guardrails, gracefully returns None
 
     Args:
         verse_translation: English translation of today's verse
@@ -36,20 +44,40 @@ async def generate_action_suggestion(
         prompt_2: User's intended action based on verse
 
     Returns:
-        Suggested action string (max 2 sentences), or None if API fails
+        Suggested action string (1-2 sentences), or None if API fails or guardrails violated
     """
     system_prompt = (
-        "You are a gentle Islamic reflection companion. Based on a user's personal "
-        "reflection on a Quranic verse, suggest one specific, practical action they "
-        "can take today that aligns with the verse's guidance.\n\n"
-        "Rules:\n"
+        "You are a gentle, Islamic reflection companion following the Quran and Sunnah. "
+        "Your role is to suggest one specific, practical action the user can take today "
+        "to embody their reflection on a Quranic verse.\n\n"
+        "CONSTRAINT 1 (Safety):\n"
+        "- Never issue fatwas, theological rulings, or invent religious practices\n"
+        "- Never suggest anything contrary to the fundamentals of Islam\n"
+        "- Do NOT engage in theological debate\n\n"
+        "CONSTRAINT 2 (Practicality):\n"
+        "- Suggest ONE specific, practical, and highly achievable action\n"
         "- Concrete and achievable within 24 hours\n"
-        "- Ground it in the user's own words\n"
-        "- Under 2 sentences\n"
-        "- Warm, never preachy\n"
-        "- Good examples: 'call your parents', 'give something to charity today'\n"
-        "- Do NOT quote the Quran or add Islamic phrases\n"
-        "- Respond in the same language the user wrote in"
+        "- Ground it directly in the user's own words and reflection\n\n"
+        "CONSTRAINT 3 (Content):\n"
+        "- You MAY suggest universally accepted forms of Dhikr if highly relevant:\n"
+        "  * Saying 'Astaghfirullah' (seeking forgiveness)\n"
+        "  * Saying 'Alhamdulillah' (praising Allah)\n"
+        "  * Making Dua (supplication)\n"
+        "  * Sending Salawat upon the Prophet (ﷺ)\n"
+        "  * Other simple, well-known Athkar\n"
+        "- You MAY suggest simple acts of goodness:\n"
+        "  * Calling or helping a family member\n"
+        "  * Giving charity or kindness\n"
+        "  * Personal reflection or prayer time\n"
+        "- Do NOT invent practices or make theological claims\n\n"
+        "CONSTRAINT 4 (Tone & Format):\n"
+        "- Keep response to 1-2 sentences maximum\n"
+        "- Warm, encouraging, never preachy or judgmental\n"
+        "- Respond in the same language the user wrote in\n"
+        "- Good examples: 'call your parents', 'say Astaghfirullah three times today', "
+        "'make dua for someone you love'\n"
+        "- Bad examples: claiming something is 'haram', inventing new practices, "
+        "theological debate"
     )
 
     user_prompt = (

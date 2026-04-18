@@ -92,19 +92,17 @@ export default function Home() {
   }
 
   return (
-    <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-emerald-700">Today's Reflection</h1>
-          {summary && (
-            <StreakBadge streak={summary.current_streak} />
-          )}
-        </div>
+    <PageWrapper>
+      {/* Page Header */}
+      <div className="flex flex-row items-center justify-between mb-10 pb-4 border-b border-border sticky top-0 md:top-[64px] bg-cream z-10 pt-2">
+        <h1 className="font-cinzel text-[1.05rem] font-medium tracking-[0.08em] uppercase text-green">Today's Reflection</h1>
+        {summary && (
+          <StreakBadge streak={summary.current_streak} />
+        )}
       </div>
 
       {/* Main Content */}
-      <div className="py-6 space-y-6">
+      <div className="pb-6">
         {/* Verse Card */}
         <VerseCard
           verseKey={verse.verse_key}
@@ -115,59 +113,66 @@ export default function Home() {
         />
 
         {/* Reflection Section */}
-        <div className="space-y-8">
+        <div className="fade-up-delay-1">
           {todayReflection && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">Today's Latest Reflection</h2>
+            <div className="mb-8">
+              <div className="flex items-center gap-4 mb-7">
+                <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-border"></div>
+                <span className="font-cinzel text-[0.75rem] tracking-[0.14em] uppercase text-muted whitespace-nowrap">Today's Latest Reflection</span>
+                <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-border"></div>
+              </div>
               <ReflectionCard reflection={todayReflection} />
               <Link
                 to="/circle"
-                className="block w-full px-4 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium rounded-lg hover:bg-emerald-100 transition-colors text-center"
+                className="block w-full px-4 py-3 bg-transparent border border-gold-light text-gold font-cinzel text-[0.68rem] tracking-[0.1em] uppercase rounded-full hover:bg-gold-faint transition-colors text-center mt-4"
               >
                 See your circle's reflections
               </Link>
             </div>
           )}
 
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {todayReflection ? "Add Another Reflection" : "Share Your Reflection"}
-            </h2>
+          <div>
+             <div className="flex items-center gap-4 mb-7">
+              <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-border"></div>
+              <span className="font-cinzel text-[0.75rem] tracking-[0.14em] uppercase text-muted whitespace-nowrap">
+                {todayReflection ? "Add Another Reflection" : "Your Reflection"}
+              </span>
+              <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-border"></div>
+            </div>
+            
             <ReflectionForm
               verseKey={verse.verse_key}
               onSubmitted={handleReflectionSubmitted}
             />
             {/* Tip */}
-            <p className="text-sm text-gray-600 text-center italic">
-              Your reflection is private by default. Share with your circle if you'd like feedback.
+            <p className="text-[0.85rem] text-muted text-center italic mt-[-0.5rem] mb-10">
+              Your reflection is private by default.
             </p>
           </div>
         </div>
 
         {/* Progress Summary Card */}
         {summary && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-medium text-gray-600">Longest Streak</p>
-                <p className="text-2xl font-bold text-gold-600">
-                  {summary.longest_streak} days
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-600">Level</p>
-                <p className="text-2xl font-bold text-emerald-700">
-                  {summary.level_name}
-                </p>
-              </div>
+          <div className="bg-white border border-border rounded-[4px] p-6 lg:px-8 mt-10 grid grid-cols-2 sm:grid-cols-3 gap-5 items-center fade-up-delay-2">
+            <div>
+              <p className="font-cinzel text-[0.62rem] tracking-[0.12em] uppercase text-muted mb-1">Longest Streak</p>
+              <p className="text-[1.7rem] font-semibold text-gold leading-none">
+                {summary.longest_streak} <span className="text-[1rem] font-normal text-muted">days</span>
+              </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-600">Total XP</p>
-              <p className="text-xl font-bold text-gray-900">{summary.xp}</p>
+              <p className="font-cinzel text-[0.62rem] tracking-[0.12em] uppercase text-muted mb-1">Level</p>
+              <p className="text-[1.2rem] font-semibold text-green leading-none">
+                {summary.level_name}
+              </p>
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <p className="font-cinzel text-[0.62rem] tracking-[0.12em] uppercase text-muted mb-1">Total XP</p>
+              <p className="text-[1.7rem] font-semibold text-ink leading-none">{summary.xp}</p>
             </div>
             <Link
               to="/progress"
-              className="block text-sm text-emerald-600 hover:text-emerald-700 font-medium mt-2"
+              className="col-span-2 sm:col-span-3 text-right font-cinzel text-[0.68rem] tracking-[0.1em] uppercase text-green hover:text-gold transition-colors block"
             >
               View full progress →
             </Link>

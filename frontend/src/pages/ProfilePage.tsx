@@ -90,10 +90,10 @@ export default function Profile() {
   const currentAvatar = avatarPreview || (user as any)?.avatar_url
 
   return (
-    <PageWrapper className="bg-gradient-to-b from-cream-50 to-white pb-20">
-      <div className="max-w-2xl mx-auto space-y-8 py-8 px-4">
+    <PageWrapper>
+      <div className="max-w-[600px] mx-auto space-y-8 py-8 fade-up">
         {/* Profile Header */}
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-5">
           <div className="relative">
             {/* Hidden file input */}
             <input
@@ -104,18 +104,18 @@ export default function Profile() {
               onChange={handleFileChange}
             />
             
-            <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
+            <div className="w-[100px] h-[100px] bg-parchment rounded-full flex items-center justify-center border border-border shadow-[0_4px_15px_rgba(184,146,42,0.1)] overflow-hidden">
                {currentAvatar ? (
                   <img src={currentAvatar} alt={user?.username} className="w-full h-full object-cover" />
                ) : (
-                  <span className="text-3xl font-bold text-emerald-700">
+                  <span className="font-cinzel text-[2rem] font-medium text-gold">
                     {user?.display_name?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
                   </span>
                )}
                {/* Upload overlay */}
                {isUploadingAvatar && (
                  <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
-                   <Loader2 size={20} className="text-white animate-spin" />
+                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                  </div>
                )}
             </div>
@@ -123,97 +123,100 @@ export default function Profile() {
             <button
               onClick={handleAvatarClick}
               disabled={isUploadingAvatar}
-              className="absolute bottom-0 right-0 bg-emerald-600 p-2 rounded-full text-white border-2 border-white shadow-md hover:bg-emerald-700 transition-colors disabled:opacity-60"
+              className="absolute bottom-0 right-0 bg-ink p-[7px] rounded-full text-white border border-border shadow-md hover:bg-gold transition-colors disabled:opacity-60"
               title="Change profile photo"
             >
-              <Camera size={16} />
+              <Camera size={14} />
             </button>
           </div>
 
           {/* Avatar error */}
           {avatarError && (
-            <p className="text-xs text-red-600 font-medium bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 max-w-xs text-center">
+            <p className="font-sans text-[0.8rem] text-red-600 font-medium bg-red-50 px-4 py-2 rounded-[2px] border border-red-100 max-w-xs text-center">
               {avatarError}
             </p>
           )}
 
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">{user?.display_name || user?.username}</h1>
-            <p className="text-gray-500 text-sm">@{user?.username}</p>
+            <h1 className="font-cinzel text-[1.4rem] font-medium tracking-[0.06em] text-ink">{user?.display_name || user?.username}</h1>
+            <p className="font-cinzel text-[0.7rem] tracking-[0.1em] text-muted uppercase mt-1">@{user?.username}</p>
           </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-            <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
-               <span className="font-bold text-lg">Lvl</span>
+          <div className="bg-white p-5 rounded-[4px] border border-border flex items-center gap-4 hover:border-gold/30 transition-colors">
+            <div className="p-2.5 bg-parchment/60 text-gold rounded-full border border-gold-light">
+               <span className="font-cinzel text-[0.9rem] font-medium tracking-wide">LVL</span>
             </div>
             <div>
-              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Level</p>
-              <p className="font-bold text-gray-900">{user?.level || 1}</p>
+              <p className="font-cinzel text-[0.65rem] tracking-[0.14em] text-muted uppercase">Level</p>
+              <p className="font-sans text-[1.2rem] font-bold text-ink">{user?.level || 1}</p>
             </div>
           </div>
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-               <span className="font-bold text-lg">XP</span>
+          <div className="bg-white p-5 rounded-[4px] border border-border flex items-center gap-4 hover:border-gold/30 transition-colors">
+            <div className="p-2.5 bg-green-light text-green rounded-full border border-green/20">
+               <span className="font-cinzel text-[0.9rem] font-medium tracking-wide">EXP</span>
             </div>
             <div>
-              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Exp</p>
-              <p className="font-bold text-gray-900">{user?.xp || 0}</p>
+              <p className="font-cinzel text-[0.65rem] tracking-[0.14em] text-muted uppercase">Exp</p>
+              <p className="font-sans text-[1.2rem] font-bold text-ink">{user?.xp || 0}</p>
             </div>
           </div>
         </div>
 
         {/* Form Sections */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-6 space-y-6">
+        <div className="bg-white rounded-[4px] border border-border overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="p-6 md:p-8 space-y-8">
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <div className="bg-emerald-100 p-1.5 rounded-lg">
-                  <UserIcon size={16} className="text-emerald-700" />
+              <h3 className="font-cinzel text-[0.9rem] tracking-[0.06em] text-ink font-medium flex items-center gap-3">
+                <div className="bg-parchment/50 p-2 rounded-full border border-gold-faint">
+                  <UserIcon size={14} className="text-gold" />
                 </div>
                 Personal Details
               </h3>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400 ml-1 uppercase tracking-wider">Display Name</label>
+              <div className="space-y-3">
+                <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] uppercase text-ink">Display Name</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full bg-gray-50 border-2 border-transparent rounded-xl p-3 focus:bg-white focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all font-medium text-gray-900 outline-none"
+                  className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all disabled:opacity-60"
                   placeholder="Enter your name"
                 />
               </div>
             </div>
 
-            <div className="h-px bg-gray-100" />
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-border"></div>
+              <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-border"></div>
+            </div>
 
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <div className="bg-amber-100 p-1.5 rounded-lg">
-                  <Bell size={16} className="text-amber-700" />
+              <h3 className="font-cinzel text-[0.9rem] tracking-[0.06em] text-ink font-medium flex items-center gap-3">
+                <div className="bg-parchment/50 p-2 rounded-full border border-gold-faint">
+                  <Bell size={14} className="text-gold" />
                 </div>
                 Reminders
               </h3>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400 ml-1 uppercase tracking-wider">Daily Goal Time</label>
+              <div className="space-y-3">
+                <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] uppercase text-ink">Daily Goal Time</label>
                 <input
                   type="time"
                   value={reminderTime}
                   onChange={(e) => setReminderTime(e.target.value)}
-                  className="w-full bg-gray-50 border-2 border-transparent rounded-xl p-3 focus:bg-white focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 transition-all font-medium text-gray-900 outline-none"
+                  className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all disabled:opacity-60"
                 />
-                <p className="text-[11px] text-gray-400 mt-1 ml-1 font-medium">We'll send you a nudge at this time if you haven't reflected yet.</p>
+                <p className="font-sans text-[0.8rem] text-muted leading-relaxed">We'll send you a nudge at this time if you haven't reflected yet.</p>
               </div>
             </div>
           </div>
           
-          <div className="p-6 bg-gray-50/50 flex flex-col gap-3">
+          <div className="p-6 md:p-8 bg-parchment/20 border-t border-border flex flex-col gap-4">
              {message && (
-               <div className={`p-4 rounded-xl text-sm font-semibold animate-in fade-in slide-in-from-top-2 duration-300 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+               <div className={`p-4 rounded-[2px] font-sans text-[0.85rem] border animate-[fadeIn_0.3s_ease] ${message.type === 'success' ? 'bg-green-light text-green-mid border-green-mid' : 'bg-red-50 text-red-700 border border-red-100'}`}>
                  <div className="flex items-center gap-2">
-                   {message.type === 'success' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                   {message.type === 'success' && <div className="w-[6px] h-[6px] rounded-full bg-green" />}
                    {message.text}
                  </div>
                </div>
@@ -221,13 +224,13 @@ export default function Profile() {
              <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="w-full bg-emerald-600 text-white rounded-2xl py-4 font-bold shadow-lg shadow-emerald-200/50 hover:bg-emerald-700 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:scale-100"
+                className="w-full bg-ink hover:bg-gold text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:bg-ink"
               >
                 {isSaving ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <Save size={18} />
+                    <Save size={16} />
                     <span>Save Changes</span>
                   </>
                 )}
@@ -236,15 +239,15 @@ export default function Profile() {
         </div>
 
         {/* Danger Zone */}
-        <div className="pt-4">
+        <div className="pt-6 pb-2">
           <button
             onClick={logout}
-            className="w-full bg-red-50 text-red-600 rounded-2xl py-4 font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2 border border-red-100 shadow-sm"
+            className="w-full bg-transparent border border-[#d9534f]/30 text-[#d9534f] hover:bg-[#d9534f]/5 font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-[0.9rem] rounded-[2px] transition-all duration-300 flex items-center justify-center gap-2"
           >
-            <LogOut size={18} />
+            <LogOut size={14} />
             <span>Sign Out</span>
           </button>
-          <p className="text-center text-[10px] text-gray-400 mt-4 uppercase tracking-[0.2em]">Tadabbur v3.0</p>
+          <p className="text-center font-cinzel text-[0.6rem] text-muted/60 mt-6 uppercase tracking-[0.2em]">Tadabbur v3.0</p>
         </div>
       </div>
     </PageWrapper>

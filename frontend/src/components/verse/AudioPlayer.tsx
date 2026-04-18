@@ -33,23 +33,23 @@ export default function AudioPlayer({ audioUrl }: AudioPlayerProps) {
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <>
       <button
         onClick={handlePlayPause}
-        className="flex items-center justify-center w-12 h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition-colors active:scale-95"
+        className="w-[44px] h-[44px] rounded-full bg-green border-none flex items-center justify-center text-white transition-all duration-200 hover:bg-green-mid hover:scale-105 active:scale-95 shrink-0"
         aria-label={isPlaying ? 'Pause' : 'Play'}
       >
-        {isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
+        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="ml-0.5" />}
       </button>
       <audio
         ref={audioRef}
         src={audioUrl}
         onEnded={handleAudioEnd}
-        className="flex-1"
+        className="hidden"
       />
-      <span className="text-sm text-gray-600">
-        {isPlaying ? 'Playing...' : 'Tap to listen'}
+      <span className="text-[0.85rem] text-muted italic flex-1">
+        {isPlaying ? 'Playing recitation...' : 'Listen to recitation'}
       </span>
-    </div>
+    </>
   )
 }

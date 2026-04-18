@@ -80,7 +80,7 @@ export default function ReflectionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {/* Error Message */}
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
@@ -89,8 +89,8 @@ export default function ReflectionForm({
       )}
 
       {/* Prompt 1 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+      <div className="bg-white border border-border p-6 rounded-[4px] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink mb-3">
           What does this ayah mean to you, right now, in your life?
         </label>
         <textarea
@@ -98,19 +98,18 @@ export default function ReflectionForm({
           onChange={(e) => handleInputChange(e, 'prompt1')}
           disabled={isSubmitting}
           maxLength={2000}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none resize-none disabled:bg-gray-50"
-          rows={3}
+          className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] leading-[1.6] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all resize-y min-h-[120px] disabled:opacity-60"
           placeholder="Your reflection..."
           required
         />
-        <div className="text-xs text-gray-500 mt-1">
+        <div className="text-[0.7rem] font-cinzel text-muted mt-2 text-right">
           {formData.prompt1.length}/2000
         </div>
       </div>
 
       {/* Prompt 2 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+      <div className="bg-white border border-border p-6 rounded-[4px] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink mb-3">
           What is one thing you will do differently today because of this ayah?
         </label>
         <textarea
@@ -118,71 +117,72 @@ export default function ReflectionForm({
           onChange={(e) => handleInputChange(e, 'prompt2')}
           disabled={isSubmitting}
           maxLength={2000}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none resize-none disabled:bg-gray-50"
-          rows={3}
+          className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] leading-[1.6] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all resize-y min-h-[120px] disabled:opacity-60"
           placeholder="Your commitment..."
           required
         />
-        <div className="text-xs text-gray-500 mt-1">
+        <div className="text-[0.7rem] font-cinzel text-muted mt-2 text-right">
           {formData.prompt2.length}/2000
         </div>
       </div>
 
-      {/* Mood Selector */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          How are you feeling?
-        </label>
-        <div className="flex gap-2 flex-wrap">
-          {MOOD_OPTIONS.map(({ value, emoji }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => handleMoodSelect(value)}
-              disabled={isSubmitting}
-              className={`text-2xl p-2 rounded-full transition-colors disabled:opacity-50 ${
-                formData.mood === value
-                  ? 'bg-emerald-100'
-                  : 'bg-gray-100 hover:bg-gray-200'
-              }`}
-              title={emoji}
-            >
-              {emoji}
-            </button>
-          ))}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white border border-border p-5 rounded-[4px] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        {/* Mood Selector */}
+        <div>
+          <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] text-muted uppercase mb-3">
+            How are you feeling?
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            {MOOD_OPTIONS.map(({ value, emoji }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleMoodSelect(value)}
+                disabled={isSubmitting}
+                className={`text-[1.3rem] w-[40px] h-[40px] flex items-center justify-center rounded-full transition-all border ${
+                  formData.mood === value
+                    ? 'bg-parchment border-gold shadow-[0_0_10px_rgba(184,146,42,0.2)] scale-110'
+                    : 'bg-cream border-border hover:border-gold/50 hover:bg-parchment/50 grayscale opacity-60 hover:grayscale-0 hover:opacity-100'
+                }`}
+                title={emoji}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Share Toggle */}
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="share"
-          checked={formData.isShared}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              isShared: e.target.checked,
-            }))
-          }
-          disabled={isSubmitting}
-          className="w-4 h-4 rounded border-gray-300 text-emerald-600"
-        />
-        <label htmlFor="share" className="text-sm text-gray-700">
-          Share with my circle
-        </label>
+        {/* Share Toggle */}
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="share"
+            checked={formData.isShared}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                isShared: e.target.checked,
+              }))
+            }
+            disabled={isSubmitting}
+            className="w-[18px] h-[18px] accent-green cursor-pointer"
+          />
+          <label htmlFor="share" className="font-cinzel text-[0.75rem] tracking-[0.06em] text-ink cursor-pointer select-none">
+            Share with my circle
+          </label>
+        </div>
       </div>
 
       {/* Submit Button */}
       <button
         type="submit"
         disabled={isSubmitting || !formData.prompt1 || !formData.prompt2}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-full transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-ink hover:bg-gold text-white font-cinzel text-[0.85rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:bg-ink"
       >
         {isSubmitting ? (
           <>
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Submitting...
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span>Submitting...</span>
           </>
         ) : (
           'Share Reflection'

@@ -75,13 +75,13 @@ export default function Circle() {
   
   if (showSkeleton) {
     return (
-      <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="w-full max-w-lg space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse" />
-            <div className="space-y-2">
+      <PageWrapper>
+        <div className="flex items-center justify-center min-h-[60vh] fade-up">
+          <div className="w-full max-w-[500px] mx-auto space-y-4">
+            <div className="h-8 bg-parchment rounded-[2px] w-1/3 animate-pulse" />
+            <div className="space-y-3">
                {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-gray-200 rounded animate-pulse" />
+                <div key={i} className="h-28 bg-parchment rounded-[2px] animate-pulse" />
               ))}
             </div>
           </div>
@@ -92,13 +92,13 @@ export default function Circle() {
 
   if (storeError) {
     return (
-      <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
-        <div className="flex items-center justify-center min-h-[60vh] text-center">
+      <PageWrapper>
+        <div className="flex items-center justify-center min-h-[60vh] text-center fade-up">
           <div>
-            <p className="text-red-600 text-sm mb-4">{storeError}</p>
+            <p className="text-red-700 font-sans text-[0.95rem] mb-6">{storeError}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-medium"
+              className="bg-ink hover:bg-gold text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase px-8 py-4 rounded-[2px] transition-all duration-300"
             >
               Retry
             </button>
@@ -110,59 +110,55 @@ export default function Circle() {
 
   if (!circleData && !storeLoading) {
     return (
-      <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
-        <div className="py-12 space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900">Join a Circle</h1>
-            <p className="text-gray-600 text-sm">
-              Share reflections with family and friends. Reflect together on the same verse daily.
-            </p>
+      <PageWrapper>
+        <div className="max-w-[440px] mx-auto py-10 fade-up">
+          <h1 className="font-cinzel text-[1.4rem] md:text-[1.8rem] font-medium tracking-[0.06em] text-ink text-center mb-5">Join a Circle</h1>
+          <p className="text-center font-sans text-muted mb-10 text-[0.95rem] leading-[1.6]">
+            Share reflections with family and friends. Reflect together on the same verse daily.
+          </p>
+
+          <Link
+            to="/circle/new"
+            className="block w-full bg-ink hover:bg-gold text-white text-center font-cinzel text-[0.75rem] tracking-[0.14em] uppercase px-8 py-4 rounded-[2px] transition-all duration-300 mb-9"
+          >
+            Create a Circle
+          </Link>
+
+          <div className="relative mb-9">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-cream px-4 font-cinzel text-[0.7rem] tracking-[0.1em] uppercase text-muted">or join with code</span>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <Link
-              to="/circle/new"
-              className="block w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-center transition-colors"
+          <div className="flex flex-col gap-5">
+            {joinError && (
+              <p className="text-[0.8rem] text-red-600 bg-red-50 p-3 rounded-[2px] border border-red-100 text-center">{joinError}</p>
+            )}
+            <input
+              type="text"
+              placeholder="Paste invite code here"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              disabled={isJoining}
+              className="w-full bg-white border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all disabled:opacity-60"
+            />
+            <button
+              onClick={handleJoin}
+              disabled={isJoining || !joinCode.trim()}
+              className="w-full bg-transparent border border-gold-light text-gold font-cinzel text-[0.75rem] tracking-[0.14em] uppercase px-8 py-[0.9rem] rounded-[2px] transition-all duration-300 hover:bg-gold-faint flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:bg-transparent"
             >
-              Create a Circle
-            </Link>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">or</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {joinError && (
-                <p className="text-xs text-red-500 bg-red-50 p-2 rounded">{joinError}</p>
+              {isJoining ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-gold/30 border-t-gold rounded-full animate-spin" />
+                  <span>Joining...</span>
+                </>
+              ) : (
+                'Join Circle'
               )}
-              <input
-                type="text"
-                placeholder="Paste invite code here"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value)}
-                disabled={isJoining}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-gray-50"
-              />
-              <button
-                onClick={handleJoin}
-                disabled={isJoining || !joinCode.trim()}
-                className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-full transition-colors flex items-center justify-center gap-2"
-              >
-                {isJoining ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                    Joining...
-                  </>
-                ) : (
-                  'Join Circle'
-                )}
-              </button>
-            </div>
+            </button>
           </div>
         </div>
       </PageWrapper>
@@ -171,24 +167,24 @@ export default function Circle() {
 
   return (
     <>
-      <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
-        <div className="py-6 space-y-8">
+      <PageWrapper>
+        <div className="fade-up">
           {/* Header */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-border pb-6 pt-2">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{circleData.name}</h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <h1 className="font-cinzel text-[1.4rem] md:text-[1.8rem] font-medium tracking-[0.06em] text-ink mb-2">{circleData.name}</h1>
+              <p className="font-cinzel text-[0.75rem] tracking-[0.14em] text-muted uppercase">
                 {circleData.member_count} {circleData.member_count === 1 ? 'member' : 'members'}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowMembers(true)}
-                className="p-2 text-emerald-700 hover:bg-emerald-50 rounded-full transition-colors flex items-center gap-2"
+                className="bg-transparent border border-gold-light text-gold font-cinzel text-[0.7rem] sm:text-[0.75rem] tracking-[0.1em] sm:tracking-[0.14em] uppercase px-4 sm:px-6 py-2.5 sm:py-3 rounded-[2px] transition-all duration-300 hover:bg-gold-faint flex items-center gap-2"
                 title="View Members"
               >
-                <Users size={20} />
-                <span className="text-sm font-medium hidden sm:inline">Members</span>
+                <Users size={16} />
+                <span className="font-medium hidden sm:inline">Members</span>
               </button>
               <CircleInvite
                 inviteCode={circleData.invite_code}
@@ -199,9 +195,11 @@ export default function Circle() {
 
           {/* Feed */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Shared Reflections
-            </h2>
+             <div className="flex items-center gap-4 mb-8">
+              <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-border"></div>
+              <span className="font-cinzel text-[0.75rem] tracking-[0.14em] uppercase text-muted whitespace-nowrap">Shared Reflections</span>
+              <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-border"></div>
+            </div>
             <CircleFeed items={feedItems} onLike={handleLike} />
           </div>
         </div>

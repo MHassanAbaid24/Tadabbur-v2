@@ -23,28 +23,39 @@ export default function ReflectionCard({ reflection }: ReflectionCardProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-6 space-y-4">
+    <div className="bg-white border border-border p-5 md:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex flex-col gap-5 relative opacity-100 hover:border-gold transition-colors duration-300 group rounded-[4px]">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500">{reflection.verse_key}</p>
-          <p className="text-xs text-gray-400">{formatDate(reflection.date)}</p>
+          <p className="font-cinzel text-[0.65rem] tracking-[0.14em] text-muted uppercase mb-1">
+            {formatDate(reflection.date)}
+          </p>
+          <p className="font-cinzel text-[0.8rem] tracking-[0.06em] text-ink font-medium">
+            {reflection.verse_key}
+          </p>
         </div>
-        {reflection.mood && (
-          <div className="text-2xl">
-            {MOOD_EMOJI[reflection.mood] || ''}
-          </div>
-        )}
+        <div className="flex flex-col items-end gap-2">
+          {reflection.mood && (
+            <div className="flex items-center justify-center w-[32px] h-[32px] bg-parchment rounded-full text-[1.1rem] border border-border shadow-[0_2px_6px_rgba(184,146,42,0.15)] bg-opacity-70 backdrop-blur-sm relative z-10" title={reflection.mood}>
+              {MOOD_EMOJI[reflection.mood] || ''}
+            </div>
+          )}
+          {reflection.xp_earned > 0 && (
+             <div className="font-sans text-[0.7rem] font-medium text-gold bg-gold-faint px-2 py-0.5 rounded-[2px]">
+               +{reflection.xp_earned} XP
+             </div>
+          )}
+        </div>
       </div>
 
       {/* Reflection Answers */}
-      <div className="space-y-6">
+      <div className="flex flex-col gap-6 pt-1 border-t border-border/50">
         {/* Verse Context */}
         {(reflection.verse_text || reflection.verse_translation) && (
-          <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50">
+          <div className="bg-green-light border-l-[3px] border-green p-4 pt-3">
             {reflection.verse_text && (
               <p 
-                className="text-right text-lg font-arabic text-emerald-900 leading-loose mb-2" 
+                className="font-scheherazade text-[1.4rem] leading-[2] text-right text-green-mid mb-2" 
                 dir="rtl" 
                 translate="no"
               >
@@ -52,37 +63,28 @@ export default function ReflectionCard({ reflection }: ReflectionCardProps) {
               </p>
             )}
             {reflection.verse_translation && (
-              <p className="text-xs text-emerald-700 italic leading-relaxed">
+              <p className="font-sans text-[0.85rem] leading-[1.6] text-ink-soft italic">
                 "{reflection.verse_translation}"
               </p>
             )}
           </div>
         )}
 
-        <div className="space-y-4">
-        <div>
-          <p className="text-xs font-medium text-gray-600 mb-1">
-            What does this ayah mean to you?
-          </p>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            {reflection.prompt_1_answer}
-          </p>
-        </div>
+        <div className="space-y-6">
+          <div>
+            <h4 className="font-cinzel text-[0.68rem] tracking-[0.1em] text-gold uppercase mb-2">What does this ayah mean to you?</h4>
+            <p className="font-sans text-[0.95rem] leading-[1.6] text-ink whitespace-pre-wrap">
+              {reflection.prompt_1_answer}
+            </p>
+          </div>
 
-        <div>
-          <p className="text-xs font-medium text-gray-600 mb-1">
-            What will you do differently today?
-          </p>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            {reflection.prompt_2_answer}
-          </p>
+          <div>
+            <h4 className="font-cinzel text-[0.68rem] tracking-[0.1em] text-gold uppercase mb-2">What will you do differently today?</h4>
+            <p className="font-sans text-[0.95rem] leading-[1.6] text-ink whitespace-pre-wrap">
+              {reflection.prompt_2_answer}
+            </p>
+          </div>
         </div>
-        </div>
-      </div>
-
-      {/* XP Earned */}
-      <div className="text-xs text-gold-600 font-medium">
-        +{reflection.xp_earned} XP
       </div>
     </div>
   )

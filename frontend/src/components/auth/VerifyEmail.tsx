@@ -118,20 +118,23 @@ export default function VerifyEmail({ email, onSuccess, onCancel }: VerifyEmailP
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+    <div className="fixed inset-0 bg-ink/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-[4px] shadow-[0_4px_25px_rgba(184,146,42,0.06)] border border-border p-8 max-w-[400px] w-full relative overflow-hidden">
+        {/* Subtle highlight */}
+        <div className="absolute top-0 inset-x-0 h-[60px] bg-gradient-to-b from-parchment/60 to-transparent -z-10 opacity-50"></div>
+
         {/* Header */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-emerald-700 mb-2">Verify Email</h2>
-          <p className="text-gray-600">We sent a code to</p>
-          <p className="text-gray-800 font-semibold">{email}</p>
+        <div className="text-center mb-8">
+          <h2 className="font-cinzel text-[1.8rem] font-medium tracking-[0.06em] text-ink mb-2">Verify Email</h2>
+          <p className="font-sans text-[0.85rem] text-muted">We sent a code to</p>
+          <p className="font-sans text-[0.95rem] text-ink font-medium mt-1">{email}</p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* OTP Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Enter 6-digit code</label>
+            <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] text-ink uppercase mb-4 text-center">Enter 6-digit code</label>
             <div className="flex gap-2 justify-center">
               {otp.map((digit, index) => (
                 <input
@@ -147,7 +150,7 @@ export default function VerifyEmail({ email, onSuccess, onCancel }: VerifyEmailP
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
                   disabled={isLoading}
-                  className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-emerald-500 focus:outline-none transition disabled:bg-gray-100"
+                  className="w-12 h-14 text-center text-xl font-sans font-medium text-ink bg-cream border border-border rounded-[2px] focus:border-gold/50 focus:ring-1 focus:ring-gold/30 focus:outline-none transition-all disabled:opacity-50"
                   autoComplete="off"
                 />
               ))}
@@ -156,31 +159,33 @@ export default function VerifyEmail({ email, onSuccess, onCancel }: VerifyEmailP
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="p-4 bg-red-50 border border-red-100 rounded-[2px] flex items-center gap-2">
+              <div className="w-[6px] h-[6px] rounded-full bg-red-600 shrink-0" />
+              <p className="text-red-700 font-sans text-[0.85rem]">{error}</p>
             </div>
           )}
 
           {/* Success Message */}
           {resendMessage && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-700 text-sm">{resendMessage}</p>
+            <div className="p-4 bg-green-light border border-green/20 rounded-[2px] flex items-center gap-2">
+              <div className="w-[6px] h-[6px] rounded-full bg-green shrink-0" />
+              <p className="text-green-mid font-sans text-[0.85rem]">{resendMessage}</p>
             </div>
           )}
 
           {/* Timer and Resend */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
-              Expires in <span className="font-semibold text-emerald-700">{formatTime(timeLeft)}</span>
+          <div className="flex items-center justify-between font-sans text-[0.85rem]">
+            <span className="text-muted">
+              Expires in <span className="font-medium text-gold">{formatTime(timeLeft)}</span>
             </span>
             <button
               type="button"
               onClick={handleResend}
               disabled={!canResend || isLoading}
-              className={`font-semibold transition ${
+              className={`font-medium transition-colors ${
                 canResend && !isLoading
-                  ? 'text-emerald-700 hover:text-emerald-800 cursor-pointer'
-                  : 'text-gray-400 cursor-not-allowed'
+                  ? 'text-ink hover:text-gold cursor-pointer'
+                  : 'text-muted/50 cursor-not-allowed'
               }`}
             >
               Resend code
@@ -191,9 +196,9 @@ export default function VerifyEmail({ email, onSuccess, onCancel }: VerifyEmailP
           <button
             type="submit"
             disabled={isLoading || otp.some((d) => !d)}
-            className="w-full bg-emerald-700 text-white py-3 rounded-full font-semibold hover:bg-emerald-800 disabled:bg-gray-400 transition"
+            className="w-full bg-ink hover:bg-gold text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(28,26,22,0.15)]"
           >
-            {isLoading ? 'Verifying...' : 'Verify'}
+            {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Verify'}
           </button>
         </form>
 
@@ -201,7 +206,7 @@ export default function VerifyEmail({ email, onSuccess, onCancel }: VerifyEmailP
         <button
           onClick={onCancel}
           disabled={isLoading}
-          className="w-full mt-3 py-2 text-gray-700 font-semibold hover:text-gray-900 disabled:text-gray-400 transition"
+          className="w-full mt-4 font-cinzel text-[0.7rem] tracking-[0.14em] uppercase text-muted hover:text-ink transition-colors py-2 disabled:opacity-50"
         >
           Cancel
         </button>

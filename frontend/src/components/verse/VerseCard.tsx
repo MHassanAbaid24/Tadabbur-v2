@@ -31,30 +31,29 @@ export default function VerseCard({
   const surahName = surahNames[surahNum] || `Chapter ${surahNum}`
 
   return (
-    <div className="bg-gradient-to-br from-white to-cream-50 shadow-lg rounded-2xl p-8 space-y-6">
-      {/* Arabic Text */}
-      <div className="text-center">
-        <ArabicText text={textUthmani} />
+    <div className="bg-white border border-border rounded-[4px] p-0 overflow-hidden shadow-[0_4px_40px_rgba(184,146,42,0.08),0_1px_4px_rgba(0,0,0,0.06)] mb-10 fade-up">
+      {/* Gold ornamental top strip */}
+      <div className="bg-green py-[0.85rem] px-8 flex items-center justify-center gap-4">
+        <span className="text-gold-light text-[1.1rem] opacity-70 tracking-[0.3em]">❧ ✦ ❧</span>
+        <span className="font-cinzel text-[0.7rem] tracking-[0.14em] text-white/80 uppercase">
+          {surahName} · {surahNum}:{ayahNum}
+        </span>
+        <span className="text-gold-light text-[1.1rem] opacity-70 tracking-[0.3em]">❧ ✦ ❧</span>
       </div>
 
-      {/* Reference */}
-      <div className="text-center text-sm text-gray-600">
-        {surahName} {surahNum}:{ayahNum}
-      </div>
+      <div className="pt-10 px-5 md:px-10 pb-8">
+        <p className="font-scheherazade text-[1.6rem] md:text-[2rem] leading-[2.1] md:leading-[2.2] text-right text-ink mb-8 pb-7 border-b border-border" dir="rtl" lang="ar" translate="no">
+          {textUthmani}
+        </p>
 
-      {/* Translation */}
-      <div className="text-gray-700 text-base leading-relaxed">
-        <p className="italic">"{translation}"</p>
-      </div>
+        <p className="text-[1.1rem] leading-[1.85] text-ink-soft italic font-light mb-8">
+          "{translation}"
+        </p>
 
-      {/* Audio Player */}
-      <div className="pt-2">
-        <AudioPlayer audioUrl={audioUrl} />
-      </div>
-
-      {/* Tafsir Drawer */}
-      <div>
-        <TafsirDrawer tafsir={tafsir} verseKey={verseKey} />
+        <div className="flex items-center gap-4 pt-2">
+          <AudioPlayer audioUrl={audioUrl} />
+          <TafsirDrawer tafsir={tafsir} verseKey={verseKey} />
+        </div>
       </div>
     </div>
   )

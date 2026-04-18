@@ -102,35 +102,40 @@ export default function CircleFeed({ items, onLike }: CircleFeedProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {items.map((item) => (
         <div
           key={item.reflection_id}
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-5 space-y-4"
+          className="bg-white border border-border p-5 md:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex flex-col gap-5 relative opacity-100 hover:border-gold transition-colors duration-300 group rounded-[4px]"
         >
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-gray-900 text-sm">
-                {getFirstName(item.user_display_name)}
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="font-cinzel text-[0.65rem] tracking-[0.14em] text-muted uppercase mb-1">
+                {formatDate(item.created_at)}
               </p>
-              {item.mood && (
-                <span className="text-lg">
-                  {MOOD_EMOJI[item.mood] || ''}
-                </span>
-              )}
+              <div className="flex items-center gap-[6px]">
+                <p className="font-sans text-[0.95rem] font-medium text-ink">
+                  {getFirstName(item.user_display_name)}
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-500">{formatDate(item.created_at)}</p>
+            
+            {item.mood && (
+              <div className="flex items-center justify-center w-[32px] h-[32px] bg-parchment rounded-full text-[1.1rem] border border-border shadow-[0_2px_6px_rgba(184,146,42,0.15)] bg-opacity-70 backdrop-blur-sm relative z-10" title={item.mood}>
+                {MOOD_EMOJI[item.mood] || ''}
+              </div>
+            )}
           </div>
 
           {/* Answers */}
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6 pt-1 border-t border-border/50">
             {/* Verse Context */}
             {(item.verse_text || item.verse_translation) && (
-              <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-100/50">
+              <div className="bg-green-light border-l-[3px] border-green p-4 pt-3">
                 {item.verse_text && (
                   <p 
-                    className="text-right text-lg font-arabic text-emerald-900 leading-loose mb-2" 
+                    className="font-scheherazade text-[1.4rem] leading-[2] text-right text-green-mid mb-2" 
                     dir="rtl" 
                     translate="no"
                   >
@@ -138,52 +143,53 @@ export default function CircleFeed({ items, onLike }: CircleFeedProps) {
                   </p>
                 )}
                 {item.verse_translation && (
-                  <p className="text-xs text-emerald-700 italic leading-relaxed">
+                  <p className="font-sans text-[0.85rem] leading-[1.6] text-ink-soft italic">
                     "{item.verse_translation}"
                   </p>
                 )}
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <p className="text-xs font-medium text-gray-600 mb-1">
-                  What does this ayah mean to you?
-                </p>
-                <p className="text-gray-700 text-sm leading-relaxed">
+                <h4 className="font-cinzel text-[0.68rem] tracking-[0.1em] text-gold uppercase mb-2">What does this ayah mean?</h4>
+                <p className="font-sans text-[0.95rem] leading-[1.6] text-ink whitespace-pre-wrap">
                   {item.prompt_1_answer}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs font-medium text-gray-600 mb-1">
-                  What will you do differently today?
-                </p>
-                <p className="text-gray-700 text-sm leading-relaxed">
+                <h4 className="font-cinzel text-[0.68rem] tracking-[0.1em] text-gold uppercase mb-2">What will you do differently?</h4>
+                <p className="font-sans text-[0.95rem] leading-[1.6] text-ink whitespace-pre-wrap">
                   {item.prompt_2_answer}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Verse Reference */}
-          <p className="text-xs font-medium text-gray-500">{item.verse_key}</p>
+          {/* Footer (Verse Ref + Like) */}
+          <div className="flex items-center justify-between pt-2 border-t border-border/30">
+            <p className="font-cinzel text-[0.65rem] tracking-[0.14em] text-muted font-medium bg-parchment/60 px-2.5 py-1 rounded-[2px]">{item.verse_key}</p>
 
-          {/* Like Button */}
-          <button
-            onClick={() => handleLike(item.reflection_id)}
-            disabled={loadingIds.has(item.reflection_id)}
-            className={`flex items-center gap-1.5 text-sm ${likedIds.has(item.reflection_id) ? 'text-emerald-600' : 'text-gray-600 hover:text-emerald-600'} disabled:opacity-50 transition-colors`}
-          >
-            <Heart
-              size={16}
-              className={likedIds.has(item.reflection_id) ? 'fill-emerald-600' : ''}
-            />
-            {item.likes_count && item.likes_count > 1 ? (
-              <span className="font-medium">{item.likes_count}</span>
-            ) : null}
-            <span>{likedIds.has(item.reflection_id) ? 'Liked' : 'Like'}</span>
-          </button>
+            <button
+              onClick={() => handleLike(item.reflection_id)}
+              disabled={loadingIds.has(item.reflection_id)}
+              className={`flex items-center gap-[6px] font-cinzel text-[0.7rem] tracking-[0.1em] uppercase ${likedIds.has(item.reflection_id) ? 'text-green' : 'text-muted hover:text-gold'} disabled:opacity-50 transition-colors`}
+            >
+              <Heart
+                size={15}
+                className={likedIds.has(item.reflection_id) ? 'fill-green' : ''}
+              />
+              <div className="flex items-center gap-1">
+                {item.likes_count && item.likes_count > 0 ? (
+                  <span className="font-sans font-medium">{likedIds.has(item.reflection_id) && !item.is_liked ? item.likes_count + 1 : !likedIds.has(item.reflection_id) && item.is_liked ? item.likes_count - 1 : item.likes_count}</span>
+                ) : (
+                  likedIds.has(item.reflection_id) && !item.is_liked ? <span className="font-sans font-medium">1</span> : null
+                )}
+                <span className="hidden sm:inline">{likedIds.has(item.reflection_id) ? 'Liked' : 'Like'}</span>
+              </div>
+            </button>
+          </div>
         </div>
       ))}
     </div>

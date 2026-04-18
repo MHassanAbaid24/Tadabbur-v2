@@ -99,36 +99,36 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-white">
+    <div className="min-h-[100dvh] bg-cream bg-geometric relative z-0">
       {/* Skip button */}
-      <div className="absolute top-6 right-6 z-10">
+      <div className="absolute top-5 right-5 md:top-8 md:right-8 z-50">
         <button
           onClick={handleSkip}
-          className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          className="font-cinzel text-[0.7rem] tracking-[0.14em] uppercase text-muted hover:text-ink transition-colors"
         >
           Skip
         </button>
       </div>
 
       {/* Progress indicator */}
-      <div className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-2">
+      <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-border/50 z-40">
+        <div className="max-w-[440px] mx-auto px-4 py-4 flex items-center gap-2">
           {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                s <= step ? 'bg-gold-500' : 'bg-gray-200'
+              className={`h-1 flex-1 rounded-full transition-colors duration-500 ${
+                s <= step ? 'bg-gold' : 'bg-parchment'
               }`}
             />
           ))}
         </div>
-        <div className="text-center pb-2 text-xs text-gray-500">
+        <div className="text-center pb-3 font-cinzel text-[0.6rem] tracking-[0.2em] text-muted uppercase">
           Step {step} of 4
         </div>
       </div>
 
       {/* Main content */}
-      <div className="max-w-lg mx-auto px-4 pt-32 pb-8 min-h-screen flex items-center">
+      <div className="max-w-[500px] mx-auto px-4 pt-32 pb-12 min-h-[100dvh] flex items-center">
         <motion.div
           key={step}
           variants={containerVariants}
@@ -140,99 +140,119 @@ export default function Onboarding() {
           {/* Step 1: Welcome */}
           {step === 1 && (
             <div className="text-center">
-              <div className="mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gold-100 rounded-full mb-4">
-                  <Zap className="text-gold-600" size={32} />
+              <div className="mb-6">
+                <div className="inline-flex items-center justify-center w-[80px] h-[80px] bg-parchment rounded-full mb-6 border border-gold-light shadow-[0_4px_15px_rgba(184,146,42,0.1)]">
+                  <span className="font-scheherazade text-gold text-4xl leading-none mt-2">ت</span>
                 </div>
               </div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="font-cinzel text-[2rem] md:text-[2.5rem] font-medium tracking-[0.06em] text-ink mb-2">
                 Welcome to Tadabbur
               </h1>
-              <p className="text-xl text-gold-600 font-semibold mb-6">
+              <p className="font-cinzel text-[0.8rem] md:text-[0.9rem] tracking-[0.14em] text-gold uppercase mb-8">
                 Read. Reflect. Grow Together.
               </p>
-              <div className="space-y-4 mb-8 text-left bg-cream-50 p-6 rounded-lg">
-                <div className="flex gap-3">
-                  <div className="text-2xl">📖</div>
+              <div className="space-y-4 mb-10 text-left">
+                <div className="flex gap-4 items-start bg-white p-5 rounded-[4px] border border-border hover:border-gold/30 transition-colors shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-parchment flex items-center justify-center shrink-0 border border-gold-faint">
+                    <span className="font-scheherazade text-gold text-xl mt-1">١</span>
+                  </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Read</p>
-                    <p className="text-sm text-gray-600">
-                      A new verse every day, curated just for you
-                    </p>
+                    <h3 className="font-cinzel text-[0.9rem] font-medium text-ink tracking-[0.06em] mb-1">Read</h3>
+                    <p className="font-sans text-[0.85rem] text-muted leading-relaxed">A new verse every day, curated just for you</p>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <div className="text-2xl">✍️</div>
+                
+                <div className="flex gap-4 items-start bg-white p-5 rounded-[4px] border border-border hover:border-gold/30 transition-colors shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-parchment flex items-center justify-center shrink-0 border border-gold-faint">
+                    <span className="font-scheherazade text-gold text-xl mt-1">٢</span>
+                  </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Reflect</p>
-                    <p className="text-sm text-gray-600">
-                      Answer two prompts that bring the Quran to life
-                    </p>
+                    <h3 className="font-cinzel text-[0.9rem] font-medium text-ink tracking-[0.06em] mb-1">Reflect</h3>
+                    <p className="font-sans text-[0.85rem] text-muted leading-relaxed">Answer prompts that bring the Quran to life</p>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <div className="text-2xl">🤝</div>
+                
+                <div className="flex gap-4 items-start bg-white p-5 rounded-[4px] border border-border hover:border-gold/30 transition-colors shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-parchment flex items-center justify-center shrink-0 border border-gold-faint">
+                    <span className="font-scheherazade text-gold text-xl mt-1">٣</span>
+                  </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Grow Together</p>
-                    <p className="text-sm text-gray-600">
-                      Share with family and friends in your circle
-                    </p>
+                    <h3 className="font-cinzel text-[0.9rem] font-medium text-ink tracking-[0.06em] mb-1">Grow Together</h3>
+                    <p className="font-sans text-[0.85rem] text-muted leading-relaxed">Share with family and friends in your circle</p>
                   </div>
                 </div>
               </div>
+              
               <button
                 onClick={() => setStep(2)}
-                className="w-full bg-gold-500 hover:bg-gold-600 text-white font-semibold py-3 px-6 rounded-full flex items-center justify-center gap-2 transition-colors"
+                className="w-full bg-ink hover:bg-gold text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-3"
               >
                 Let's Get Started
-                <ChevronRight size={20} />
+                <ChevronRight size={16} />
               </button>
             </div>
           )}
 
           {/* Step 2: Connect QF Account */}
           {step === 2 && (
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            <div className="text-center">
+              <h2 className="font-cinzel text-[1.8rem] md:text-[2rem] font-medium tracking-[0.06em] text-ink mb-4">
                 Connect Your Account
               </h2>
-              <p className="text-gray-600 mb-8">
-                Connect your quran.com account to sync your streaks and notes
-                across devices. (Optional — you can do this later)
+              <p className="font-sans text-[0.9rem] text-muted mb-8 max-w-[400px] mx-auto leading-relaxed">
+                Connect your quran.com account to sync your streaks and notes across devices. (Optional)
               </p>
 
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-8">
-                <div className="flex gap-3">
-                  <div className="text-emerald-600 text-2xl">✅</div>
+              <div className="bg-white border border-border rounded-[4px] p-6 mb-8 text-left shadow-sm">
+                <div className="flex gap-4 items-start">
+                  <div className="w-8 h-8 rounded-full bg-green-light flex items-center justify-center shrink-0 border border-green/20">
+                    <Zap size={14} className="text-green" />
+                  </div>
                   <div>
-                    <p className="font-semibold text-emerald-900">Why connect?</p>
-                    <ul className="text-sm text-emerald-800 space-y-1 mt-2">
-                      <li>• Sync your reflection streaks</li>
-                      <li>• Access notes on quran.com</li>
-                      <li>• Save your progress</li>
+                    <h4 className="font-cinzel text-[0.85rem] font-medium text-ink tracking-[0.06em] mb-3 uppercase">Why connect?</h4>
+                    <ul className="space-y-3 font-sans text-[0.85rem] text-muted">
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-gold" />
+                        Sync your reflection streaks
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-gold" />
+                        Access notes on quran.com
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-gold" />
+                        Save your progress globally
+                      </li>
                     </ul>
                   </div>
                 </div>
               </div>
 
               {error && (
-                <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">
+                <div className="bg-red-50 border border-red-100 text-red-700 p-4 rounded-[2px] mb-6 font-sans text-[0.85rem] flex items-center justify-center gap-2">
+                  <div className="w-[6px] h-[6px] rounded-full bg-red-600" />
                   {error}
                 </div>
               )}
 
-              <div className="space-y-3 mb-8">
+              <div className="space-y-4">
                 <button
                   onClick={handleQFConnect}
                   disabled={isLoading}
-                  className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-full flex items-center justify-center gap-2 transition-colors"
+                  className="w-full bg-green hover:bg-green-mid disabled:opacity-50 text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-3 shadow-[0_4px_15px_rgba(45,90,61,0.2)]"
                 >
-                  {isLoading ? 'Connecting...' : 'Connect quran.com'}
-                  <ChevronRight size={20} />
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      Connect quran.com
+                      <ChevronRight size={16} />
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => setStep(3)}
-                  className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-6 rounded-full transition-colors"
+                  className="w-full bg-transparent border border-border hover:bg-parchment text-ink font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300"
                 >
                   Skip for Now
                 </button>
@@ -243,33 +263,34 @@ export default function Onboarding() {
           {/* Step 3: Circle Setup */}
           {step === 3 && (
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Join or Create Your Circle
-              </h2>
-              <p className="text-gray-600 mb-8">
-                A circle is a group of family and friends reflecting on the same
-                verse together. (Optional)
-              </p>
+              <div className="text-center mb-8">
+                <h2 className="font-cinzel text-[1.8rem] md:text-[2rem] font-medium tracking-[0.06em] text-ink mb-4">
+                  Join or Create Your Circle
+                </h2>
+                <p className="font-sans text-[0.9rem] text-muted max-w-[400px] mx-auto leading-relaxed">
+                  A circle is a group of family and friends reflecting on the same verse together. (Optional)
+                </p>
+              </div>
 
               <div className="space-y-4">
                 {/* Create Circle */}
-                <div className="border-2 border-gray-200 rounded-lg p-4 hover:border-gold-500 transition-colors">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <div className="flex-shrink-0 mt-1">
+                <label className="block bg-white border border-border rounded-[4px] p-5 cursor-pointer hover:border-gold/50 transition-colors shadow-sm relative overflow-hidden group">
+                  <div className="flex items-start gap-4">
+                    <div className="mt-1">
                       <input
                         type="radio"
                         name="circle-action"
                         value="create"
                         defaultChecked
-                        className="w-4 h-4"
+                        className="w-4 h-4 accent-gold cursor-pointer"
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900 flex items-center gap-2">
-                        <CircleIcon size={18} className="text-gold-500" />
+                      <p className="font-cinzel text-[0.95rem] font-medium text-ink tracking-[0.06em] flex items-center gap-2 mb-1">
+                        <CircleIcon size={16} className="text-gold" />
                         Create a Circle
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="font-sans text-[0.8rem] text-muted mb-4">
                         Start a group and invite family or friends
                       </p>
                       <input
@@ -277,29 +298,29 @@ export default function Onboarding() {
                         placeholder="Circle name (e.g., Family Reflections)"
                         value={circleName}
                         onChange={(e) => setCircleName(e.target.value)}
-                        className="mt-3 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gold-500"
+                        className="w-full bg-cream border border-border p-3 rounded-[2px] font-sans text-[0.9rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all group-has-[:checked]:border-gold/30"
                       />
                     </div>
-                  </label>
-                </div>
+                  </div>
+                </label>
 
                 {/* Join Circle */}
-                <div className="border-2 border-gray-200 rounded-lg p-4 hover:border-gold-500 transition-colors">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <div className="flex-shrink-0 mt-1">
+                <label className="block bg-white border border-border rounded-[4px] p-5 cursor-pointer hover:border-gold/50 transition-colors shadow-sm relative overflow-hidden group">
+                  <div className="flex items-start gap-4">
+                    <div className="mt-1">
                       <input
                         type="radio"
                         name="circle-action"
                         value="join"
-                        className="w-4 h-4"
+                        className="w-4 h-4 accent-gold cursor-pointer"
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900 flex items-center gap-2">
-                        <Users size={18} className="text-emerald-600" />
+                      <p className="font-cinzel text-[0.95rem] font-medium text-ink tracking-[0.06em] flex items-center gap-2 mb-1">
+                        <Users size={16} className="text-green" />
                         Join a Circle
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="font-sans text-[0.8rem] text-muted mb-4">
                         Have an invite link? Join an existing circle
                       </p>
                       <input
@@ -307,40 +328,41 @@ export default function Onboarding() {
                         placeholder="Paste invite code here"
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value)}
-                        className="mt-3 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full bg-cream border border-border p-3 rounded-[2px] font-sans text-[0.9rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all group-has-[:checked]:border-gold/30"
                       />
                     </div>
-                  </label>
-                </div>
+                  </div>
+                </label>
 
                 {/* Solo Mode */}
-                <div className="border-2 border-gray-200 rounded-lg p-4 hover:border-gold-500 transition-colors">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <div className="flex-shrink-0 mt-1">
+                <label className="block bg-white border border-border rounded-[4px] p-5 cursor-pointer hover:border-gold/50 transition-colors shadow-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="mt-1">
                       <input
                         type="radio"
                         name="circle-action"
                         value="solo"
-                        className="w-4 h-4"
+                        className="w-4 h-4 accent-gold cursor-pointer"
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900">Go Solo</p>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="font-cinzel text-[0.95rem] font-medium text-ink tracking-[0.06em] mb-1">Go Solo</p>
+                      <p className="font-sans text-[0.8rem] text-muted">
                         Just for you. You can join a circle anytime later.
                       </p>
                     </div>
-                  </label>
-                </div>
+                  </div>
+                </label>
               </div>
 
               {error && (
-                <div className="bg-red-50 text-red-700 p-3 rounded-lg mt-4 text-sm">
+                <div className="bg-red-50 border border-red-100 text-red-700 p-4 rounded-[2px] mt-6 font-sans text-[0.85rem] flex items-center justify-center gap-2">
+                  <div className="w-[6px] h-[6px] rounded-full bg-red-600" />
                   {error}
                 </div>
               )}
 
-              <div className="mt-8 space-y-3">
+              <div className="mt-8">
                 <button
                   onClick={() => {
                     const action = (
@@ -358,10 +380,16 @@ export default function Onboarding() {
                     }
                   }}
                   disabled={isLoading}
-                  className="w-full bg-gold-500 hover:bg-gold-600 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-full flex items-center justify-center gap-2 transition-colors"
+                  className="w-full bg-ink hover:bg-gold disabled:opacity-50 text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-3"
                 >
-                  {isLoading ? 'Setting up...' : 'Continue'}
-                  <ChevronRight size={20} />
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      Continue
+                      <ChevronRight size={16} />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -369,45 +397,48 @@ export default function Onboarding() {
 
           {/* Step 4: Daily Reminder */}
           {step === 4 && (
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            <div className="text-center">
+              <h2 className="font-cinzel text-[1.8rem] md:text-[2rem] font-medium tracking-[0.06em] text-ink mb-4">
                 Daily Reminder
               </h2>
-              <p className="text-gray-600 mb-8">
-                Set a daily reminder to reflect on your verse. (You can change
-                this anytime)
+              <p className="font-sans text-[0.9rem] text-muted mb-8 max-w-[400px] mx-auto leading-relaxed">
+                Set a daily reminder to reflect on your verse. (You can change this anytime)
               </p>
 
-              <div className="bg-gold-50 border border-gold-200 rounded-lg p-6 mb-8">
-                <label className="block">
-                  <span className="text-sm font-semibold text-gray-700 mb-3 block">
+              <div className="bg-white border border-border rounded-[4px] p-8 mb-8 shadow-sm text-left relative overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-gold-faint rounded-full opacity-50 blur-2xl"></div>
+                
+                <label className="block relative z-10">
+                  <span className="font-cinzel text-[0.8rem] tracking-[0.1em] text-ink uppercase mb-4 block">
                     What time should we remind you?
                   </span>
                   <input
                     type="time"
                     value={reminderTime}
                     onChange={(e) => setReminderTime(e.target.value)}
-                    className="w-full px-4 py-2 border border-gold-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-gold-500"
+                    className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[1.2rem] text-ink focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all text-center tracking-[0.1em]"
                   />
                 </label>
-                <p className="text-xs text-gray-600 mt-2">
-                  Reminders will arrive at this time every day (timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone})
-                </p>
+                <div className="mt-4 flex items-start gap-3">
+                  <div className="w-[4px] h-[4px] rounded-full bg-gold mt-2 shrink-0" />
+                  <p className="font-sans text-[0.8rem] text-muted leading-relaxed">
+                    Reminders will arrive at this time every day (timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone})
+                  </p>
+                </div>
               </div>
 
-              <div className="bg-cream-50 rounded-lg p-6 mb-8 text-center">
-                <p className="text-sm text-gray-600">
-                  You're all set! Get ready for a more meaningful connection with
-                  the Quran.
+              <div className="bg-parchment/60 border border-gold-light/50 rounded-[4px] p-6 mb-8 text-center shadow-sm">
+                <p className="font-sans text-[0.9rem] text-ink font-medium tracking-wide">
+                  You're all set! Get ready for a more meaningful connection.
                 </p>
               </div>
 
               <button
                 onClick={handleCompleteOnboarding}
-                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 px-6 rounded-full flex items-center justify-center gap-2 transition-colors"
+                className="w-full bg-ink hover:bg-gold text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-3 shadow-[0_4px_15px_rgba(28,26,22,0.2)]"
               >
                 Start Reflecting
-                <ChevronRight size={20} />
+                <ChevronRight size={16} />
               </button>
             </div>
           )}

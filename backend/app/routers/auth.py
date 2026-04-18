@@ -227,6 +227,8 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
                 user_id=req.user_id,
                 username=username,
                 display_name=display_name,
+                avatar_url=None,  # New user has no avatar
+                qf_connected=False,
             ).model_dump(),
         )
 
@@ -336,7 +338,7 @@ async def login(req: LoginRequest) -> APIResponse:
 
         # Fetch user profile
         profile_response = await asyncio.to_thread(supabase_client.table("profiles").select(
-            "username,display_name,email_verified"
+            "username,display_name,email_verified,avatar_url,qf_access_token"
         ).eq("id", user_id).execute)
 
         if not profile_response.data:
@@ -359,7 +361,9 @@ async def login(req: LoginRequest) -> APIResponse:
                 access_token=access_token,
                 user_id=user_id,
                 username=profile["username"],
-                display_name=profile["display_name"],
+                display_name=profile["display_name"] or "",
+                avatar_url=profile.get("avatar_url"),
+                qf_connected=bool(profile.get("qf_access_token")),
             ).model_dump(),
         )
 
@@ -408,9 +412,12 @@ async def get_profile(current_user: Dict[str, Any] = Depends(get_current_user)) 
                 "id": profile["id"],
                 "username": profile["username"],
                 "display_name": profile["display_name"],
+                "avatar_url": profile.get("avatar_url"),
                 "email": current_user["email"],
                 "xp": profile.get("xp", 0),
                 "level": profile.get("level", 1),
+                "daily_reminder_time": profile.get("daily_reminder_time"),
+                "qf_connected": bool(profile.get("qf_access_token")),
                 "created_at": profile.get("created_at"),
             },
         )

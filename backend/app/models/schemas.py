@@ -33,6 +33,8 @@ class AuthResponse(BaseModel):
     user_id: str
     username: str
     display_name: str
+    avatar_url: Optional[str] = None
+    qf_connected: bool = False
 
 
 class VerificationInitResponse(BaseModel):

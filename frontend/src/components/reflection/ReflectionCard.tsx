@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Reflection } from '../../types/reflection'
+import { useReflectionStore } from '../../store/reflectionStore'
 
 interface ReflectionCardProps {
   reflection: Reflection
@@ -13,6 +15,21 @@ const MOOD_EMOJI: Record<string, string> = {
 }
 
 export default function ReflectionCard({ reflection }: ReflectionCardProps) {
+  const [insightError, setInsightError] = useState<string | null>(null)
+  const { generateInsight, insightLoadingId } = useReflectionStore()
+
+  const isGeneratingInsight = insightLoadingId === reflection.id
+  const hasInsight = !!reflection.ai_action_suggestion
+
+  const handleGenerateInsight = async () => {
+    setInsightError(null)
+    try {
+      await generateInsight(reflection.id)
+    } catch (error) {
+      setInsightError('Failed to generate insight. Please try again.')
+    }
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
@@ -86,6 +103,78 @@ export default function ReflectionCard({ reflection }: ReflectionCardProps) {
           </div>
         </div>
       </div>
-    </div>
+
+      {/* AI Insight Section */}
+      <div className="border-t border-border/50 pt-4">
+        {!hasInsight ? (
+          // Hidden State: Interactive button to generate insight
+          <button
+            onClick={handleGenerateInsight}
+            disabled={isGeneratingInsight}
+            className="w-full px-4 py-3 border border-dashed border-gold/50 rounded-[3px] bg-gold-faint/20 hover:bg-gold-faint/40 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isGeneratingInsight ? (
+              <>
+                <svg
+                  className="animate-spin h-4 w-4 text-gold"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <span className="font-sans text-[0.9rem] text-gold font-medium">
+                  Musing on your reflection...
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-[1.1rem]">💡</span>
+                <span className="font-sans text-[0.9rem] text-gold font-medium">
+                  Tap to generate a personalized action step
+                </span>
+              </>
+            )}
+          </button>
+          {/* Hint text */}
+          <p className="text-[0.75rem] text-muted mt-2 text-center">
+            Your reflection answers will be analyzed by AI to provide a relevant Islamic insight.
+          </p>
+        ) : (
+          // Revealed State: Display generated insight in highlighted box
+          <div className="bg-gradient-to-br from-gold-faint/40 to-emerald-50 border border-gold/30 rounded-[3px] p-4 shadow-[inset_0_1px_3px_rgba(201,168,76,0.1)]">
+            <div className="flex items-start gap-3">
+              <span className="text-[1.3rem] flex-shrink-0">✨</span>
+              <div className="flex-1">
+                <h5 className="font-cinzel text-[0.7rem] tracking-[0.1em] text-gold uppercase mb-1.5 font-semibold">
+                  Personalized Action
+                </h5>
+                <p className="font-sans text-[0.9rem] leading-[1.5] text-ink">
+                  {reflection.ai_action_suggestion}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {insightError && (
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-[3px] text-[0.85rem] text-red-700">
+            {insightError}
+          </div>
+        )}
+      </div>    </div>
   )
 }

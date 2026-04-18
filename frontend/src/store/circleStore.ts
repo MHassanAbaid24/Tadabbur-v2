@@ -43,7 +43,6 @@ export const useCircleStore = create<CircleStore>((set, get) => ({
   lastFeedFetchedAt: null,
 
   fetchMyCircle: async (force = false) => {
-    // ... (existing logic)
     const state = get()
     if (
       !force &&
@@ -63,7 +62,7 @@ export const useCircleStore = create<CircleStore>((set, get) => ({
       })
     } catch (err: any) {
       if (err?.response?.status === 404) {
-        set({ circle: null })
+        set({ circle: null, feed: [] })
       } else {
         set({
           error: err instanceof Error ? err.message : 'Failed to fetch circle',
@@ -92,10 +91,14 @@ export const useCircleStore = create<CircleStore>((set, get) => ({
         feed: response.data.data.feed || [],
         lastFeedFetchedAt: Date.now(),
       })
-    } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : 'Failed to fetch feed',
-      })
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        set({ feed: [] })
+      } else {
+        set({
+          error: err instanceof Error ? err.message : 'Failed to fetch feed',
+        })
+      }
     } finally {
       set({ isLoading: false })
     }
@@ -146,13 +149,16 @@ export const useCircleStore = create<CircleStore>((set, get) => ({
   removeMember: async (userId: string) => {
     try {
       await api.delete(`/api/circle/members/${userId}`)
+      
       // Update local state
       set((state) => ({
         members: state.members.filter((m) => m.user_id !== userId),
       }))
-      
-      // If user removed themselves, clear circle data locally
-      // We'll check the circle creator or similar as a proxy if we don't have user ID here
+
+      // After successful removal, refresh circle status to see if WE left
+      // This is safer than trying to guess user ID locally
+      const { fetchMyCircle } = get()
+      await fetchMyCircle(true)
     } catch (err) {
       console.error('Failed to remove member:', err)
       throw err

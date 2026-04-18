@@ -49,9 +49,8 @@ async def submit_reflection(
     3. Save to Supabase reflections table
     4. Sync to QF Notes API (non-blocking on failure)
     5. If shared: sync to QF Posts API
-    6. Generate AI suggestion concurrently
-    7. Log activity day
-    8. Award XP
+    6. Log activity day
+    7. Award XP
 
     Args:
         req: Reflection submission request
@@ -92,11 +91,11 @@ async def submit_reflection(
         )
         is_first_today = len(existing.data) == 0
 
-        # Fetch verse translation for AI prompt
+        # Fetch verse translation
         verse_data = await get_verse_by_key(req.verse_key)
         verse_translation = verse_data.get("translation", "")
 
-        # Concurrent tasks: QF sync + AI generation
+        # Concurrent tasks: QF sync
         qf_note_id = None
         qf_post_id = None
         ai_suggestion = None
@@ -128,17 +127,8 @@ async def submit_reflection(
 
             return note_id, post_id
 
-        async def get_ai_suggestion() -> Optional[str]:
-            """Generate AI action suggestion."""
-            suggestion = await generate_action_suggestion(
-                verse_translation, prompt_1_clean, prompt_2_clean
-            )
-            return suggestion
-
-        # Run both concurrently
-        (qf_note_id, qf_post_id), ai_suggestion = await asyncio.gather(
-            sync_to_qf(), get_ai_suggestion(), return_exceptions=False
-        )
+        # Run QF sync (AI suggestion is now generated on-demand)
+        qf_note_id, qf_post_id = await sync_to_qf()
 
         # Calculate XP
         if is_first_today:

@@ -77,6 +77,84 @@ class EmailService:
             return False
 
     @staticmethod
+    async def send_reminder_email(
+        recipient_email: str,
+        display_name: str,
+        verse_key: str,
+        arabic_text: str,
+        translation: str,
+    ) -> bool:
+        """
+        Send a daily reflection reminder email with today's Ayah.
+        """
+        try:
+            subject = f"Tadabbur - Today's Reflection ({verse_key})"
+            
+            # Premium Geometric Template
+            html_body = f"""
+            <html>
+              <body style="font-family: 'Inter', -apple-system, sans-serif; background-color: #F9F5EB; padding: 40px 20px; color: #0F1115; line-height: 1.6;">
+                <div style="background-color: white; border: 1px solid #E5E7EB; padding: 40px; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border-radius: 4px;">
+                  
+                  <!-- Header -->
+                  <div style="text-align: center; margin-bottom: 40px;">
+                    <h1 style="font-family: serif; font-size: 24px; letter-spacing: 0.2em; text-transform: uppercase; color: #0F1115; margin: 0;">Tadabbur</h1>
+                    <p style="font-size: 12px; letter-spacing: 0.1em; color: #B8922A; text-transform: uppercase; margin: 8px 0 0 0;">Read. Reflect. Grow Together.</p>
+                  </div>
+
+                  <p style="font-size: 16px; margin-bottom: 24px;">Assalamu Alaikum {display_name},</p>
+                  
+                  <p style="font-size: 16px; color: #4B5563; margin-bottom: 32px;">
+                    Your circle is waiting for your reflection. Take a moment today to connect with the Wisdom of the Quran.
+                  </p>
+
+                  <!-- Ayah Box -->
+                  <div style="background-color: #FDFCF8; border: 1px solid #F1EAD7; padding: 32px; border-radius: 2px; margin-bottom: 40px; position: relative;">
+                    <div style="font-size: 11px; letter-spacing: 0.14em; color: #B8922A; text-transform: uppercase; margin-bottom: 16px;">Today's Ayah ({verse_key})</div>
+                    
+                    <p style="font-size: 24px; line-height: 2.2; text-align: right; color: #1A6B4A; margin-bottom: 20px; font-weight: 500;" dir="rtl">
+                      {arabic_text}
+                    </p>
+                    
+                    <p style="font-size: 15px; font-style: italic; color: #4B5563; border-top: 1px solid #F1EAD7; pt: 20px; margin-top: 20px; padding-top: 20px;">
+                      "{translation}"
+                    </p>
+                  </div>
+
+                  <!-- CTA -->
+                  <div style="text-align: center; margin-bottom: 40px;">
+                    <a href="{settings.frontend_url}/home" 
+                       style="background-color: #0F1115; color: white; padding: 16px 32px; text-decoration: none; font-size: 13px; font-weight: bold; letter-spacing: 0.15em; text-transform: uppercase; border-radius: 2px; display: inline-block; transition: all 0.3s ease;">
+                      Share My Reflection →
+                    </a>
+                  </div>
+
+                  <p style="font-size: 14px; color: #6B7280; text-align: center; margin-bottom: 20px;">
+                    "The best of you are those who learn the Quran and teach it."
+                  </p>
+                  
+                  <hr style="border: none; border-top: 1px solid #F1EAD7; margin: 32px 0;">
+                  
+                  <p style="font-size: 11px; color: #9CA3AF; text-align: center; line-height: 1.8;">
+                    You are receiving this reminder because you set a daily goal in your profile.<br>
+                    To change your reminder time, visit <a href="{settings.frontend_url}/profile" style="color: #B8922A; text-decoration: none;">Account Settings</a>.
+                  </p>
+                </div>
+              </body>
+            </html>
+            """
+
+            return EmailService._send_email(
+                recipient_email=recipient_email,
+                subject=subject,
+                html_body=html_body,
+            )
+
+        except Exception as e:
+            logger.error(f"Error preparing reminder email for {recipient_email}: {str(e)}")
+            return False
+
+    @staticmethod
     def _send_email(
         recipient_email: str,
         subject: str,

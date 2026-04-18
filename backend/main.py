@@ -7,6 +7,7 @@ import logging
 from app.config import settings
 from app.routers import audio, auth, circle, daily, profile, progress, reflection, tafsir, verse
 from app.models.schemas import APIResponse
+from app.services.reminder_scheduler import start_reminder_scheduler, stop_reminder_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,14 @@ app = FastAPI(
     description="Quran reflection & community app",
     version="1.0.0",
 )
+
+@app.on_event("startup")
+async def startup_event():
+    start_reminder_scheduler()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    stop_reminder_scheduler()
 
 # CORS Configuration
 app.add_middleware(

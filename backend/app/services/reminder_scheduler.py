@@ -77,6 +77,8 @@ async def send_daily_reminders():
                 verse_key = get_today_verse_key()
                 verse_data = await get_verse_by_key(verse_key)
             
+            arabic_text = verse_data.get("text_uthmani", "")
+            translation = verse_data.get("translation", "")
             display_name = profile["display_name"] or "there"
 
             # Check for reflection today

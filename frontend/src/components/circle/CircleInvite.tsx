@@ -21,22 +21,22 @@ export default function CircleInvite({ inviteCode }: CircleInviteProps) {
     <div className="relative">
       <button
         onClick={handleCopy}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-sm font-medium ${
+        className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 border font-cinzel text-[0.7rem] sm:text-[0.75rem] tracking-[0.12em] uppercase rounded-[2px] transition-all duration-300 ${
           copied 
-            ? 'bg-emerald-100 text-emerald-700 w-24 justify-center' 
-            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+            ? 'bg-gold text-white border-gold shadow-md' 
+            : 'bg-transparent border-gold-light text-gold hover:bg-gold-faint'
         }`}
         title="Copy invite link"
       >
         {copied ? (
           <>
             <Check size={16} />
-            <span>Copied</span>
+            <span className="font-medium">Copied</span>
           </>
         ) : (
           <>
             <Share2 size={16} />
-            <span>Share</span>
+            <span className="font-medium">Share</span>
           </>
         )}
       </button>

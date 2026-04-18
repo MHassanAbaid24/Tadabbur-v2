@@ -145,7 +145,7 @@ export default function Home() {
               onSubmitted={handleReflectionSubmitted}
             />
             {/* Tip */}
-            <p className="text-[0.85rem] text-muted text-center italic mt-[-0.5rem] mb-10">
+            <p className="text-[0.85rem] text-muted text-center italic mt-6 mb-10">
               Your reflection is private by default.
             </p>
           </div>

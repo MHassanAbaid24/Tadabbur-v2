@@ -406,3 +406,108 @@ async def get_reflection_history(
         logger.error("Error fetching reflection history: %s", str(e))
         raise HTTPException(status_code=500, detail="Failed to fetch history") from e
 
+
+@router.post("/{reflection_id}/insight")
+async def generate_reflection_insight(
+    reflection_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+) -> APIResponse:
+    """
+    Generate or fetch an on-demand AI insight for a reflection.
+
+    On-demand endpoint: only generate insight when the user requests it.
+    If the insight was already generated before, return the cached version.
+    If generation fails, return gracefully with None.
+
+    Flow:
+    1. Verify the user owns the reflection
+    2. Check if ai_action_suggestion is already populated in DB
+       - If yes: return it immediately (cache hit)
+       - If no: proceed to generate
+    3. Fetch the Ayah translation and user's answers from DB
+    4. Call OpenRouter via generate_action_suggestion()
+    5. Save the generated insight to Supabase
+    6. Return the insight to frontend
+
+    Args:
+        reflection_id: UUID of the reflection to generate insight for
+        current_user: Current authenticated user
+
+    Returns:
+        APIResponse with the generated/cached insight
+
+    Raises:
+        HTTPException(404): Reflection not found or user doesn't own it
+        HTTPException(500): Database or internal error
+    """
+    user_id = current_user["sub"]
+
+    try:
+        # Fetch reflection from DB
+        response = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections")
+            .select("*")
+            .eq("id", reflection_id)
+            .execute()
+        )
+
+        if not response.data:
+            logger.warning("Reflection %s not found", reflection_id)
+            raise HTTPException(status_code=404, detail="Reflection not found")
+
+        reflection = response.data[0]
+
+        # Verify ownership
+        if reflection["user_id"] != user_id:
+            logger.warning("User %s attempted to access reflection %s they don't own", user_id, reflection_id)
+            raise HTTPException(status_code=403, detail="You do not own this reflection")
+
+        # Check if insight already exists (cache hit)
+        if reflection.get("ai_action_suggestion"):
+            logger.info("Returning cached AI insight for reflection %s", reflection_id)
+            return APIResponse(
+                success=True,
+                data={"insight": reflection["ai_action_suggestion"], "cached": True},
+            )
+
+        # No cached insight — generate new one
+        logger.info("Generating new AI insight for reflection %s", reflection_id)
+
+        # Fetch verse translation for AI prompt
+        verse_data = await get_verse_by_key(reflection["verse_key"])
+        verse_translation = verse_data.get("translation", "")
+
+        # Call AI to generate insight
+        ai_suggestion = await generate_action_suggestion(
+            verse_translation,
+            reflection["prompt_1_answer"],
+            reflection["prompt_2_answer"],
+        )
+
+        # Save the generated insight to DB
+        if ai_suggestion:
+            update_response = await asyncio.to_thread(
+                lambda: supabase_client.table("reflections")
+                .update({"ai_action_suggestion": ai_suggestion})
+                .eq("id", reflection_id)
+                .execute()
+            )
+            if not update_response.data:
+                logger.error("Failed to save AI insight for reflection %s", reflection_id)
+                raise HTTPException(
+                    status_code=500, detail="Failed to save insight"
+                )
+            logger.info("Saved AI insight for reflection %s", reflection_id)
+        else:
+            logger.warning("AI generation returned None for reflection %s", reflection_id)
+
+        return APIResponse(
+            success=True,
+            data={"insight": ai_suggestion, "cached": False},
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error generating insight for reflection %s: %s", reflection_id, str(e))
+        raise HTTPException(status_code=500, detail="Failed to generate insight") from e

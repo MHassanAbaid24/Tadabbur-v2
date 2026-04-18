@@ -196,37 +196,32 @@ export default function Profile() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-cinzel text-[0.9rem] tracking-[0.06em] text-ink font-medium flex items-center gap-3">
-                <div className="bg-parchment/50 p-2 rounded-full border border-gold-faint">
-                  <Bell size={14} className="text-gold" />
-                </div>
-                Reminders
-              </h3>
-              <div className="space-y-3">
-                <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] uppercase text-ink">Daily Goal Time</label>
+              <div className="flex items-center justify-between">
+                <h3 className="font-cinzel text-[0.9rem] tracking-[0.06em] text-ink font-medium flex items-center gap-3">
+                  <div className="bg-parchment/50 p-2 rounded-full border border-gold-faint">
+                    <Bell size={14} className="text-gold" />
+                  </div>
+                  Reminders
+                </h3>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only peer"
+                    checked={remindersEnabled}
+                    onChange={(e) => setRemindersEnabled(e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green"></div>
+                </label>
+              </div>
+
+              <div className={`space-y-3 transition-all duration-300 ${!remindersEnabled ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
+                <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] uppercase text-ink text-muted/80">Daily Goal Time</label>
                 <input
                   type="time"
                   value={reminderTime}
                   onChange={(e) => setReminderTime(e.target.value)}
-                  className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all disabled:opacity-60"
+                  className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
                 />
-                
-                <div className="flex items-center justify-between p-4 bg-parchment/30 rounded-[2px] border border-gold-faint/30">
-                  <div className="space-y-0.5">
-                    <p className="font-cinzel text-[0.7rem] tracking-[0.05em] text-ink font-medium">Daily Nudges</p>
-                    <p className="font-sans text-[0.75rem] text-muted">Receive email reminders for reflections</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer"
-                      checked={remindersEnabled}
-                      onChange={(e) => setRemindersEnabled(e.target.checked)}
-                    />
-                    <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green"></div>
-                  </label>
-                </div>
-
                 <p className="font-sans text-[0.8rem] text-muted leading-relaxed">We'll send you a nudge at this time if you haven't reflected yet.</p>
               </div>
             </div>

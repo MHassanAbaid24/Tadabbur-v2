@@ -30,7 +30,7 @@ interface CircleStore {
 }
 
 const CIRCLE_STALE_MS = 5 * 60 * 1000 // 5 minutes
-const FEED_STALE_MS = 30 * 1000 // 30 seconds — matches new polling interval
+const FEED_STALE_MS = 5 * 60 * 1000 // 5 minutes — SSE handles real-time refreshes
 
 export const useCircleStore = create<CircleStore>((set, get) => ({
   circle: null,

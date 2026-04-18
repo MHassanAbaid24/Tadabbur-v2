@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
+import { useEventStream } from './hooks/useEventStream'
 
 // Lazy-loaded page components — only loaded when navigated to
 const Auth = lazy(() => import('./pages/Auth'))
@@ -81,6 +82,7 @@ function OnboardingRoute({ element }: ProtectedRouteProps) {
 
 export default function App() {
   const { loadUser } = useAuthStore()
+  useEventStream()
 
   // Load user session on app mount
   useEffect(() => {

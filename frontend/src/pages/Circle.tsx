@@ -30,16 +30,6 @@ export default function Circle() {
     fetchCircleFeed()
   }, [fetchMyCircle, fetchCircleFeed])
 
-  // Poll for feed updates — 30s interval
-  useEffect(() => {
-    if (!circleData) return;
-    
-    const interval = setInterval(() => {
-      fetchCircleFeed(true) // force refresh in background
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [circleData, fetchCircleFeed])
 
   const handleLike = async (reflectionId: string, isUnlike: boolean) => {
     try {

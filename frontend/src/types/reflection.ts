@@ -15,7 +15,7 @@ export interface Reflection {
   verse_translation?: string | null
 }
 
-export type Mood = 'peaceful' | 'grateful' | 'hopeful' | 'challenged' | 'moved'
+export type Mood = 'supplication' | 'moved' | 'peaceful' | 'grateful' | 'thoughtful'
 
 export interface ReflectionSubmitRequest {
   verse_key: string

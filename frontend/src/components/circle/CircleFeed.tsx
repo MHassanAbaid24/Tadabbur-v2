@@ -8,11 +8,11 @@ interface CircleFeedProps {
 }
 
 const MOOD_EMOJI: Record<string, string> = {
-  peaceful: '☮️',
-  grateful: '🙏',
-  hopeful: '🌅',
-  challenged: '💪',
-  moved: '🥹',
+  supplication: '🤲',
+  moved: '😢',
+  peaceful: '😌',
+  grateful: '🌿',
+  thoughtful: '💭',
 }
 
 export default function CircleFeed({ items, onLike }: CircleFeedProps) {

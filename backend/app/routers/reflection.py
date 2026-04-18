@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-VALID_MOODS = {"peaceful", "grateful", "hopeful", "challenged", "moved"}
+VALID_MOODS = {"supplication", "moved", "peaceful", "grateful", "thoughtful"}
 
 
 def strip_html(text: str) -> str:

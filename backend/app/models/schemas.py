@@ -99,7 +99,7 @@ class ReflectionSubmitRequest(BaseModel):
     )
     mood: Optional[str] = Field(
         None,
-        description="Mood: peaceful, grateful, hopeful, challenged, or moved",
+        description="Mood: supplication, moved, peaceful, grateful, or thoughtful",
     )
     is_shared: bool = Field(
         False,

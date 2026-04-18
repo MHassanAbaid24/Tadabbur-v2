@@ -9,11 +9,11 @@ interface ReflectionFormProps {
 }
 
 const MOOD_OPTIONS: Array<{ value: Mood; label: string; emoji: string }> = [
-  { value: 'peaceful', label: 'Peaceful', emoji: '☮️' },
-  { value: 'grateful', label: 'Grateful', emoji: '🙏' },
-  { value: 'hopeful', label: 'Hopeful', emoji: '🌅' },
-  { value: 'challenged', label: 'Challenged', emoji: '💪' },
-  { value: 'moved', label: 'Moved', emoji: '🥹' },
+  { value: 'supplication', label: 'In supplication', emoji: '🤲' },
+  { value: 'moved', label: 'Moved to tears', emoji: '😢' },
+  { value: 'peaceful', label: 'At peace', emoji: '😌' },
+  { value: 'grateful', label: 'Grateful & growing', emoji: '🌿' },
+  { value: 'thoughtful', label: 'Deep in thought', emoji: '💭' },
 ]
 
 export default function ReflectionForm({

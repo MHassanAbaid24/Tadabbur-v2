@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
+import { X, ChevronRight } from 'lucide-react'
 
 interface TafsirDrawerProps {
   tafsir: string
@@ -10,55 +11,63 @@ interface TafsirDrawerProps {
 export default function TafsirDrawer({ tafsir, verseKey }: TafsirDrawerProps) {
   const [isOpen, setIsOpen] = useState(false)
 
-  return (
-    <>
-      <button
-        onClick={() => setIsOpen(true)}
-        className="w-full px-4 py-2 text-sm font-medium text-emerald-700 border border-emerald-300 rounded-full hover:bg-emerald-50 transition-colors"
-      >
-        Read Tafsir (Ibn Kathir)
-      </button>
+  // Prevent scrolling when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'auto'
+    }
+    return () => {
+      document.body.style.overflow = 'auto'
+    }
+  }, [isOpen])
 
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            />
+  const drawerContent = (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-[1001]"
+          />
 
-            {/* Drawer */}
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl max-h-[80vh] overflow-y-auto"
-            >
-              {/* Header */}
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">
-                  Tafsir — {verseKey}
+          {/* Right Side Drawer */}
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed top-0 right-0 h-full w-full max-w-[440px] z-[1002] bg-white shadow-[-10px_0_40px_rgba(0,0,0,0.1)] flex flex-col"
+          >
+            {/* Header */}
+            <div className="bg-green py-5 px-6 flex items-center justify-between">
+              <div>
+                <p className="font-cinzel text-[0.6rem] tracking-[0.2em] text-white/60 uppercase mb-1">Tafsir Summary</p>
+                <h3 className="font-cinzel text-[0.9rem] font-medium tracking-[0.08em] text-white uppercase">
+                  Verse {verseKey}
                 </h3>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label="Close"
-                >
-                  <X size={20} />
-                </button>
               </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-              {/* Content */}
-              <div className="p-6 space-y-6">
+            {/* Content Container */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 space-y-8 bg-cream/30">
+              <div className="prose prose-stone max-w-none">
                 {tafsir.split('\n').filter(p => p.trim() !== '').map((para, idx) => {
                   const parts = para.split(/([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+(?:\s+[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+)*)/g);
                   return (
-                    <div key={idx} className="space-y-4">
+                    <div key={idx} className="mb-8 last:mb-0">
                       {parts.map((part, i) => {
                         const trimmedPart = part.trim();
                         if (!trimmedPart) return null;
@@ -68,14 +77,14 @@ export default function TafsirDrawer({ tafsir, verseKey }: TafsirDrawerProps) {
                         return isArabic ? (
                           <div 
                             key={i} 
-                            className="font-scheherazade text-2xl leading-relaxed text-right my-2 bg-emerald-50/30 p-3 rounded-lg border-r-4 border-emerald-600/50" 
+                            className="font-scheherazade text-2xl leading-relaxed text-right my-5 bg-parchment/40 p-5 rounded-[4px] border-r-4 border-gold shadow-sm" 
                             dir="rtl"
                             translate="no"
                           >
                             {trimmedPart}
                           </div>
                         ) : (
-                          <p key={i} className="text-gray-800 text-base leading-relaxed">
+                          <p key={i} className="text-ink-soft text-[1.05rem] leading-[1.85] font-light italic mb-4 last:mb-0">
                             {trimmedPart}
                           </p>
                         );
@@ -84,10 +93,29 @@ export default function TafsirDrawer({ tafsir, verseKey }: TafsirDrawerProps) {
                   );
                 })}
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            </div>
+
+            {/* Footer decoration */}
+            <div className="p-4 border-t border-border bg-white flex justify-center opacity-30">
+               <span className="text-gold text-[1.2rem] tracking-[0.4em]">❧ ✦ ❧</span>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-2 px-6 py-2.5 border border-gold-light text-gold font-cinzel text-[0.68rem] tracking-[0.1em] uppercase rounded-full hover:bg-gold-faint transition-all duration-300 group"
+      >
+        <span>Read Tafsir — Ibn Kathir</span>
+        <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+      </button>
+
+      {createPortal(drawerContent, document.body)}
     </>
   )
 }

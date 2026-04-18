@@ -15,7 +15,7 @@ export default function Progress() {
 
   if (isLoading) {
     return (
-      <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
+      <PageWrapper>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="w-full max-w-lg space-y-4">
             <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse" />
@@ -32,7 +32,7 @@ export default function Progress() {
 
   if (!summary) {
     return (
-      <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
+      <PageWrapper>
         <div className="flex items-center justify-center min-h-[60vh] text-center">
           <p className="text-gray-600">Unable to load progress data</p>
         </div>
@@ -41,7 +41,7 @@ export default function Progress() {
   }
 
   return (
-    <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
+    <PageWrapper>
       <div className="py-6 space-y-6">
         {/* Header */}
         <h1 className="text-2xl font-bold text-gray-900">Your Progress</h1>

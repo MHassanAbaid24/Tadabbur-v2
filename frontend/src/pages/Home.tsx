@@ -152,7 +152,7 @@ export default function Home() {
             <div>
               <p className="font-cinzel text-[0.62rem] tracking-[0.12em] uppercase text-muted mb-1">Longest Streak</p>
               <p className="text-[1.7rem] font-semibold text-gold leading-none">
-                {summary.longest_streak} <span className="text-[1rem] font-normal text-muted">days</span>
+                {summary.longest_streak} <span className="text-[1rem] font-normal text-muted">{summary.longest_streak === 1 ? 'day' : 'days'}</span>
               </p>
             </div>
             <div>

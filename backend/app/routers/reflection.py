@@ -19,6 +19,7 @@ from app.services.qf_user import (
     create_qf_post,
     create_reading_session,
     get_streaks,
+    log_activity_day,
 )
 from app.services.event_bus import event_bus
 

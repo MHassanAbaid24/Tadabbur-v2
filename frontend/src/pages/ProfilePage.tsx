@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../store/authStore'
 import PageWrapper from '../components/layout/PageWrapper'
+import UserAvatar from '../components/ui/UserAvatar'
 import { User as UserIcon, LogOut, Save, Bell, Camera, Loader2 } from 'lucide-react'
 
 const MAX_SIZE_MB = 2
@@ -105,21 +106,19 @@ export default function Profile() {
               onChange={handleFileChange}
             />
             
-            <div className="w-[100px] h-[100px] bg-parchment rounded-full flex items-center justify-center border border-border shadow-[0_4px_15px_rgba(184,146,42,0.1)] overflow-hidden">
-               {currentAvatar ? (
-                  <img src={currentAvatar} alt={user?.username} className="w-full h-full object-cover" />
-               ) : (
-                  <span className="font-cinzel text-[2rem] font-medium text-gold">
-                    {user?.display_name?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
-                  </span>
-               )}
-               {/* Upload overlay */}
-               {isUploadingAvatar && (
-                 <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
-                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                 </div>
-               )}
-            </div>
+            <UserAvatar 
+              avatarUrl={currentAvatar || undefined}
+              username={user?.username}
+              displayName={user?.display_name}
+              size="xl"
+              className="shadow-[0_4px_15px_rgba(184,146,42,0.1)]"
+            />
+            {/* Upload overlay */}
+            {isUploadingAvatar && (
+              <div className="absolute inset-x-0 inset-y-0 rounded-full bg-black/40 flex items-center justify-center z-10">
+                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              </div>
+            )}
 
             <button
               onClick={handleAvatarClick}

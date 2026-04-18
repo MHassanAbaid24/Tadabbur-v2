@@ -3,6 +3,7 @@ import { useCircleStore } from '../../store/circleStore'
 import { useAuthStore } from '../../store/authStore'
 import { Loader2, Shield, UserMinus, UserPlus, X, LogOut, ShieldOff } from 'lucide-react'
 import { motion } from 'framer-motion'
+import UserAvatar from '../ui/UserAvatar'
 
 interface CircleMembersProps {
   onClose: () => void
@@ -91,13 +92,12 @@ export default function CircleMembers({ onClose }: CircleMembersProps) {
                 className="flex items-center justify-between p-3 rounded-[2px] hover:bg-parchment/40 transition-colors border border-transparent hover:border-gold/20"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-full bg-cream border border-border flex items-center justify-center text-gold font-cinzel font-medium text-[1.1rem] overflow-hidden shadow-sm">
-                    {member.avatar_url ? (
-                      <img src={member.avatar_url} alt={member.display_name} className="w-full h-full object-cover" />
-                    ) : (
-                      member.display_name.charAt(0).toUpperCase()
-                    )}
-                  </div>
+                  <UserAvatar 
+                    avatarUrl={member.avatar_url || undefined}
+                    username={member.username}
+                    displayName={member.display_name}
+                    size="md"
+                  />
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="font-sans text-[0.95rem] font-medium text-ink leading-none">

@@ -10,6 +10,7 @@ export interface User {
   avatar_url?: string
   daily_reminder_time?: string
   timezone?: string
+  reminders_enabled?: boolean
 }
 
 export interface AuthState {

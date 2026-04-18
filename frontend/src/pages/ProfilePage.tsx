@@ -11,6 +11,7 @@ export default function Profile() {
   const { user, updateProfile, logout, uploadAvatar } = useAuthStore()
   const [displayName, setDisplayName] = useState(user?.display_name || '')
   const [reminderTime, setReminderTime] = useState(user?.daily_reminder_time || '08:00')
+  const [remindersEnabled, setRemindersEnabled] = useState(user?.reminders_enabled ?? true)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
@@ -24,6 +25,7 @@ export default function Profile() {
       // Get HH:MM format from time string
       const timeStr = user.daily_reminder_time ? (user.daily_reminder_time as string).substring(0, 5) : '08:00'
       setReminderTime(timeStr)
+      setRemindersEnabled(user.reminders_enabled ?? true)
     }
   }, [user])
 
@@ -74,6 +76,7 @@ export default function Profile() {
       await updateProfile({
         display_name: displayName,
         daily_reminder_time: reminderTime,
+        reminders_enabled: remindersEnabled,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
       })
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
@@ -207,6 +210,23 @@ export default function Profile() {
                   onChange={(e) => setReminderTime(e.target.value)}
                   className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all disabled:opacity-60"
                 />
+                
+                <div className="flex items-center justify-between p-4 bg-parchment/30 rounded-[2px] border border-gold-faint/30">
+                  <div className="space-y-0.5">
+                    <p className="font-cinzel text-[0.7rem] tracking-[0.05em] text-ink font-medium">Daily Nudges</p>
+                    <p className="font-sans text-[0.75rem] text-muted">Receive email reminders for reflections</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer"
+                      checked={remindersEnabled}
+                      onChange={(e) => setRemindersEnabled(e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green"></div>
+                  </label>
+                </div>
+
                 <p className="font-sans text-[0.8rem] text-muted leading-relaxed">We'll send you a nudge at this time if you haven't reflected yet.</p>
               </div>
             </div>

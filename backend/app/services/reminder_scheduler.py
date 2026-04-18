@@ -34,10 +34,11 @@ async def send_daily_reminders():
         
         logger.info(f"Checking for reminders (Current UTC: {now_utc.strftime('%H:%M:%S')})")
 
-        # 1. Fetch all profiles with a reminder time set
+        # 1. Fetch all profiles with a reminder time set and enabled
         profiles_resp = await asyncio.to_thread(
             lambda: supabase_client.table("profiles")
             .select("id, display_name, daily_reminder_time, timezone")
+            .eq("reminders_enabled", True)
             .not_.is_("daily_reminder_time", "null")
             .execute()
         )

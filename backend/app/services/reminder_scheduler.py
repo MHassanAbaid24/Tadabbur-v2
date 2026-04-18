@@ -12,6 +12,8 @@ from app.services.email_service import EmailService
 from app.services.daily_verse import get_today_verse_key
 from app.services.qf_content import get_verse_by_key
 
+import pytz
+
 logger = logging.getLogger(__name__)
 
 # Singleton scheduler instance
@@ -22,39 +24,59 @@ async def send_daily_reminders():
     Check for users who need a reminder at this minute and send them.
     Runs every minute.
     """
+    # Heartbeat log to confirm scheduler is alive
+    logger.info("Scheduler Heartbeat: Checking for daily reminders...")
+    
     try:
-        # Current UTC time in HH:MM:00 format
+        # Get UTC now once at the start of the job
         now_utc = datetime.now(timezone.utc)
-        current_time_str = now_utc.strftime("%H:%M:00")
         today_str = date.today().isoformat()
         
-        logger.debug(f"Checking for reminders to send at {current_time_str} (UTC)")
+        logger.info(f"Checking for reminders (Current UTC: {now_utc.strftime('%H:%M:%S')})")
 
-        # 1. Fetch profiles where daily_reminder_time matches now
-        # Note: We fetch display_name, id, and daily_reminder_time
-        # Filtering by time in Supabase
+        # 1. Fetch all profiles with a reminder time set
         profiles_resp = await asyncio.to_thread(
             lambda: supabase_client.table("profiles")
-            .select("id, display_name, daily_reminder_time")
-            .eq("daily_reminder_time", current_time_str)
+            .select("id, display_name, daily_reminder_time, timezone")
+            .not_.is_("daily_reminder_time", "null")
             .execute()
         )
         
-        candidate_profiles = profiles_resp.data or []
-        if not candidate_profiles:
+        candidates = profiles_resp.data or []
+        if not candidates:
+            logger.info("No candidates found with daily_reminder_time set.")
             return
 
-        logger.info(f"Found {len(candidate_profiles)} users with reminder set for {current_time_str}")
+        logger.debug(f"Evaluating {len(candidates)} candidates for reminders...")
 
-        # 2. Get today's verse context (cached within the minute/request)
-        verse_key = get_today_verse_key()
-        verse_data = await get_verse_by_key(verse_key)
-        arabic_text = verse_data.get("text_uthmani", "")
-        translation = verse_data.get("translation", "")
+        # 2. Lazy load today's verse context
+        verse_key = None
+        verse_data = None
 
-        # 3. For each candidate, check if they already reflected today
-        for profile in candidate_profiles:
+        # 3. Process each candidate
+        for profile in candidates:
             user_id = profile["id"]
+            reminder_time = profile["daily_reminder_time"]
+            user_tz_name = profile.get("timezone", "UTC")
+            
+            # Calculate current time in user's timezone
+            try:
+                tz = pytz.timezone(user_tz_name)
+                now_user = now_utc.astimezone(tz)
+                user_time_str = now_user.strftime("%H:%M:00")
+            except Exception as e:
+                logger.warning(f"Invalid timezone '{user_tz_name}' for user {user_id}. Falling back to UTC.")
+                user_time_str = now_utc.strftime("%H:%M:00")
+
+            if reminder_time != user_time_str:
+                continue
+
+            logger.info(f"MATCH! User {user_id} (TZ: {user_tz_name}) reminder time {reminder_time} matches local time {user_time_str}")
+
+            if not verse_key:
+                verse_key = get_today_verse_key()
+                verse_data = await get_verse_by_key(verse_key)
+            
             display_name = profile["display_name"] or "there"
 
             # Check for reflection today

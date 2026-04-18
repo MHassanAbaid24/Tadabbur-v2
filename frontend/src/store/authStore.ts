@@ -267,6 +267,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       const response = await api.get<{ data: User }>('/api/auth/me')
       const user = response.data.data
+      
+      // Auto-sync timezone if it has changed or is missing
+      const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+      if (user.timezone !== browserTz) {
+        api.put('/api/auth/profile', { timezone: browserTz }).catch(console.error)
+      }
 
       set({
         token,

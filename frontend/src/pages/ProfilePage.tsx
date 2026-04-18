@@ -72,7 +72,8 @@ export default function Profile() {
     try {
       await updateProfile({
         display_name: displayName,
-        daily_reminder_time: reminderTime
+        daily_reminder_time: reminderTime,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
       })
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
       

@@ -3,7 +3,7 @@ import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from app.auth.jwt import get_current_user
@@ -14,12 +14,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/stream")
-async def event_stream(authorization: str = Header(...)):
+async def event_stream(token: str = Query(...)):
     """
     Server-Sent Events (SSE) endpoint to stream real-time updates.
+    Accepts token via query parameter because EventSource doesn't support headers.
     """
     try:
-        current_user = await get_current_user(authorization)
+        # Pass the token with 'Bearer ' prefix to the get_current_user logic
+        current_user = await get_current_user(f"Bearer {token}")
     except Exception as e:
         logger.error("SSE Auth failed: %s", str(e))
         raise HTTPException(status_code=401, detail="Unauthorized")

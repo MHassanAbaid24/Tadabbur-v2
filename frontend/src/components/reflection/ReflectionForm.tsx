@@ -142,7 +142,7 @@ export default function ReflectionForm({
                 className={`text-[1.3rem] w-[40px] h-[40px] flex items-center justify-center rounded-full transition-all border ${
                   formData.mood === value
                     ? 'bg-parchment border-gold shadow-[0_0_10px_rgba(184,146,42,0.2)] scale-110'
-                    : 'bg-cream border-border hover:border-gold/50 hover:bg-parchment/50 grayscale opacity-60 hover:grayscale-0 hover:opacity-100'
+                    : 'bg-cream border-border hover:border-gold/50 hover:bg-parchment/50 hover:scale-110'
                 }`}
                 title={emoji}
               >

@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.auth.jwt import get_current_user
-from app.db.supabase import supabase_client, async_supabase_client
+from app.db.supabase import supabase_client, get_async_supabase_client
 from app.models.schemas import APIResponse
 from app.services.qf_user import get_activity_days, get_streaks
 
@@ -196,8 +196,9 @@ async def get_xp_events(
     user_id = current_user["sub"]
 
     try:
+        async_client = await get_async_supabase_client()
         events = await (
-            async_supabase_client.table("xp_events")
+            async_client.table("xp_events")
             .select("*")
             .eq("user_id", user_id)
             .order("created_at", desc=True)

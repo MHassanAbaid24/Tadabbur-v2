@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 import logging
 
 from app.config import settings
-from app.routers import audio, auth, circle, daily, progress, reflection, tafsir, verse
+from app.routers import audio, auth, circle, daily, profile, progress, reflection, tafsir, verse
 from app.models.schemas import APIResponse
 
 logger = logging.getLogger(__name__)
@@ -84,6 +84,7 @@ app.include_router(reflection.router, prefix="/api/reflection", tags=["Reflectio
 app.include_router(circle.router, prefix="/api/circle", tags=["Circle"])
 app.include_router(progress.router, prefix="/api/progress", tags=["Progress"])
 app.include_router(daily.router, prefix="/api/daily", tags=["Daily"])
+app.include_router(profile.router)
 
 
 if __name__ == "__main__":

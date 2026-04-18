@@ -9,7 +9,6 @@ import httpx
 from fastapi import HTTPException
 
 from app.config import settings
-from app.db.supabase import async_supabase_client
 
 logger = logging.getLogger(__name__)
 

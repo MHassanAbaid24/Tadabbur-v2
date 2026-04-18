@@ -1,14 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../store/authStore'
 import PageWrapper from '../components/layout/PageWrapper'
-import { User as UserIcon, LogOut, Save, Bell, Camera } from 'lucide-react'
+import { User as UserIcon, LogOut, Save, Bell, Camera, Loader2 } from 'lucide-react'
+
+const MAX_SIZE_MB = 2
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export default function Profile() {
-  const { user, updateProfile, logout } = useAuthStore()
+  const { user, updateProfile, logout, uploadAvatar } = useAuthStore()
   const [displayName, setDisplayName] = useState(user?.display_name || '')
   const [reminderTime, setReminderTime] = useState(user?.daily_reminder_time || '08:00')
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (user) {
@@ -18,6 +25,46 @@ export default function Profile() {
       setReminderTime(timeStr)
     }
   }, [user])
+
+  const handleAvatarClick = () => {
+    if (!isUploadingAvatar) fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!e.target.files) return
+    // Reset input so same file can be re-selected after an error
+    e.target.value = ''
+
+    if (!file) return
+    setAvatarError(null)
+
+    // Client-side validation
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setAvatarError('Invalid file type. Please use JPEG, PNG, or WebP.')
+      return
+    }
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      setAvatarError(`File too large. Maximum size is ${MAX_SIZE_MB} MB.`)
+      return
+    }
+
+    // Show preview immediately
+    const previewUrl = URL.createObjectURL(file)
+    setAvatarPreview(previewUrl)
+
+    setIsUploadingAvatar(true)
+    try {
+      await uploadAvatar(file)
+    } catch (err: any) {
+      setAvatarPreview(null)
+      const msg = err?.response?.data?.detail || err?.response?.data?.error || 'Failed to upload avatar.'
+      setAvatarError(msg)
+    } finally {
+      setIsUploadingAvatar(false)
+      URL.revokeObjectURL(previewUrl)
+    }
+  }
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -40,25 +87,56 @@ export default function Profile() {
     }
   }
 
+  const currentAvatar = avatarPreview || (user as any)?.avatar_url
+
   return (
     <PageWrapper className="bg-gradient-to-b from-cream-50 to-white pb-20">
       <div className="max-w-2xl mx-auto space-y-8 py-8 px-4">
         {/* Profile Header */}
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ALLOWED_TYPES.join(',')}
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            
             <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
-               {(user as any)?.avatar_url ? (
-                  <img src={(user as any).avatar_url} alt={user?.username} className="w-full h-full object-cover" />
+               {currentAvatar ? (
+                  <img src={currentAvatar} alt={user?.username} className="w-full h-full object-cover" />
                ) : (
                   <span className="text-3xl font-bold text-emerald-700">
                     {user?.display_name?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
                   </span>
                )}
+               {/* Upload overlay */}
+               {isUploadingAvatar && (
+                 <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                   <Loader2 size={20} className="text-white animate-spin" />
+                 </div>
+               )}
             </div>
-            <button className="absolute bottom-0 right-0 bg-emerald-600 p-2 rounded-full text-white border-2 border-white shadow-md hover:bg-emerald-700 transition-colors">
+
+            <button
+              onClick={handleAvatarClick}
+              disabled={isUploadingAvatar}
+              className="absolute bottom-0 right-0 bg-emerald-600 p-2 rounded-full text-white border-2 border-white shadow-md hover:bg-emerald-700 transition-colors disabled:opacity-60"
+              title="Change profile photo"
+            >
               <Camera size={16} />
             </button>
           </div>
+
+          {/* Avatar error */}
+          {avatarError && (
+            <p className="text-xs text-red-600 font-medium bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 max-w-xs text-center">
+              {avatarError}
+            </p>
+          )}
+
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900">{user?.display_name || user?.username}</h1>
             <p className="text-gray-500 text-sm">@{user?.username}</p>

@@ -14,3 +14,5 @@ black==24.10.0
 isort==5.13.2
 mypy==1.13.0
 email-validator==2.3.0
+Pillow==10.4.0
+python-multipart==0.0.12

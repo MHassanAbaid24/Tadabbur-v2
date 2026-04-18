@@ -32,6 +32,7 @@ interface AuthStore extends AuthState {
   clearVerification: () => void
   initiateQFOAuth: () => Promise<void>
   updateProfile: (data: any) => Promise<void>
+  uploadAvatar: (file: File) => Promise<void>
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -334,6 +335,20 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ isLoading: false })
       throw error
     }
+  },
+
+  uploadAvatar: async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post<{ data: { avatar_url: string } }>(
+      '/api/profile/avatar',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+    const { avatar_url } = response.data.data
+    set((state) => ({
+      user: state.user ? { ...state.user, avatar_url } : state.user,
+    }))
   },
 }))
 

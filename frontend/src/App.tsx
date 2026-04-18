@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 
@@ -10,8 +10,9 @@ const Home = lazy(() => import('./pages/Home'))
 const Journal = lazy(() => import('./pages/Journal'))
 const Circle = lazy(() => import('./pages/Circle'))
 const CircleNew = lazy(() => import('./pages/CircleNew'))
+const CircleJoin = lazy(() => import('./pages/CircleJoin'))
 const Progress = lazy(() => import('./pages/Progress'))
-const Profile = lazy(() => import('./pages/Profile'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const Explore = lazy(() => import('./pages/Explore'))
 
 // Shared loading spinner for Suspense fallback
@@ -127,7 +128,7 @@ export default function App() {
 
           <Route
             path="/circle/join/:code"
-            element={<ProtectedRoute element={<div className="flex items-center justify-center min-h-screen">Join Circle</div>} />}
+            element={<ProtectedRoute element={<CircleJoin />} />}
           />
 
           <Route
@@ -137,7 +138,7 @@ export default function App() {
           
           <Route
             path="/profile"
-            element={<ProtectedRoute element={<Profile />} />}
+            element={<ProtectedRoute element={<ProfilePage />} />}
           />
 
           <Route

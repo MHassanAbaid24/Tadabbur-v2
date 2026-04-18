@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 import logging
 
 from app.config import settings
-from app.routers import audio, auth, circle, daily, profile, progress, reflection, tafsir, verse
+from app.routers import audio, auth, circle, daily, events, profile, progress, reflection, tafsir, verse
 from app.models.schemas import APIResponse
 from app.services.reminder_scheduler import start_reminder_scheduler, stop_reminder_scheduler
 
@@ -93,6 +93,7 @@ app.include_router(reflection.router, prefix="/api/reflection", tags=["Reflectio
 app.include_router(circle.router, prefix="/api/circle", tags=["Circle"])
 app.include_router(progress.router, prefix="/api/progress", tags=["Progress"])
 app.include_router(daily.router, prefix="/api/daily", tags=["Daily"])
+app.include_router(events.router, prefix="/api/events", tags=["Events"])
 app.include_router(profile.router)
 
 

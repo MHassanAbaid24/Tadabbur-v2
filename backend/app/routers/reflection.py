@@ -18,9 +18,9 @@ from app.services.qf_user import (
     create_qf_note,
     create_qf_post,
     create_reading_session,
-    log_activity_day,
     get_streaks,
 )
+from app.services.event_bus import event_bus
 
 logger = logging.getLogger(__name__)
 
@@ -227,6 +227,24 @@ async def submit_reflection(
             qf_post_id,
             xp_earned,
         )
+
+        # Post-submission real-time events
+        try:
+            # 1. Notify user's own progress channel
+            await event_bus.publish_to_user(user_id, {"type": "progress_update"})
+
+            # 2. If shared, notify the circle channel
+            if req.is_shared:
+                # Find user's circle_id
+                membership = await asyncio.to_thread(
+                    lambda: supabase_client.table("circle_members")
+                    .select("circle_id").eq("user_id", user_id).execute()
+                )
+                circle_id = membership.data[0]["circle_id"] if membership.data else None
+                if circle_id:
+                    await event_bus.publish_to_circle(circle_id, {"type": "feed_update"})
+        except Exception as e:
+            logger.warning("Failed to publish real-time events after reflection: %s", str(e))
 
         return APIResponse(
             success=True,

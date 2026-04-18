@@ -17,6 +17,7 @@ from app.models.schemas import (
     CreateCircleRequest,
 )
 from app.services.qf_user import create_qf_room, like_qf_post
+from app.services.event_bus import event_bus
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -401,6 +402,19 @@ async def like_reflection(
 
         logger.info("User %s liked reflection %s, awarded %d XP", user_id, reflection_id, xp_amount)
 
+        # Real-time event for circle feed
+        try:
+            # Re-fetch circle_id for the current user
+            membership = await asyncio.to_thread(
+                lambda: supabase_client.table("circle_members")
+                .select("circle_id").eq("user_id", user_id).execute()
+            )
+            circle_id = membership.data[0]["circle_id"] if membership.data else None
+            if circle_id:
+                await event_bus.publish_to_circle(circle_id, {"type": "feed_update"})
+        except Exception as e:
+            logger.warning("Failed to publish feed_update after like: %s", str(e))
+
         return APIResponse(success=True, data={"liked": True, "xp_earned": xp_amount}).dict()
 
     except HTTPException:
@@ -462,6 +476,18 @@ async def unlike_reflection(
         )
 
         logger.info("User %s unliked reflection %s, deducted %d XP", user_id, reflection_id, abs(xp_amount))
+
+        # Real-time event for circle feed
+        try:
+            membership = await asyncio.to_thread(
+                lambda: supabase_client.table("circle_members")
+                .select("circle_id").eq("user_id", user_id).execute()
+            )
+            circle_id = membership.data[0]["circle_id"] if membership.data else None
+            if circle_id:
+                await event_bus.publish_to_circle(circle_id, {"type": "feed_update"})
+        except Exception as e:
+            logger.warning("Failed to publish feed_update after unlike: %s", str(e))
         return APIResponse(success=True, data={"liked": False, "xp_earned": xp_amount}).dict()
 
     except HTTPException:

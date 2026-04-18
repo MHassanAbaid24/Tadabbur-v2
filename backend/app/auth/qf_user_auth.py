@@ -172,7 +172,12 @@ async def get_user_qf_token(user_id: str) -> str:
             if expiry_dt.tzinfo is None:
                 # naive — treat as UTC, compare against naive now
                 if datetime.utcnow() > expiry_dt:
-                    logger.warning("QF token expired for user: %s", user_id)
+                    logger.warning("QF token expired for user: %s, clearing token", user_id)
+                    await asyncio.to_thread(
+                        lambda: supabase_client.table("profiles").update(
+                            {"qf_access_token": None, "qf_token_expires_at": None}
+                        ).eq("id", user_id).execute()
+                    )
                     raise HTTPException(
                         status_code=403,
                         detail="QF token expired. Please reconnect.",
@@ -180,7 +185,12 @@ async def get_user_qf_token(user_id: str) -> str:
             else:
                 # aware — compare both as UTC
                 if now_utc > expiry_dt:
-                    logger.warning("QF token expired for user: %s", user_id)
+                    logger.warning("QF token expired for user: %s, clearing token", user_id)
+                    await asyncio.to_thread(
+                        lambda: supabase_client.table("profiles").update(
+                            {"qf_access_token": None, "qf_token_expires_at": None}
+                        ).eq("id", user_id).execute()
+                    )
                     raise HTTPException(
                         status_code=403,
                         detail="QF token expired. Please reconnect.",

@@ -38,13 +38,17 @@ async def _qf_user_get(user_id: str, path: str, params: Optional[Dict[str, Any]]
         url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
         response = await client.get(url, headers=headers, params=params)
 
-        if response.status_code == 401:
-            logger.warning("QF User API 401 for user: %s (token expired)", user_id)
-            raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
-
-        if response.status_code == 403:
-            logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
-            raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
+        if response.status_code in (401, 403):
+            logger.warning("QF User API GET %s for user: %s (token expired/invalid), clearing token", response.status_code, user_id)
+            from app.db.supabase import supabase_client
+            import asyncio
+            await asyncio.to_thread(
+                lambda: supabase_client.table("profiles").update(
+                    {"qf_access_token": None, "qf_token_expires_at": None}
+                ).eq("id", user_id).execute()
+            )
+            # Return 403 so frontend knows to prompt reconnect
+            raise HTTPException(status_code=403, detail="QF token expired or unauthorized. Please reconnect.")
 
         response.raise_for_status()
         logger.debug("QF User API GET %s succeeded for user: %s", path, user_id)
@@ -69,13 +73,17 @@ async def _qf_user_post(user_id: str, path: str, body: Dict[str, Any]) -> Dict[s
         url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
         response = await client.post(url, headers=headers, json=body)
 
-        if response.status_code == 401:
-            logger.warning("QF User API 401 for user: %s (token expired)", user_id)
-            raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
-
-        if response.status_code == 403:
-            logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
-            raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
+        if response.status_code in (401, 403):
+            logger.warning("QF User API POST %s for user: %s (token expired/invalid), clearing token", response.status_code, user_id)
+            from app.db.supabase import supabase_client
+            import asyncio
+            await asyncio.to_thread(
+                lambda: supabase_client.table("profiles").update(
+                    {"qf_access_token": None, "qf_token_expires_at": None}
+                ).eq("id", user_id).execute()
+            )
+            # Return 403 so frontend knows to prompt reconnect
+            raise HTTPException(status_code=403, detail="QF token expired or unauthorized. Please reconnect.")
 
         response.raise_for_status()
         logger.debug("QF User API POST %s succeeded for user: %s", path, user_id)
@@ -100,13 +108,16 @@ async def _qf_user_delete(user_id: str, path: str) -> Dict[str, Any]:
         url = f"{settings.qf_user_api_base_url}/api/v1/{path}"
         response = await client.delete(url, headers=headers)
 
-        if response.status_code == 401:
-            logger.warning("QF User API 401 for user: %s (token expired)", user_id)
-            raise HTTPException(status_code=401, detail="QF token expired. Please reconnect.")
-
-        if response.status_code == 403:
-            logger.warning("QF User API 403 for user: %s (scope issue)", user_id)
-            raise HTTPException(status_code=403, detail="Insufficient permissions. Please reconnect.")
+        if response.status_code in (401, 403):
+            logger.warning("QF User API DELETE %s for user: %s (token expired/invalid), clearing token", response.status_code, user_id)
+            from app.db.supabase import supabase_client
+            import asyncio
+            await asyncio.to_thread(
+                lambda: supabase_client.table("profiles").update(
+                    {"qf_access_token": None, "qf_token_expires_at": None}
+                ).eq("id", user_id).execute()
+            )
+            raise HTTPException(status_code=403, detail="QF token expired or unauthorized. Please reconnect.")
 
         response.raise_for_status()
         logger.debug("QF User API DELETE %s succeeded for user: %s", path, user_id)

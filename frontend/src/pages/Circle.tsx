@@ -170,53 +170,55 @@ export default function Circle() {
   }
 
   return (
-    <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
-      <div className="py-6 space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{circleData.name}</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              {circleData.member_count} {circleData.member_count === 1 ? 'member' : 'members'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowMembers(true)}
-              className="p-2 text-emerald-700 hover:bg-emerald-50 rounded-full transition-colors flex items-center gap-2"
-              title="View Members"
-            >
-              <Users size={20} />
-              <span className="text-sm font-medium hidden sm:inline">Members</span>
-            </button>
-            <CircleInvite
-              inviteCode={circleData.invite_code}
-              circleName={circleData.name}
-            />
-          </div>
-        </div>
-
-        {/* Members Drawer Overlay */}
-        <AnimatePresence>
-          {showMembers && (
-            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-              <div 
-                className="absolute inset-0 z-0" 
-                onClick={() => setShowMembers(false)} 
-              />
-              <CircleMembers onClose={() => setShowMembers(false)} />
+    <>
+      <PageWrapper className="bg-gradient-to-b from-cream-50 to-white">
+        <div className="py-6 space-y-8">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{circleData.name}</h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {circleData.member_count} {circleData.member_count === 1 ? 'member' : 'members'}
+              </p>
             </div>
-          )}
-        </AnimatePresence>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowMembers(true)}
+                className="p-2 text-emerald-700 hover:bg-emerald-50 rounded-full transition-colors flex items-center gap-2"
+                title="View Members"
+              >
+                <Users size={20} />
+                <span className="text-sm font-medium hidden sm:inline">Members</span>
+              </button>
+              <CircleInvite
+                inviteCode={circleData.invite_code}
+                circleName={circleData.name}
+              />
+            </div>
+          </div>
 
-        {/* Feed */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Shared Reflections
-          </h2>
-          <CircleFeed items={feedItems} onLike={handleLike} />
+          {/* Feed */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Shared Reflections
+            </h2>
+            <CircleFeed items={feedItems} onLike={handleLike} />
+          </div>
         </div>
-      </div>
-    </PageWrapper>
+      </PageWrapper>
+
+      {/* Members Drawer Overlay - Moved out of PageWrapper to fix z-index issues */}
+      <AnimatePresence>
+        {showMembers && (
+          <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div 
+              className="absolute inset-0 z-0" 
+              onClick={() => setShowMembers(false)} 
+            />
+            <CircleMembers onClose={() => setShowMembers(false)} />
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

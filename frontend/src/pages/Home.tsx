@@ -92,15 +92,10 @@ export default function Home() {
   }
 
   return (
-    <PageWrapper>
-      {/* Page Header */}
-      <div className="flex flex-row items-center justify-between mb-10 pb-4 border-b border-border sticky top-0 md:top-[64px] bg-cream z-10 pt-2">
-        <h1 className="font-cinzel text-[1.05rem] font-medium tracking-[0.08em] uppercase text-green">Today's Reflection</h1>
-        {summary && (
-          <StreakBadge streak={summary.current_streak} />
-        )}
-      </div>
-
+    <PageWrapper
+      title="Today's Reflection"
+      headerRight={summary ? <StreakBadge streak={summary.current_streak} /> : null}
+    >
       {/* Main Content */}
       <div className="pb-6">
         {/* Verse Card */}

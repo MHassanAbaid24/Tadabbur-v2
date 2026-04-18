@@ -41,10 +41,8 @@ export default function Progress() {
   }
 
   return (
-    <PageWrapper>
-      <div className="py-6 space-y-6">
-        {/* Header */}
-        <h1 className="text-2xl font-bold text-gray-900">Your Progress</h1>
+    <PageWrapper title="Your Progress">
+      <div className="py-2 space-y-6">
 
         {/* Streaks */}
         <div className="grid grid-cols-2 gap-4">

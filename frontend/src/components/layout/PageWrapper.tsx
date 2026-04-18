@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import MobileNav from './MobileNav'
 import Navbar from './Navbar'
 
@@ -5,24 +6,39 @@ interface PageWrapperProps {
   children: React.ReactNode
   title?: string
   className?: string
+  headerRight?: React.ReactNode
 }
 
-export default function PageWrapper({ children, title, className = "" }: PageWrapperProps) {
+export default function PageWrapper({ 
+  children, 
+  title, 
+  className = "",
+  headerRight
+}: PageWrapperProps) {
   return (
     <>
       <Navbar />
-      <div className={`relative z-10 max-w-[740px] mx-auto px-5 pb-24 pt-8 md:px-8 md:pb-12 md:pt-12 ${className}`}>
+      
+      {/* Mobile Sticky Header */}
+      <div className="md:hidden sticky top-0 z-50 bg-cream/96 backdrop-blur-md border-b border-border h-14 flex items-center justify-between px-5">
+        <Link to="/home" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+          <span className="font-cinzel font-medium text-[0.95rem] tracking-[0.08em] text-green">Tadabbur</span>
+          <span className="font-scheherazade text-[1.1rem] text-gold leading-none" lang="ar" dir="rtl">تدبّر</span>
+        </Link>
         
-        {/* Mobile brand */}
-        <div className="md:hidden flex items-center justify-center gap-[10px] pt-5 mb-[-0.5rem]">
-          <span className="font-cinzel text-[1.1rem] tracking-[0.07em] text-green">Tadabbur</span>
-          <span className="font-scheherazade text-[1.3rem] text-gold" lang="ar" dir="rtl">تدبّر</span>
-        </div>
+        {headerRight && (
+          <div className="flex items-center">
+            {headerRight}
+          </div>
+        )}
+      </div>
 
-        {/* Page header */}
+      <div className={`relative z-10 max-w-[740px] mx-auto px-5 pb-24 pt-6 md:px-8 md:pb-12 md:pt-12 ${className}`}>
+        
+        {/* Page title (secondary on mobile) */}
         {title && (
-          <div className="flex items-center justify-between mb-10 pb-4 border-b border-border sticky top-0 md:top-[64px] bg-cream z-10 pt-2">
-            <h1 className="font-cinzel text-[1.05rem] font-medium tracking-[0.08em] uppercase text-green">{title}</h1>
+          <div className="mb-8 pb-3 border-b border-border/60">
+            <h1 className="font-cinzel text-[0.9rem] font-medium tracking-[0.08em] uppercase text-ink-soft">{title}</h1>
           </div>
         )}
         

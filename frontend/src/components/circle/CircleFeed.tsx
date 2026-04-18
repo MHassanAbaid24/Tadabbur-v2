@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 
 interface CircleFeedProps {
   items: CircleFeedItem[]
+  isLoading?: boolean
   onLike?: (reflectionId: string, isUnlike: boolean) => void
 }
 
@@ -15,7 +16,7 @@ const MOOD_EMOJI: Record<string, string> = {
   thoughtful: '💭',
 }
 
-export default function CircleFeed({ items, onLike }: CircleFeedProps) {
+export default function CircleFeed({ items, isLoading, onLike }: CircleFeedProps) {
   const [likedIds, setLikedIds] = useState<Set<string>>(() => {
     const initialLiked = new Set<string>();
     items.forEach(item => {
@@ -91,11 +92,34 @@ export default function CircleFeed({ items, onLike }: CircleFeedProps) {
     return fullName.split(' ')[0]
   }
 
+  if (isLoading && items.length === 0) {
+    return (
+      <div className="space-y-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white border border-border p-6 rounded-[4px] shadow-sm flex flex-col gap-4 animate-pulse">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <div className="h-2 bg-parchment rounded w-24" />
+                <div className="h-4 bg-parchment rounded w-32" />
+              </div>
+              <div className="w-8 h-8 rounded-full bg-parchment" />
+            </div>
+            <div className="space-y-3 pt-4 border-t border-border/50">
+              <div className="h-3 bg-parchment rounded w-3/4" />
+              <div className="h-3 bg-parchment rounded w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   if (items.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-600 text-sm">
-          No shared reflections yet. Be the first to share!
+      <div className="text-center py-16 px-4 bg-parchment/10 rounded-[4px] border border-border/50">
+        <p className="font-cinzel text-[0.85rem] tracking-[0.05em] text-muted leading-relaxed">
+          No shared reflections yet.<br />
+          <span className="text-gold">Be the first to share your thoughts today!</span>
         </p>
       </div>
     )

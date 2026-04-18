@@ -14,6 +14,7 @@ export default function Circle() {
     circle: circleData, 
     feed: feedItems, 
     isLoading: storeLoading, 
+    lastFeedFetchedAt,
     error: storeError, 
     fetchMyCircle, 
     fetchCircleFeed 
@@ -200,7 +201,7 @@ export default function Circle() {
               <span className="font-cinzel text-[0.75rem] tracking-[0.14em] uppercase text-muted whitespace-nowrap">Shared Reflections</span>
               <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-border"></div>
             </div>
-            <CircleFeed items={feedItems} onLike={handleLike} />
+            <CircleFeed items={feedItems} isLoading={storeLoading || !lastFeedFetchedAt} onLike={handleLike} />
           </div>
         </div>
       </PageWrapper>

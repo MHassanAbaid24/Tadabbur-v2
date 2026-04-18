@@ -1,5 +1,4 @@
-"""Email service for sending OTP and verification codes via Gmail SMTP."""
-
+import asyncio
 import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -21,16 +20,6 @@ class EmailService:
     async def send_otp_email(recipient_email: str, otp_code: str) -> bool:
         """
         Send OTP verification code via email.
-
-        Args:
-            recipient_email: Email address to send OTP to
-            otp_code: 6-digit OTP code to include in email
-
-        Returns:
-            True if email sent successfully, False otherwise
-
-        Raises:
-            Does not raise exceptions; logs errors and returns False
         """
         try:
             subject = "Tadabbur - Email Verification Code"
@@ -66,7 +55,8 @@ class EmailService:
             </html>
             """
 
-            return EmailService._send_email(
+            return await asyncio.to_thread(
+                EmailService._send_email,
                 recipient_email=recipient_email,
                 subject=subject,
                 html_body=html_body,
@@ -144,7 +134,8 @@ class EmailService:
             </html>
             """
 
-            return EmailService._send_email(
+            return await asyncio.to_thread(
+                EmailService._send_email,
                 recipient_email=recipient_email,
                 subject=subject,
                 html_body=html_body,
@@ -162,14 +153,6 @@ class EmailService:
     ) -> bool:
         """
         Send email via Gmail SMTP.
-
-        Args:
-            recipient_email: Recipient email address
-            subject: Email subject line
-            html_body: HTML body of the email
-
-        Returns:
-            True if sent successfully, False otherwise
         """
         try:
             # Create MIME message
@@ -182,8 +165,8 @@ class EmailService:
             html_part = MIMEText(html_body, "html")
             msg.attach(html_part)
 
-            # Send via Gmail SMTP
-            with smtplib.SMTP(GMAIL_SMTP_HOST, GMAIL_SMTP_PORT, timeout=10) as server:
+            # Send via Gmail SMTP with balanced timeout
+            with smtplib.SMTP(GMAIL_SMTP_HOST, GMAIL_SMTP_PORT, timeout=30) as server:
                 server.starttls()
                 server.login(settings.gmail_sender_email, settings.gmail_app_password)
                 server.sendmail(

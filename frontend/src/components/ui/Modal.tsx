@@ -46,7 +46,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
 
       {/* Modal content - slide up on mobile, centered on desktop */}
       <div 
-        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 bg-white rounded-t-3xl md:rounded-3xl max-h-[90vh] md:max-h-[80vh] md:w-full md:max-w-md overflow-y-auto"
+        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 bg-white rounded-t-3xl md:rounded-3xl max-h-[90vh] md:max-h-[80vh] md:w-full md:max-w-md overflow-y-auto pb-[60px] md:pb-0"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"

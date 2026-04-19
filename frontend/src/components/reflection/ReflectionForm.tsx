@@ -191,7 +191,7 @@ export default function ReflectionForm({
       <button
         type="submit"
         disabled={isSubmitting || !formData.prompt1 || !formData.prompt2}
-        className="w-full bg-ink hover:bg-gold text-white font-cinzel text-[0.85rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:bg-ink"
+        className="w-full bg-ink hover:bg-gold text-white font-cinzel text-[0.85rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:bg-ink mb-16 md:mb-0"
       >
         {isSubmitting ? (
           <>

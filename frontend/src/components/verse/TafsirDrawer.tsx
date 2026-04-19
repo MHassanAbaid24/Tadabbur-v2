@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronRight } from 'lucide-react'
@@ -11,16 +11,30 @@ interface TafsirDrawerProps {
 export default function TafsirDrawer({ tafsir, verseKey }: TafsirDrawerProps) {
   const [isOpen, setIsOpen] = useState(false)
 
-  // Prevent scrolling when drawer is open
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Prevent scrolling and manage focus when drawer is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
+      setTimeout(() => closeButtonRef.current?.focus(), 100)
     } else {
       document.body.style.overflow = 'auto'
     }
     return () => {
       document.body.style.overflow = 'auto'
     }
+  }, [isOpen])
+
+  // Handle Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
 
   const drawerContent = (
@@ -43,19 +57,23 @@ export default function TafsirDrawer({ tafsir, verseKey }: TafsirDrawerProps) {
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed top-0 right-0 h-full w-full max-w-[440px] z-[1002] bg-white shadow-[-10px_0_40px_rgba(0,0,0,0.1)] flex flex-col"
+            role="complementary"
+            aria-labelledby="tafsir-heading"
+            aria-hidden={!isOpen}
           >
             {/* Header */}
             <div className="bg-green py-5 px-6 flex items-center justify-between">
               <div>
                 <p className="font-cinzel text-[0.6rem] tracking-[0.2em] text-white/60 uppercase mb-1">Tafsir Summary</p>
-                <h3 className="font-cinzel text-[0.9rem] font-medium tracking-[0.08em] text-white uppercase">
+                <h3 id="tafsir-heading" className="font-cinzel text-[0.9rem] font-medium tracking-[0.08em] text-white uppercase">
                   Verse {verseKey}
                 </h3>
               </div>
               <button
+                ref={closeButtonRef}
                 onClick={() => setIsOpen(false)}
                 className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all"
-                aria-label="Close"
+                aria-label="Close Tafsir Drawer"
               >
                 <X size={20} />
               </button>

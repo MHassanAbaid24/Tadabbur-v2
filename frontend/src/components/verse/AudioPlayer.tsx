@@ -37,7 +37,7 @@ export default function AudioPlayer({ audioUrl }: AudioPlayerProps) {
       <button
         onClick={handlePlayPause}
         className="w-[44px] h-[44px] rounded-full bg-green border-none flex items-center justify-center text-white transition-all duration-200 hover:bg-green-mid hover:scale-105 active:scale-95 shrink-0"
-        aria-label={isPlaying ? 'Pause' : 'Play'}
+        aria-label={isPlaying ? 'Pause recitation' : 'Play recitation'}
       >
         {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="ml-0.5" />}
       </button>

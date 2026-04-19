@@ -9,7 +9,9 @@ from fastapi.responses import JSONResponse
 from app.auth.jwt import get_current_user
 from app.services.daily_verse import get_today_verse_key
 from app.services.qf_content import get_verse_with_full_context, get_chapters, get_verses_by_chapter
+from app.services.qf_user import log_reading_session
 from app.models.schemas import APIResponse, ChapterResponse, VerseListResponse
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +45,7 @@ async def get_today_verse(
     verse_context = await get_verse_with_full_context(verse_key)
 
     # Log reading session to QF User API (fire and forget, non-blocking)
-    try:
-        # TODO: Implement POST /api/v1/reading-sessions when qf_user service is ready
-        pass
-    except Exception as e:
-        logger.warning("Failed to log reading session: %s", str(e))
+    asyncio.create_task(log_reading_session(user_id, verse_key))
 
     logger.info("Served verse %s to user %s", verse_key, user_id)
 
@@ -86,6 +84,9 @@ async def get_verse_by_key_endpoint(
     verse_context = await get_verse_with_full_context(verse_key)
 
     logger.info("Served verse %s to user %s", verse_key, user_id)
+
+    # Log reading session to QF User API (fire and forget, non-blocking)
+    asyncio.create_task(log_reading_session(user_id, verse_key))
 
     return APIResponse(success=True, data=verse_context)
 

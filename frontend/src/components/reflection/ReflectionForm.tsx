@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useReflectionStore } from '../../store/reflectionStore'
+import { useCircleStore } from '../../store/circleStore'
 import QFAuthModal from '../ui/QFAuthModal'
 import { Mood } from '../../types/reflection'
 
@@ -21,6 +22,7 @@ export default function ReflectionForm({
   onSubmitted,
 }: ReflectionFormProps) {
   const { submitReflection } = useReflectionStore()
+  const { circle } = useCircleStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [showQFAuthModal, setShowQFAuthModal] = useState(false)
@@ -54,6 +56,13 @@ export default function ReflectionForm({
     e.preventDefault()
     setError('')
     setIsSubmitting(true)
+    const circleId = circle?.qf_room_id
+
+    if (formData.isShared && !circleId) {
+      setError('You are not currently in a circle. Join or create a circle first.')
+      setIsSubmitting(false)
+      return
+    }
 
     try {
       await submitReflection({
@@ -62,7 +71,7 @@ export default function ReflectionForm({
         prompt_2_answer: formData.prompt2,
         mood: formData.mood,
         is_shared: formData.isShared,
-        circle_id: undefined, // TODO: get from circle store
+        circle_id: formData.isShared ? circleId : undefined,
       })
       onSubmitted()
     } catch (err: any) {

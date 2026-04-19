@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { BookOpen } from 'lucide-react'
 import { Reflection } from '../../types/reflection'
 import { useReflectionStore } from '../../store/reflectionStore'
 
@@ -16,6 +18,7 @@ const MOOD_EMOJI: Record<string, string> = {
 
 export default function ReflectionCard({ reflection }: ReflectionCardProps) {
   const [insightError, setInsightError] = useState<string | null>(null)
+  const navigate = useNavigate()
   const { generateInsight, insightLoadingId } = useReflectionStore()
 
   const isGeneratingInsight = insightLoadingId === reflection.id
@@ -47,9 +50,19 @@ export default function ReflectionCard({ reflection }: ReflectionCardProps) {
           <p className="font-cinzel text-[0.65rem] tracking-[0.14em] text-muted uppercase mb-1">
             {formatDate(reflection.date)}
           </p>
-          <p className="font-cinzel text-[0.8rem] tracking-[0.06em] text-ink font-medium">
-            {reflection.verse_key}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="font-cinzel text-[0.8rem] tracking-[0.06em] text-ink font-medium">
+              {reflection.verse_key}
+            </p>
+            <button 
+              onClick={() => navigate(`/explore?verse=${reflection.verse_key}`)}
+              className="flex items-center gap-1.5 px-2 py-0.5 bg-gold-faint/30 border border-gold/20 rounded-[2px] font-cinzel text-[0.6rem] tracking-[0.08em] text-gold hover:bg-gold-faint/50 hover:border-gold/40 transition-all uppercase"
+              title="Study Ayah in Explore page"
+            >
+              <BookOpen size={11} />
+              <span>Study</span>
+            </button>
+          </div>
         </div>
         <div className="flex flex-col items-end gap-2">
           {reflection.mood && (

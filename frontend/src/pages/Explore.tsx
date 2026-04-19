@@ -9,6 +9,71 @@ import ReflectionForm from '../components/reflection/ReflectionForm'
 import TafsirDrawer from '../components/verse/TafsirDrawer'
 import { verse } from '../lib/api'
 
+const VerseCollapsible = ({ verse }: { verse: any }) => {
+  const [showAyah, setShowAyah] = useState(false)
+  const [showTrans, setShowTrans] = useState(false)
+  
+  if (!verse) return null;
+
+  return (
+    <div className="mt-4 space-y-2 block md:hidden">
+      {/* Ayah */}
+      <div className="border border-border rounded-[2px] bg-white">
+        <button 
+          onClick={() => setShowAyah(!showAyah)} 
+          className="w-full px-4 py-3 flex justify-between items-center"
+        >
+          <span className="font-cinzel text-[0.65rem] font-medium tracking-[0.1em] text-ink uppercase">Ayah</span>
+          <ChevronDown size={14} className={`text-gold transition-transform ${showAyah ? 'rotate-180' : ''}`} />
+        </button>
+        <AnimatePresence>
+          {showAyah && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }} 
+              animate={{ height: 'auto', opacity: 1 }} 
+              exit={{ height: 0, opacity: 0 }} 
+              className="overflow-hidden"
+            >
+              <div className="p-4 border-t border-border/50 bg-cream/30">
+                <p className="font-scheherazade text-[1.5rem] leading-[2] text-ink text-right" dir="rtl" lang="ar" translate="no">
+                  {verse.text_uthmani}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Translation */}
+      <div className="border border-border rounded-[2px] bg-white">
+        <button 
+          onClick={() => setShowTrans(!showTrans)} 
+          className="w-full px-4 py-3 flex justify-between items-center"
+        >
+          <span className="font-cinzel text-[0.65rem] font-medium tracking-[0.1em] text-ink uppercase">English Translation</span>
+          <ChevronDown size={14} className={`text-gold transition-transform ${showTrans ? 'rotate-180' : ''}`} />
+        </button>
+        <AnimatePresence>
+          {showTrans && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }} 
+              animate={{ height: 'auto', opacity: 1 }} 
+              exit={{ height: 0, opacity: 0 }} 
+              className="overflow-hidden"
+            >
+              <div className="p-4 border-t border-border/50 bg-cream/30">
+                <p className="text-ink-soft leading-[1.6] text-[0.95rem] font-light italic">
+                  {verse.translation}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  )
+}
+
 export default function Explore() {
   const { 
     chapters, 
@@ -386,8 +451,7 @@ export default function Explore() {
       >
         <div className="mb-8 p-6 bg-parchment/40 rounded-[2px] border border-border shadow-sm">
            <p className="font-cinzel text-[0.6rem] font-bold text-gold uppercase tracking-[0.2em] mb-2">Reflecting on Verse</p>
-           <p className="font-cinzel text-[1rem] font-medium text-ink uppercase tracking-[0.06em]">{reflectionVerseKey}</p>
-        </div>
+           <p className="font-cinzel text-[1rem] font-medium text-ink uppercase tracking-[0.06em]">{reflectionVerseKey}</p>            <VerseCollapsible verse={versesList.find(v => v.verse_key === reflectionVerseKey)} />        </div>
         {reflectionVerseKey && (
           <ReflectionForm 
             verseKey={reflectionVerseKey}

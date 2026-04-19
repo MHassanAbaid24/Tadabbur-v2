@@ -5,6 +5,7 @@ import { Loader2, Search, BookOpen, MessageSquarePlus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Modal from '../components/ui/Modal'
 import ReflectionForm from '../components/reflection/ReflectionForm'
+import { verse } from '../lib/api'
 
 export default function Explore() {
   const { 
@@ -19,6 +20,9 @@ export default function Explore() {
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [reflectionVerseKey, setReflectionVerseKey] = useState<string | null>(null)
+  const [tafsirVerseKey, setTafsirVerseKey] = useState<string | null>(null)
+  const [tafsirContent, setTafsirContent] = useState<string>('')
+  const [isLoadingTafsir, setIsLoadingTafsir] = useState(false)
 
   useEffect(() => {
     fetchChapters()
@@ -32,6 +36,25 @@ export default function Explore() {
   const handleChapterClick = (chapterId: number) => {
     setSelectedChapter(chapterId)
     fetchVersesByChapter(chapterId)
+  }
+
+  const handleOpenTafsir = async (verseKey: string) => {
+    setTafsirVerseKey(verseKey)
+    setIsLoadingTafsir(true)
+    try {
+      const response = await verse.getTafsir(verseKey)
+      setTafsirContent(response.data.tafsir)
+    } catch (error) {
+      console.error('Failed to fetch tafsir:', error)
+      setTafsirContent('Failed to load tafsir. Please try again.')
+    } finally {
+      setIsLoadingTafsir(false)
+    }
+  }
+
+  const closeTafsirModal = () => {
+    setTafsirVerseKey(null)
+    setTafsirContent('')
   }
 
   const currentChapter = chapters.find(c => c.id === selectedChapter)
@@ -170,13 +193,22 @@ export default function Explore() {
                             <span className="font-cinzel text-[0.65rem] tracking-[0.12em] text-muted bg-cream px-3 py-1.5 rounded-[2px] border border-border">
                               {verse.verse_key}
                             </span>
-                            <button
-                              onClick={() => setReflectionVerseKey(verse.verse_key)}
-                              className="md:opacity-0 group-hover:opacity-100 flex items-center gap-2 font-cinzel text-[0.7rem] tracking-[0.1em] text-gold hover:text-ink transition-all px-4 py-2 bg-gold-faint border border-gold-light rounded-full active:scale-95 uppercase"
-                            >
-                              <MessageSquarePlus size={15} />
-                              Reflect
-                            </button>
+                            <div className="flex gap-2 md:opacity-0 group-hover:opacity-100 transition-all">
+                              <button
+                                onClick={() => handleOpenTafsir(verse.verse_key)}
+                                className="flex items-center gap-2 font-cinzel text-[0.7rem] tracking-[0.1em] text-green hover:text-ink transition-all px-4 py-2 bg-green/10 border border-green/30 rounded-full active:scale-95 uppercase"
+                              >
+                                <BookOpen size={15} />
+                                Tafsir
+                              </button>
+                              <button
+                                onClick={() => setReflectionVerseKey(verse.verse_key)}
+                                className="flex items-center gap-2 font-cinzel text-[0.7rem] tracking-[0.1em] text-gold hover:text-ink transition-all px-4 py-2 bg-gold-faint border border-gold-light rounded-full active:scale-95 uppercase"
+                              >
+                                <MessageSquarePlus size={15} />
+                                Reflect
+                              </button>
+                            </div>
                           </div>
                           
                           <div 
@@ -220,6 +252,59 @@ export default function Explore() {
             verseKey={reflectionVerseKey}
             onSubmitted={() => setReflectionVerseKey(null)}
           />
+        )}
+      </Modal>
+
+      {/* Tafsir Modal */}
+      <Modal
+        isOpen={!!tafsirVerseKey}
+        onClose={closeTafsirModal}
+        title={`Tafsir — Ibn Kathir`}
+      >
+        <div className="mb-8 p-6 bg-green/5 rounded-[2px] border border-green/20 shadow-sm">
+           <p className="font-cinzel text-[0.6rem] font-bold text-green uppercase tracking-[0.2em] mb-2">Interpreting Verse</p>
+           <p className="font-cinzel text-[1rem] font-medium text-ink uppercase tracking-[0.06em]">{tafsirVerseKey}</p>
+        </div>
+        {isLoadingTafsir ? (
+          <div className="flex flex-col items-center justify-center gap-4 py-16">
+            <Loader2 className="animate-spin text-green" size={32} />
+            <p className="text-[0.75rem] font-cinzel tracking-[0.16em] text-muted uppercase animate-pulse">Loading tafsir...</p>
+          </div>
+        ) : (
+          <div className="prose prose-stone max-w-none bg-white p-6 rounded-[4px] border border-border max-h-[60vh] overflow-y-auto custom-scrollbar">
+            {tafsirContent.split('\n').filter(p => p.trim() !== '').map((para, idx) => {
+              const parts = para.split(/([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+(?:\s+[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+)*)/g);
+              return (
+                <div key={idx} className="mb-6 last:mb-0">
+                  {parts.map((part, i) => {
+                    const trimmedPart = part.trim();
+                    if (!trimmedPart) return null;
+                    
+                    const isArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(trimmedPart);
+                    
+                    return isArabic ? (
+                      <div 
+                        key={i} 
+                        className="font-scheherazade text-lg leading-relaxed text-right my-4 bg-cream/50 p-4 rounded-[2px] border-r-4 border-green" 
+                        dir="rtl"
+                        lang="ar"
+                        translate="no"
+                      >
+                        {trimmedPart}
+                      </div>
+                    ) : (
+                      <p 
+                        key={i} 
+                        className="text-ink-soft leading-relaxed font-light text-[0.95rem] mb-3"
+                      >
+                        {trimmedPart}
+                      </p>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         )}
       </Modal>
     </PageWrapper>

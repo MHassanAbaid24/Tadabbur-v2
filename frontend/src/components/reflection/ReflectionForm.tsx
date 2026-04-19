@@ -71,6 +71,11 @@ export default function ReflectionForm({
       // Check if this is a QF auth error
       if (err?.response?.data?.code === 'QF_ACCOUNT_NOT_CONNECTED') {
         setShowQFAuthModal(true)
+      } else if (err?.response?.status === 409) {
+        setError(
+          "You've already submitted this exact reflection for this verse. " +
+          "Try rewording it to capture a new thought."
+        )
       } else {
         setError(errorMessage)
       }

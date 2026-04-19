@@ -35,6 +35,12 @@ def strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", "", text)
 
 
+def _normalize(text: str) -> str:
+    """Return a whitespace-normalized, lowercased version of text for
+    duplicate detection. Does not mutate the original."""
+    return re.sub(r"\s+", " ", text.strip()).lower()
+
+
 @router.post("/submit")
 async def submit_reflection(
     req: ReflectionSubmitRequest,
@@ -150,6 +156,26 @@ async def submit_reflection(
                 xp_earned += 50
         except Exception as e:
             logger.warning("Could not fetch streaks for bonus: %s", str(e))
+
+        # --- Duplicate content guard (Module 1) ---
+        existing_reflections = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections")
+            .select("prompt_1_answer")
+            .eq("user_id", user_id)
+            .eq("verse_key", req.verse_key)
+            .execute()
+        )
+
+        if existing_reflections.data:
+            normalized_new = _normalize(prompt_1_clean)
+            for existing in existing_reflections.data:
+                if _normalize(existing.get("prompt_1_answer", "")) == normalized_new:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="A reflection with identical content already exists for "
+                               "this verse. Edit your text before resubmitting.",
+                    )
+        # --- End duplicate content guard ---
 
         # Store reflection using asyncio.to_thread
         reflection_response = await asyncio.to_thread(

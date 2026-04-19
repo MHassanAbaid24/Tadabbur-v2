@@ -94,9 +94,6 @@ export default function Auth() {
       <div className="w-full max-w-[440px] z-10 fade-up">
         {/* Header */}
         <div className="text-center mb-10 space-y-4">
-          <div className="w-16 h-16 bg-parchment rounded-full mx-auto flex items-center justify-center border border-border shadow-sm mb-6">
-            <span className="font-scheherazade text-gold text-3xl">ت</span>
-          </div>
           <h1 className="font-cinzel text-[2rem] font-medium tracking-[0.08em] text-ink">Tadabbur</h1>
           <p className="font-cinzel text-[0.75rem] tracking-[0.14em] text-muted uppercase">Read. Reflect. Grow Together.</p>
         </div>

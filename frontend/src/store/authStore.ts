@@ -59,6 +59,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       // Store token in localStorage
       localStorage.setItem(TOKEN_KEY, access_token)
+      localStorage.setItem('tadabbur_onboarded', 'true') // Returning users skip onboarding
 
       // Update store
       const user: User = {
@@ -243,6 +244,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(VERIFICATION_USER_ID_KEY)
     localStorage.removeItem(VERIFICATION_EMAIL_KEY)
+    localStorage.removeItem('tadabbur_onboarded')
+    localStorage.removeItem('tadabbur_onboarding_step')
     set({
       user: null,
       token: null,

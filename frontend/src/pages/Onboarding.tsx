@@ -140,11 +140,6 @@ export default function Onboarding() {
           {/* Step 1: Welcome */}
           {step === 1 && (
             <div className="text-center">
-              <div className="mb-6">
-                <div className="inline-flex items-center justify-center w-[80px] h-[80px] bg-parchment rounded-full mb-6 border border-gold-light shadow-[0_4px_15px_rgba(184,146,42,0.1)]">
-                  <span className="font-scheherazade text-gold text-4xl leading-none mt-2">ت</span>
-                </div>
-              </div>
               <h1 className="font-cinzel text-[2rem] md:text-[2.5rem] font-medium tracking-[0.06em] text-ink mb-2">
                 Welcome to Tadabbur
               </h1>

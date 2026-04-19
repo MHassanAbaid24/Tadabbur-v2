@@ -1,6 +1,7 @@
-import { Heart } from 'lucide-react'
+import { Heart, BookOpen } from 'lucide-react'
 import { CircleFeedItem } from '../../types/reflection'
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 interface CircleFeedProps {
   items: CircleFeedItem[]
@@ -17,6 +18,7 @@ const MOOD_EMOJI: Record<string, string> = {
 }
 
 export default function CircleFeed({ items, isLoading, onLike }: CircleFeedProps) {
+  const navigate = useNavigate()
   const [likedIds, setLikedIds] = useState<Set<string>>(() => {
     const initialLiked = new Set<string>();
     items.forEach(item => {
@@ -193,7 +195,17 @@ export default function CircleFeed({ items, isLoading, onLike }: CircleFeedProps
 
           {/* Footer (Verse Ref + Like) */}
           <div className="flex items-center justify-between pt-2 border-t border-border/30">
-            <p className="font-cinzel text-[0.65rem] tracking-[0.14em] text-muted font-medium bg-parchment/60 px-2.5 py-1 rounded-[2px]">{item.verse_key}</p>
+            <div className="flex items-center gap-3">
+              <p className="font-cinzel text-[0.65rem] tracking-[0.14em] text-muted font-medium bg-parchment/60 px-2.5 py-1 rounded-[2px]">{item.verse_key}</p>
+              <button 
+                onClick={() => navigate(`/explore?verse=${item.verse_key}`)}
+                className="flex items-center gap-1.5 px-2 py-0.5 bg-gold-faint/30 border border-gold/20 rounded-[2px] font-cinzel text-[0.6rem] tracking-[0.08em] text-gold hover:bg-gold-faint/50 hover:border-gold/40 transition-all uppercase"
+                title="Study Ayah in Explore page"
+              >
+                <BookOpen size={11} />
+                <span>Study</span>
+              </button>
+            </div>
 
             <button
               onClick={() => handleLike(item.reflection_id)}

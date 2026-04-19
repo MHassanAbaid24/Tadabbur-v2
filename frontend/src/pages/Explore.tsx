@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useVerseStore } from '../store/verseStore'
 import PageWrapper from '../components/layout/PageWrapper'
@@ -23,6 +23,7 @@ export default function Explore() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchParams] = useSearchParams()
   const targetVerse = searchParams.get('verse')
+  const verseRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const [reflectionVerseKey, setReflectionVerseKey] = useState<string | null>(null)
   const [tafsirVerseKey, setTafsirVerseKey] = useState<string | null>(null)
   const [tafsirContent, setTafsirContent] = useState<string>('')
@@ -44,13 +45,24 @@ export default function Explore() {
     }
   }, [targetVerse, chapters, selectedChapter, fetchVersesByChapter])
 
-  // Handle automatic tafsir opening
+  // Handle automatic tafsir opening and scroll
   useEffect(() => {
     if (targetVerse && versesList.length > 0 && !isLoadingVerses) {
       const verseExists = versesList.some(v => v.verse_key === targetVerse)
       
-      if (verseExists && tafsirVerseKey !== targetVerse) {
-        handleOpenTafsir(targetVerse)
+      if (verseExists) {
+        // Open tafsir
+        if (tafsirVerseKey !== targetVerse) {
+          handleOpenTafsir(targetVerse)
+        }
+
+        // Scroll into view with a slight delay to ensure the DOM is painted
+        setTimeout(() => {
+          const element = verseRefs.current[targetVerse]
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }
+        }, 300)
       }
     }
   }, [targetVerse, versesList, isLoadingVerses, tafsirVerseKey])
@@ -214,7 +226,10 @@ export default function Explore() {
                       {versesList.map((verse) => (
                         <div 
                           key={verse.id}
-                          className="group bg-white rounded-[4px] border border-border p-7 transition-all hover:border-gold/30 hover:shadow-md relative overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.02)]"
+                          ref={el => verseRefs.current[verse.verse_key] = el}
+                          className={`group bg-white rounded-[4px] border p-7 transition-all hover:border-gold/30 hover:shadow-md relative overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.02)] ${
+                            targetVerse === verse.verse_key ? 'ring-2 ring-gold border-gold bg-gold/5' : 'border-border'
+                          }`}
                         >
                           <div className="flex justify-between items-start mb-6">
                             <span className="font-cinzel text-[0.65rem] tracking-[0.12em] text-muted bg-cream px-3 py-1.5 rounded-[2px] border border-border">

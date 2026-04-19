@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useVerseStore } from '../store/verseStore'
 import PageWrapper from '../components/layout/PageWrapper'
-import { Loader2, Search, BookOpen, MessageSquarePlus } from 'lucide-react'
+import { Loader2, Search, BookOpen, MessageSquarePlus, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Modal from '../components/ui/Modal'
 import ReflectionForm from '../components/reflection/ReflectionForm'
@@ -28,6 +28,18 @@ export default function Explore() {
   const [tafsirVerseKey, setTafsirVerseKey] = useState<string | null>(null)
   const [tafsirContent, setTafsirContent] = useState<string>('')
   const [isLoadingTafsir, setIsLoadingTafsir] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     fetchChapters()
@@ -114,8 +126,94 @@ export default function Explore() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Chapter Selector */}
           <div className="md:col-span-1 space-y-5">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={17} />
+            {/* Mobile Custom Dropdown */}
+            <div className="block md:hidden relative" ref={mobileMenuRef}>
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="w-full flex items-center justify-between pl-4 pr-10 py-4 bg-white border border-border rounded-[4px] font-sans text-[0.95rem] text-ink focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/20 shadow-sm transition-all"
+              >
+                <div className="flex flex-col items-start gap-0.5">
+                  <span className="text-[0.65rem] text-muted tracking-[0.1em] uppercase font-cinzel">Current Surah</span>
+                  <span className="font-medium text-ink">
+                    {currentChapter 
+                      ? `${currentChapter.id}. ${currentChapter.name_simple} (${currentChapter.name_arabic})`
+                      : "Select a Surah..."}
+                  </span>
+                </div>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown className={`text-muted transition-transform duration-200 ${isMobileMenuOpen ? 'rotate-180' : ''}`} size={18} />
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {isMobileMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute z-50 left-0 right-0 mt-2 bg-white border border-border rounded-[4px] shadow-[0_4px_20px_rgba(0,0,0,0.08)] max-h-[55vh] flex flex-col overflow-hidden"
+                  >
+                    <div className="p-3 border-b border-border bg-parchment/10 relative shrink-0">
+                      <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-muted" size={15} />
+                      <input
+                        type="text"
+                        placeholder="Search Surah..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 bg-white border border-border rounded-[2px] font-sans text-[0.85rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/40 transition-colors shadow-sm"
+                      />
+                    </div>
+                    
+                    <div className="overflow-y-auto custom-scrollbar flex-1 relative">
+                      {isLoadingChapters ? (
+                        <div className="p-8 flex justify-center">
+                          <Loader2 className="animate-spin text-gold" size={20} />
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border">
+                          {filteredChapters.length > 0 ? (
+                            filteredChapters.map((chapter) => (
+                              <button
+                                key={chapter.id}
+                                onClick={() => {
+                                  handleChapterClick(chapter.id)
+                                  setIsMobileMenuOpen(false)
+                                  setSearchQuery('')
+                                }}
+                                className={`w-full flex items-center justify-between p-3.5 text-left transition-all hover:bg-parchment/30 group ${
+                                  selectedChapter === chapter.id ? 'bg-parchment border-l-4 border-gold' : 'border-l-4 border-transparent'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="w-7 h-7 rounded-[2px] bg-cream flex items-center justify-center text-[0.6rem] font-cinzel font-bold text-muted transition-colors border border-border">
+                                    {chapter.id}
+                                  </span>
+                                  <div>
+                                    <p className="font-cinzel font-medium text-ink text-[0.75rem] tracking-[0.02em]">{chapter.name_simple}</p>
+                                    <p className="text-[0.55rem] uppercase tracking-[0.1em] text-muted font-medium">{chapter.verses_count} Verses</p>
+                                  </div>
+                                </div>
+                                <span className="text-[1.1rem] font-scheherazade text-gold" dir="rtl">{chapter.name_arabic}</span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-6 text-center">
+                              <p className="text-[0.8rem] text-muted italic font-light">No Surahs found</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Desktop Chapter Selector */}
+            <div className="hidden md:block space-y-5">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={17} />
               <input
                 type="text"
                 placeholder="Search Surah..."
@@ -169,6 +267,7 @@ export default function Explore() {
                 Scroll to see all 114 Surahs
               </p>
             )}
+            </div>
           </div>
 
           {/* Verses View */}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useVerseStore } from '../store/verseStore'
 import PageWrapper from '../components/layout/PageWrapper'
 import { Loader2, Search, BookOpen, MessageSquarePlus } from 'lucide-react'
@@ -20,6 +21,8 @@ export default function Explore() {
 
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchParams] = useSearchParams()
+  const targetVerse = searchParams.get('verse')
   const [reflectionVerseKey, setReflectionVerseKey] = useState<string | null>(null)
   const [tafsirVerseKey, setTafsirVerseKey] = useState<string | null>(null)
   const [tafsirContent, setTafsirContent] = useState<string>('')
@@ -28,6 +31,29 @@ export default function Explore() {
   useEffect(() => {
     fetchChapters()
   }, [fetchChapters])
+
+  // Handle initial chapter selection from query param
+  useEffect(() => {
+    if (targetVerse && chapters.length > 0) {
+      const chapterId = parseInt(targetVerse.split(':')[0], 10)
+      
+      if (selectedChapter !== chapterId) {
+        setSelectedChapter(chapterId)
+        fetchVersesByChapter(chapterId)
+      }
+    }
+  }, [targetVerse, chapters, selectedChapter, fetchVersesByChapter])
+
+  // Handle automatic tafsir opening
+  useEffect(() => {
+    if (targetVerse && versesList.length > 0 && !isLoadingVerses) {
+      const verseExists = versesList.some(v => v.verse_key === targetVerse)
+      
+      if (verseExists && tafsirVerseKey !== targetVerse) {
+        handleOpenTafsir(targetVerse)
+      }
+    }
+  }, [targetVerse, versesList, isLoadingVerses, tafsirVerseKey])
 
   const filteredChapters = chapters.filter(c => 
     c.name_simple.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -12,7 +12,7 @@ from app.services.email_service import EmailService
 from app.services.daily_verse import get_today_verse_key
 from app.services.qf_content import get_verse_by_key
 
-import pytz
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ async def send_daily_reminders():
             
             # Calculate current time in user's timezone
             try:
-                tz = pytz.timezone(user_tz_name)
+                tz = ZoneInfo(user_tz_name)
                 now_user = now_utc.astimezone(tz)
                 user_time_str = now_user.strftime("%H:%M:00")
             except Exception as e:

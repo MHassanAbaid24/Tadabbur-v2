@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useVerseStore } from '../store/verseStore'
 import PageWrapper from '../components/layout/PageWrapper'
-import { Loader2, Search, BookOpen, MessageSquarePlus } from 'lucide-react'
+import { Loader2, Search, BookOpen, MessageSquarePlus, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Modal from '../components/ui/Modal'
 import ReflectionForm from '../components/reflection/ReflectionForm'
@@ -23,10 +24,35 @@ export default function Explore() {
   const [tafsirVerseKey, setTafsirVerseKey] = useState<string | null>(null)
   const [tafsirContent, setTafsirContent] = useState<string>('')
   const [isLoadingTafsir, setIsLoadingTafsir] = useState(false)
+  const tafsirCloseButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     fetchChapters()
   }, [fetchChapters])
+
+  // Manage drawer scroll and focus
+  useEffect(() => {
+    if (tafsirVerseKey) {
+      document.body.style.overflow = 'hidden'
+      setTimeout(() => tafsirCloseButtonRef.current?.focus(), 100)
+    } else {
+      document.body.style.overflow = 'auto'
+    }
+    return () => {
+      document.body.style.overflow = 'auto'
+    }
+  }, [tafsirVerseKey])
+
+  // Handle Escape key to close drawer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && tafsirVerseKey) {
+        closeTafsirModal()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [tafsirVerseKey])
 
   const filteredChapters = chapters.filter(c => 
     c.name_simple.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -255,58 +281,101 @@ export default function Explore() {
         )}
       </Modal>
 
-      {/* Tafsir Modal */}
-      <Modal
-        isOpen={!!tafsirVerseKey}
-        onClose={closeTafsirModal}
-        title={`Tafsir — Ibn Kathir`}
-      >
-        <div className="mb-8 p-6 bg-green/5 rounded-[2px] border border-green/20 shadow-sm">
-           <p className="font-cinzel text-[0.6rem] font-bold text-green uppercase tracking-[0.2em] mb-2">Interpreting Verse</p>
-           <p className="font-cinzel text-[1rem] font-medium text-ink uppercase tracking-[0.06em]">{tafsirVerseKey}</p>
-        </div>
-        {isLoadingTafsir ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-16">
-            <Loader2 className="animate-spin text-green" size={32} />
-            <p className="text-[0.75rem] font-cinzel tracking-[0.16em] text-muted uppercase animate-pulse">Loading tafsir...</p>
-          </div>
-        ) : (
-          <div className="prose prose-stone max-w-none bg-white p-6 rounded-[4px] border border-border max-h-[60vh] overflow-y-auto custom-scrollbar">
-            {tafsirContent.split('\n').filter(p => p.trim() !== '').map((para, idx) => {
-              const parts = para.split(/([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+(?:\s+[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+)*)/g);
-              return (
-                <div key={idx} className="mb-6 last:mb-0">
-                  {parts.map((part, i) => {
-                    const trimmedPart = part.trim();
-                    if (!trimmedPart) return null;
-                    
-                    const isArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(trimmedPart);
-                    
-                    return isArabic ? (
-                      <div 
-                        key={i} 
-                        className="font-scheherazade text-lg leading-relaxed text-right my-4 bg-cream/50 p-4 rounded-[2px] border-r-4 border-green" 
-                        dir="rtl"
-                        lang="ar"
-                        translate="no"
-                      >
-                        {trimmedPart}
-                      </div>
-                    ) : (
-                      <p 
-                        key={i} 
-                        className="text-ink-soft leading-relaxed font-light text-[0.95rem] mb-3"
-                      >
-                        {trimmedPart}
-                      </p>
-                    );
-                  })}
+      {/* Tafsir Drawer */}
+      {createPortal(
+        <AnimatePresence>
+          {tafsirVerseKey && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={closeTafsirModal}
+                className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-[1001]"
+              />
+
+              {/* Right Side Drawer */}
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed top-0 right-0 h-full w-full max-w-[440px] z-[1002] bg-white shadow-[-10px_0_40px_rgba(0,0,0,0.1)] flex flex-col"
+                role="complementary"
+                aria-labelledby="explore-tafsir-heading"
+                aria-hidden={!tafsirVerseKey}
+              >
+                {/* Header */}
+                <div className="bg-green py-5 px-6 flex items-center justify-between">
+                  <div>
+                    <p className="font-cinzel text-[0.6rem] tracking-[0.2em] text-white/60 uppercase mb-1">Tafsir Summary</p>
+                    <h3 id="explore-tafsir-heading" className="font-cinzel text-[0.9rem] font-medium tracking-[0.08em] text-white uppercase">
+                      Verse {tafsirVerseKey}
+                    </h3>
+                  </div>
+                  <button
+                    ref={tafsirCloseButtonRef}
+                    onClick={closeTafsirModal}
+                    className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                    aria-label="Close Tafsir Drawer"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </Modal>
+
+                {/* Content Container */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 space-y-8 bg-cream/30">
+                  {isLoadingTafsir ? (
+                    <div className="flex flex-col items-center justify-center gap-4 py-16">
+                      <Loader2 className="animate-spin text-green" size={32} />
+                      <p className="text-[0.75rem] font-cinzel tracking-[0.16em] text-muted uppercase animate-pulse">Loading tafsir...</p>
+                    </div>
+                  ) : (
+                    <div className="prose prose-stone max-w-none">
+                      {tafsirContent.split('\n').filter(p => p.trim() !== '').map((para, idx) => {
+                        const parts = para.split(/([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+(?:\s+[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+)*)/g);
+                        return (
+                          <div key={idx} className="mb-8 last:mb-0">
+                            {parts.map((part, i) => {
+                              const trimmedPart = part.trim();
+                              if (!trimmedPart) return null;
+                              
+                              const isArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(trimmedPart);
+                              
+                              return isArabic ? (
+                                <div 
+                                  key={i} 
+                                  className="font-scheherazade text-2xl leading-relaxed text-right my-5 bg-parchment/40 p-5 rounded-[4px] border-r-4 border-gold shadow-sm" 
+                                  dir="rtl"
+                                  lang="ar"
+                                  translate="no"
+                                >
+                                  {trimmedPart}
+                                </div>
+                              ) : (
+                                <p key={i} className="text-ink-soft text-[1.05rem] leading-[1.85] font-light italic mb-4 last:mb-0">
+                                  {trimmedPart}
+                                </p>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer decoration */}
+                <div className="p-4 border-t border-border bg-white flex justify-center opacity-30">
+                  <span className="text-gold text-[1.2rem] tracking-[0.4em]">❧ ✦ ❧</span>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </PageWrapper>
   )
 }

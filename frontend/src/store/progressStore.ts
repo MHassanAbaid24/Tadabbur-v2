@@ -12,20 +12,34 @@ export interface ProgressSummary {
   xp_to_next_level: number
 }
 
+export interface WeeklyInsights {
+  status: 'ready' | 'not_enough_data' | 'unavailable'
+  insight_markdown: string | null
+  message?: string
+  reflection_count: number
+}
+
 interface ProgressStore {
   summary: ProgressSummary | null
+  weeklyInsights: WeeklyInsights | null
   isLoading: boolean
+  isInsightsLoading: boolean
   error: string | null
+  insightsError: string | null
   lastFetchedAt: number | null
   fetchSummary: (force?: boolean) => Promise<void>
+  fetchWeeklyInsights: () => Promise<void>
 }
 
 const PROGRESS_STALE_MS = 5 * 60 * 1000 // 5 minutes
 
 export const useProgressStore = create<ProgressStore>((set, get) => ({
   summary: null,
+  weeklyInsights: null,
   isLoading: false,
+  isInsightsLoading: false,
   error: null,
+  insightsError: null,
   lastFetchedAt: null,
 
   fetchSummary: async (force = false) => {
@@ -52,6 +66,23 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
       set({
         error: errorMessage,
         isLoading: false,
+      })
+    }
+  },
+
+  fetchWeeklyInsights: async () => {
+    try {
+      set({ isInsightsLoading: true, insightsError: null })
+      const response = await api.get<{ data: WeeklyInsights }>('/api/v1/progress/weekly-insights')
+      set({
+        weeklyInsights: response.data.data,
+        isInsightsLoading: false,
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch weekly insights'
+      set({
+        insightsError: errorMessage,
+        isInsightsLoading: false,
       })
     }
   },

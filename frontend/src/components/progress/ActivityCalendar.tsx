@@ -1,3 +1,6 @@
+import { useEffect, useRef } from 'react'
+import { ArrowLeft } from 'lucide-react'
+
 interface ActivityCalendarProps {
   activityDays: string[]
   currentStreak: number
@@ -6,6 +9,14 @@ interface ActivityCalendarProps {
 export default function ActivityCalendar({ activityDays, currentStreak }: ActivityCalendarProps) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth
+    }
+  }, [activityDays])
 
   // Standard GitHub-style heatmap: 7 rows (Sun to Sat)
   // We'll show 16 weeks to fill the desktop width better (112 days)
@@ -92,8 +103,11 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
         </div>
       </div>
 
-      <div className="flex flex-col items-center">
-        <div className="inline-block relative">
+      <div
+        ref={scrollContainerRef}
+        className="w-full overflow-x-auto no-scrollbar scroll-smooth flex flex-col items-start md:items-center pb-2"
+      >
+        <div className="inline-block relative min-w-[420px]">
           {/* Month labels */}
           <div className="flex text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-3 h-4 relative ml-9">
             {monthLabels.map((m, i) => (
@@ -147,6 +161,12 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Swipe Hint */}
+      <div className="mt-4 flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-600 animate-pulse md:hidden">
+        <ArrowLeft className="w-3.5 h-3.5" />
+        <span>Swipe left to view past activity</span>
       </div>
 
       <div className="mt-10 flex items-center justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider border-t border-gray-50 pt-6">

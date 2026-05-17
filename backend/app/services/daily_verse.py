@@ -15,11 +15,11 @@ SURAH_LENGTHS: List[int] = [
     54, 53, 89, 59, 37, 35, 38, 29, 18, 45,
     60, 49, 62, 55, 78, 96, 29, 22, 24, 13,
     14, 11, 11, 18, 12, 12, 30, 52, 52, 44,
-    28, 28, 20, 56, 40, 31, 50, 22, 11, 11,
-    20, 19, 17, 64, 29, 19, 18, 20, 8, 8,
-    11, 11, 8, 12, 11, 8, 8, 7, 9, 5,
-    4, 5, 3, 6, 3, 5, 4, 5, 6, 3,
-    6, 3, 5, 4, 5,
+    28, 28, 20, 56, 40, 31, 50, 40, 46, 42,
+    29, 19, 36, 25, 22, 17, 19, 26, 30, 20,
+    15, 21, 11, 8, 8, 19, 5, 8, 8, 11,
+    11, 8, 3, 9, 5, 4, 7, 3, 6, 3,
+    5, 4, 5, 6
 ]
 
 # Build the complete list of all 6236 verse keys once (cached)
@@ -49,7 +49,7 @@ def get_verse_key_for_date(target_date: date) -> str:
     Get deterministic verse key for a given date.
     
     Same date always returns same verse. Different dates may return different verses.
-    Algorithm: day_of_year % 6236 + 1, then map to verse key.
+    Algorithm: (target_date.toordinal() * 3559 + 1234) % 6236, then map to verse key.
     
     Args:
         target_date: UTC date to get verse for
@@ -57,13 +57,12 @@ def get_verse_key_for_date(target_date: date) -> str:
     Returns:
         Verse key in format "chapter:verse" (e.g., "2:255")
     """
-    day_of_year = target_date.timetuple().tm_yday  # 1-366
-    verse_index = (day_of_year % 6236)  # 0-6235 index
+    verse_index = (target_date.toordinal() * 3559 + 1234) % 6236
     
     verse_keys = _get_verse_keys()
     verse_key = verse_keys[verse_index]
     
-    logger.debug("Date %s -> day_of_year=%d -> verse=%s", target_date, day_of_year, verse_key)
+    logger.debug("Date %s -> ordinal=%d -> index=%d -> verse=%s", target_date, target_date.toordinal(), verse_index, verse_key)
     return verse_key
 
 

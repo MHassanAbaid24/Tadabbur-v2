@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useReflectionStore } from '../../store/reflectionStore'
 import { useCircleStore } from '../../store/circleStore'
 import QFAuthModal from '../ui/QFAuthModal'
 import { Mood } from '../../types/reflection'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
 import DictationButton from './DictationButton'
+import api from '../../lib/api'
 
 interface ReflectionFormProps {
   verseKey: string
@@ -36,6 +37,41 @@ export default function ReflectionForm({
   const [error, setError] = useState('')
   const [showQFAuthModal, setShowQFAuthModal] = useState(false)
   const [activeDictationField, setActiveDictationField] = useState<'prompt1' | 'prompt2' | null>(null)
+
+  // Dynamic prompt states when prompt1Label and prompt2Label are not passed as props
+  const [dynamicPrompt1, setDynamicPrompt1] = useState<string | null>(null)
+  const [dynamicPrompt2, setDynamicPrompt2] = useState<string | null>(null)
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(false)
+
+  useEffect(() => {
+    // If prompts are passed down as props, do not fetch
+    if (prompt1Label && prompt2Label) {
+      return
+    }
+
+    const fetchDynamicPrompts = async () => {
+      try {
+        setIsLoadingPrompts(true)
+        const response = await api.get<{ data: { prompt_1?: string; prompt_2?: string } }>(
+          `/api/verse/by-key/${verseKey}`
+        )
+        const data = response.data.data
+        if (data.prompt_1 && data.prompt_2) {
+          setDynamicPrompt1(data.prompt_1)
+          setDynamicPrompt2(data.prompt_2)
+        }
+      } catch (err) {
+        console.error('Failed to fetch dynamic prompts for verse:', err)
+      } finally {
+        setIsLoadingPrompts(false)
+      }
+    }
+
+    fetchDynamicPrompts()
+  }, [verseKey, prompt1Label, prompt2Label])
+
+  const displayPrompt1 = prompt1Label || dynamicPrompt1 || DEFAULT_PROMPT_1
+  const displayPrompt2 = prompt2Label || dynamicPrompt2 || DEFAULT_PROMPT_2
 
   const { isListening, isSupported, error: speechError, startListening, stopListening } = useSpeechRecognition((text) => {
     if (activeDictationField) {
@@ -137,7 +173,7 @@ export default function ReflectionForm({
       <div className={`bg-white border p-6 rounded-[4px] transition-all duration-300 ${activeDictationField === 'prompt1' && isListening ? 'border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-border shadow-[0_2px_10px_rgba(0,0,0,0.02)]'}`}>
         <div className="flex justify-between items-center mb-3">
           <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink">
-            {prompt1Label || DEFAULT_PROMPT_1}
+            {isLoadingPrompts ? 'Generating prompt...' : displayPrompt1}
           </label>
           <DictationButton 
             isListening={activeDictationField === 'prompt1' && isListening} 
@@ -149,7 +185,7 @@ export default function ReflectionForm({
         <textarea
           value={formData.prompt1}
           onChange={(e) => handleInputChange(e, 'prompt1')}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLoadingPrompts}
           maxLength={2000}
           className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] leading-[1.6] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all resize-y min-h-[120px] disabled:opacity-60"
           placeholder="Your reflection..."
@@ -164,7 +200,7 @@ export default function ReflectionForm({
       <div className={`bg-white border p-6 rounded-[4px] transition-all duration-300 ${activeDictationField === 'prompt2' && isListening ? 'border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-border shadow-[0_2px_10px_rgba(0,0,0,0.02)]'}`}>
         <div className="flex justify-between items-center mb-3">
           <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink">
-            {prompt2Label || DEFAULT_PROMPT_2}
+            {isLoadingPrompts ? 'Generating prompt...' : displayPrompt2}
           </label>
           <DictationButton 
             isListening={activeDictationField === 'prompt2' && isListening} 
@@ -176,7 +212,7 @@ export default function ReflectionForm({
         <textarea
           value={formData.prompt2}
           onChange={(e) => handleInputChange(e, 'prompt2')}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLoadingPrompts}
           maxLength={2000}
           className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] leading-[1.6] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all resize-y min-h-[120px] disabled:opacity-60"
           placeholder="Your commitment..."

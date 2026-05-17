@@ -35,6 +35,48 @@ class TestVerseRoutes:
         # This would require a real token in production
         pass  # Validation tested at service layer
 
+    def test_verse_by_key_returns_resolved_prompts_and_context(self) -> None:
+        """Verify GET /api/verse/by-key/{verse_key} returns dynamic prompts and context."""
+        from unittest.mock import AsyncMock, patch
+        from app.auth.jwt import get_current_user
+        
+        # Override auth
+        app.dependency_overrides[get_current_user] = lambda: {
+            "sub": "user_uuid_123",
+            "email": "user@example.com",
+        }
+        
+        # Mock full verse context and prompt generation
+        with patch("app.routers.verse.get_verse_with_full_context", new_callable=AsyncMock) as mock_verse, \
+             patch("app.routers.verse.generate_daily_reflection_prompts", new_callable=AsyncMock) as mock_prompts, \
+             patch("app.routers.verse.supabase_client") as mock_supabase:
+             
+            mock_verse.return_value = {
+                "verse_key": "2:255",
+                "text_uthmani": "AR",
+                "translation": "TR",
+                "tafsir": "TF",
+                "audio_url": None,
+            }
+            mock_prompts.return_value = ("Test prompt one?", "Test prompt two?")
+            
+            # Setup supabase client mock to return no cached daily verse record
+            from types import SimpleNamespace
+            mock_supabase.table.return_value.select.return_value.eq.return_value.not_.is_.return_value.execute.return_value = SimpleNamespace(data=[])
+            
+            # Request
+            response = client.get("/api/verse/by-key/2:255")
+            
+            assert response.status_code == 200
+            res_data = response.json()["data"]
+            assert res_data["verse_key"] == "2:255"
+            assert res_data["prompt_1"] == "Test prompt one?"
+            assert res_data["prompt_2"] == "Test prompt two?"
+            
+            mock_prompts.assert_called_once()
+            
+        app.dependency_overrides.clear()
+
     def test_verse_endpoint_exists(self) -> None:
         """Verify verse endpoints are registered."""
         routes = [route.path for route in app.routes]

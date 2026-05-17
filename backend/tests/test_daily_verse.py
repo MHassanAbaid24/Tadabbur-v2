@@ -33,32 +33,38 @@ def test_verse_key_format() -> None:
 
 def test_uniqueness_and_full_coverage() -> None:
     """Ensure that over 6236 days, exactly 6236 unique verses are returned."""
-    start_date = date(2026, 1, 1)
-    verses_seen = set()
-    for i in range(6236):
-        test_date = date.fromordinal(start_date.toordinal() + i)
-        verse_key = get_verse_key_for_date(test_date)
-        verses_seen.add(verse_key)
-        
-    assert len(verses_seen) == 6236
+    from unittest.mock import patch
+    with patch("app.services.daily_verse.settings") as mock_settings:
+        mock_settings.qf_env = "production"
+        start_date = date(2026, 1, 1)
+        verses_seen = set()
+        for i in range(6236):
+            test_date = date.fromordinal(start_date.toordinal() + i)
+            verse_key = get_verse_key_for_date(test_date)
+            verses_seen.add(verse_key)
+            
+        assert len(verses_seen) == 6236
 
 
 def test_non_consecutiveness() -> None:
     """Ensure consecutive days yield spaced-out verses."""
-    date1 = date(2026, 1, 1)
-    date2 = date(2026, 1, 2)
-    
-    key1 = get_verse_key_for_date(date1)
-    key2 = get_verse_key_for_date(date2)
-    
-    from app.services.daily_verse import _get_verse_keys
-    verse_keys = _get_verse_keys()
-    
-    idx1 = verse_keys.index(key1)
-    idx2 = verse_keys.index(key2)
-    
-    # Difference should be greater than 100
-    diff = abs(idx1 - idx2)
-    assert diff > 100
+    from unittest.mock import patch
+    with patch("app.services.daily_verse.settings") as mock_settings:
+        mock_settings.qf_env = "production"
+        date1 = date(2026, 1, 1)
+        date2 = date(2026, 1, 2)
+        
+        key1 = get_verse_key_for_date(date1)
+        key2 = get_verse_key_for_date(date2)
+        
+        from app.services.daily_verse import _get_verse_keys
+        verse_keys = _get_verse_keys()
+        
+        idx1 = verse_keys.index(key1)
+        idx2 = verse_keys.index(key2)
+        
+        # Difference should be greater than 100
+        diff = abs(idx1 - idx2)
+        assert diff > 100
 
 

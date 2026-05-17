@@ -12,9 +12,9 @@ class Settings(BaseSettings):
     qf_test_user_token: Optional[str] = None
     supabase_url: str
     supabase_service_key: str
-    openrouter_api_key: str
-    openrouter_model: str = "anthropic/claude-3.5-haiku"
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    gemini_api_key: str
+    gemini_model: str = "gemini-flash-latest"
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     jwt_secret: str
     jwt_expiry_hours: int = 168
     frontend_url: str = "http://localhost:5173"

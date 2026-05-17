@@ -1,4 +1,4 @@
-"""AI-powered reflection suggestions via OpenRouter."""
+"""AI-powered reflection suggestions via Gemini API."""
 
 import json
 import logging
@@ -10,13 +10,10 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-openrouter_client = AsyncOpenAI(
-    api_key=settings.openrouter_api_key,
-    base_url=settings.openrouter_base_url,
-    default_headers={
-        "HTTP-Referer": settings.frontend_url,
-        "X-Title": "Tadabbur",
-    },
+gemini_client = AsyncOpenAI(
+    api_key=settings.gemini_api_key,
+    base_url=settings.gemini_base_url,
+    timeout=10.0,
 )
 
 async def generate_daily_reflection_prompts(
@@ -41,13 +38,13 @@ async def generate_daily_reflection_prompts(
     )
 
     try:
-        response = await openrouter_client.chat.completions.create(
-            model=settings.openrouter_model,
+        response = await gemini_client.chat.completions.create(
+            model=settings.gemini_model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_tokens=180,
+            max_tokens=1000,
             temperature=0.4,
         )
         content = response.choices[0].message.content or ""
@@ -58,7 +55,7 @@ async def generate_daily_reflection_prompts(
             return None
         return prompt_1, prompt_2
     except (APIError, APIConnectionError, APITimeoutError, RateLimitError, json.JSONDecodeError, KeyError, TypeError):
-        logger.warning("OpenRouter daily prompt generation failed")
+        logger.warning("Gemini daily prompt generation failed")
         return None
 
 
@@ -70,7 +67,7 @@ async def generate_action_suggestion(
     """
     Generate a personalized, Islamic-aligned action suggestion using AI.
 
-    Calls OpenRouter to suggest one practical action the user can take today
+    Calls Gemini to suggest one practical action the user can take today
     based on their reflection, with strict guardrails to ensure all suggestions
     are aligned with Islamic principles (never fatwas, never harmful advice).
     Response is non-blocking: if AI fails, returns None.
@@ -132,8 +129,8 @@ async def generate_action_suggestion(
     )
 
     try:
-        response = await openrouter_client.chat.completions.create(
-            model=settings.openrouter_model,
+        response = await gemini_client.chat.completions.create(
+            model=settings.gemini_model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -147,7 +144,7 @@ async def generate_action_suggestion(
         return suggestion
 
     except Exception as e:
-        logger.warning("OpenRouter API call failed (non-blocking): %s", str(e))
+        logger.warning("Gemini API call failed (non-blocking): %s", str(e))
         return None
 
 
@@ -182,8 +179,8 @@ async def generate_weekly_insights(reflections: list[dict[str, str]]) -> Optiona
     user_prompt = "Weekly reflections:\n" + "\n".join(lines)
 
     try:
-        response = await openrouter_client.chat.completions.create(
-            model=settings.openrouter_model,
+        response = await gemini_client.chat.completions.create(
+            model=settings.gemini_model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -194,5 +191,5 @@ async def generate_weekly_insights(reflections: list[dict[str, str]]) -> Optiona
         summary = (response.choices[0].message.content or "").strip()
         return summary or None
     except Exception as e:
-        logger.warning("OpenRouter weekly insights generation failed: %s", str(e))
+        logger.warning("Gemini weekly insights generation failed: %s", str(e))
         return None

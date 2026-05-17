@@ -62,6 +62,10 @@ async def _qf_user_get(user_id: str, path: str, params: Optional[Dict[str, Any]]
                     logger.error("QF User API 500 still after retry on %s", path)
                     raise HTTPException(status_code=503, detail="QF API error")
 
+            if response.status_code == 404:
+                logger.warning("QF User API 404 on %s for user %s", path, user_id)
+                raise HTTPException(status_code=404, detail="QF API endpoint not found")
+
             if response.status_code in (401, 403):
                 logger.warning("QF User API GET %s for user: %s (token expired/invalid), clearing token", response.status_code, user_id)
                 from app.db.supabase import supabase_client
@@ -355,6 +359,9 @@ async def get_activity_days(user_id: str, from_date: str, to_date: str) -> list[
     except HTTPException as e:
         if e.status_code == 401:
             logger.warning("QF token expired for user %s", user_id)
+            return []
+        if e.status_code == 404:
+            logger.info("QF activity days endpoint not found for user %s. Returning empty.", user_id)
             return []
         logger.warning("Failed to fetch activity days: %s", str(e))
         return []

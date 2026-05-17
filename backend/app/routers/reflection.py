@@ -442,7 +442,7 @@ async def generate_reflection_insight(
        - If yes: return it immediately (cache hit)
        - If no: proceed to generate
     3. Fetch the Ayah translation and user's answers from DB
-    4. Call OpenRouter via generate_action_suggestion()
+    4. Call Gemini via generate_action_suggestion()
     5. Save the generated insight to Supabase
     6. Return the insight to frontend
 

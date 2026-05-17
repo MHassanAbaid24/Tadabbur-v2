@@ -44,6 +44,8 @@ def _get_verse_keys() -> List[str]:
     return _VERSE_KEYS_CACHE
 
 
+from app.config import settings
+
 def get_verse_key_for_date(target_date: date) -> str:
     """
     Get deterministic verse key for a given date.
@@ -57,9 +59,15 @@ def get_verse_key_for_date(target_date: date) -> str:
     Returns:
         Verse key in format "chapter:verse" (e.g., "2:255")
     """
-    verse_index = (target_date.toordinal() * 3559 + 1234) % 6236
-    
     verse_keys = _get_verse_keys()
+    total_verses = len(verse_keys)
+    
+    # Prelive API only has Surah 1 (7) and Surah 2 (286), total 293 verses
+    if settings.qf_env == "prelive":
+        total_verses = 293
+        
+    verse_index = (target_date.toordinal() * 3559 + 1234) % total_verses
+    
     verse_key = verse_keys[verse_index]
     
     logger.debug("Date %s -> ordinal=%d -> index=%d -> verse=%s", target_date, target_date.toordinal(), verse_index, verse_key)

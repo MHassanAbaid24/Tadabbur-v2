@@ -27,6 +27,7 @@ interface AuthStore extends AuthState {
   getVerificationStatus: () => Promise<VerificationState>
   logout: () => void
   loadUser: () => Promise<void>
+  completeOnboarding: () => Promise<void>
   setUser: (user: User | null) => void
   verification: VerificationState
   setVerification: (state: Partial<VerificationState>) => void
@@ -56,11 +57,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         password,
       })
 
-      const { access_token, user_id, username, display_name } = response.data.data
+      const { access_token, user_id, username, display_name, onboarded } = response.data.data
 
       // Store token in localStorage
       localStorage.setItem(TOKEN_KEY, access_token)
-      localStorage.setItem('tadabbur_onboarded', 'true') // Returning users skip onboarding
+      if (onboarded) {
+        localStorage.setItem('tadabbur_onboarded', 'true')
+      } else {
+        localStorage.removeItem('tadabbur_onboarded')
+      }
 
       // Update store
       const user: User = {
@@ -70,6 +75,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         xp: 0,
         level: 1,
         qf_connected: false,
+        onboarded,
+      }
+
+      // Sync onboarding status from device to database if desynchronized (Issue 004 auto-sync)
+      if (!user.onboarded && localStorage.getItem('tadabbur_onboarded') === 'true') {
+        api.put('/api/auth/onboarding').then(() => {
+          user.onboarded = true
+          set({ user: { ...user, onboarded: true } })
+        }).catch(console.error)
       }
 
       set({
@@ -141,7 +155,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         otp_code: otp,
       })
 
-      const { access_token, user_id, username, display_name } = response.data.data
+      const { access_token, user_id, username, display_name, onboarded } = response.data.data
 
       // Clear verification from localStorage
       localStorage.removeItem(VERIFICATION_USER_ID_KEY)
@@ -149,6 +163,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       // Store token
       localStorage.setItem(TOKEN_KEY, access_token)
+      if (onboarded) {
+        localStorage.setItem('tadabbur_onboarded', 'true')
+      }
 
       // Update store
       const user: User = {
@@ -158,6 +175,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         xp: 0,
         level: 1,
         qf_connected: false,
+        onboarded,
+      }
+
+      // Sync onboarding status from device to database if desynchronized (Issue 004 auto-sync)
+      if (!user.onboarded && localStorage.getItem('tadabbur_onboarded') === 'true') {
+        api.put('/api/auth/onboarding').then(() => {
+          user.onboarded = true
+          set({ user: { ...user, onboarded: true } })
+        }).catch(console.error)
       }
 
       set({
@@ -271,6 +297,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       const response = await api.get<{ data: User }>('/api/auth/me')
       const user = response.data.data
+
+      // Auto-sync onboarding status from device to database if desynchronized (Issue 004 auto-sync)
+      if (!user.onboarded && localStorage.getItem('tadabbur_onboarded') === 'true') {
+        try {
+          await api.put('/api/auth/onboarding')
+          user.onboarded = true
+        } catch (err) {
+          console.error('Failed to auto-sync onboarding status to database:', err)
+        }
+      }
       
       // Auto-sync timezone if it has changed or is missing
       const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -288,6 +324,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Token is invalid/expired
       localStorage.removeItem(TOKEN_KEY)
       set({ isLoading: false })
+    }
+  },
+
+  completeOnboarding: async () => {
+    try {
+      set({ isLoading: true })
+      await api.put('/api/auth/onboarding')
+      localStorage.setItem('tadabbur_onboarded', 'true')
+      set((state) => ({
+        user: state.user ? { ...state.user, onboarded: true } : null,
+        isLoading: false,
+      }))
+    } catch (error) {
+      set({ isLoading: false })
+      throw error
     }
   },
 

@@ -108,9 +108,9 @@ async def test_store_user_qf_token_success() -> None:
         "token_type": "Bearer",
     }
 
-    with patch("app.auth.qf_user_auth.async_supabase_client", new_callable=MagicMock) as mock_supabase:
+    with patch("app.db.supabase.supabase_client") as mock_supabase:
         mock_update = MagicMock()
-        mock_update.eq.return_value.execute = AsyncMock(return_value=MagicMock())
+        mock_update.eq.return_value.execute.return_value = MagicMock()
 
         mock_supabase.table.return_value.update.return_value = mock_update
 
@@ -143,8 +143,8 @@ async def test_get_user_qf_token_not_connected() -> None:
     with patch("app.auth.qf_user_auth.settings") as mock_settings:
         mock_settings.qf_test_user_token = None
 
-        with patch("app.auth.qf_user_auth.async_supabase_client", new_callable=MagicMock) as mock_supabase:
-            mock_execute = AsyncMock()
+        with patch("app.db.supabase.supabase_client") as mock_supabase:
+            mock_execute = MagicMock()
             mock_supabase.table.return_value.select.return_value.eq.return_value.execute = mock_execute
             mock_execute.return_value.data = [
                 {"id": user_id, "qf_access_token": None, "qf_token_expires_at": None}
@@ -168,8 +168,8 @@ async def test_get_user_qf_token_expired() -> None:
     with patch("app.auth.qf_user_auth.settings") as mock_settings:
         mock_settings.qf_test_user_token = None
 
-        with patch("app.auth.qf_user_auth.async_supabase_client", new_callable=MagicMock) as mock_supabase:
-            mock_execute = AsyncMock()
+        with patch("app.db.supabase.supabase_client") as mock_supabase:
+            mock_execute = MagicMock()
             mock_supabase.table.return_value.select.return_value.eq.return_value.execute = mock_execute
             mock_execute.return_value.data = [
                 {
@@ -196,8 +196,8 @@ async def test_get_user_qf_token_valid() -> None:
     with patch("app.auth.qf_user_auth.settings") as mock_settings:
         mock_settings.qf_test_user_token = None
 
-        with patch("app.auth.qf_user_auth.async_supabase_client", new_callable=MagicMock) as mock_supabase:
-            mock_execute = AsyncMock()
+        with patch("app.db.supabase.supabase_client") as mock_supabase:
+            mock_execute = MagicMock()
             mock_supabase.table.return_value.select.return_value.eq.return_value.execute = mock_execute
             mock_execute.return_value.data = [
                 {

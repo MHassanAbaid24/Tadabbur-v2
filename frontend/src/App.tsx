@@ -33,15 +33,9 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ element }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuthStore()
-  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null)
+  const { isAuthenticated, isLoading, user } = useAuthStore()
 
-  useEffect(() => {
-    const onboarded = localStorage.getItem('tadabbur_onboarded') === 'true'
-    setIsOnboarded(onboarded)
-  }, [])
-
-  if (isLoading || isOnboarded === null) {
+  if (isLoading) {
     return <PageLoader />
   }
 
@@ -49,7 +43,7 @@ function ProtectedRoute({ element }: ProtectedRouteProps) {
     return <Navigate to="/auth" replace />
   }
 
-  if (!isOnboarded) {
+  if (!user?.onboarded) {
     return <Navigate to="/onboarding" replace />
   }
 
@@ -57,15 +51,9 @@ function ProtectedRoute({ element }: ProtectedRouteProps) {
 }
 
 function OnboardingRoute({ element }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuthStore()
-  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null)
+  const { isAuthenticated, isLoading, user } = useAuthStore()
 
-  useEffect(() => {
-    const onboarded = localStorage.getItem('tadabbur_onboarded') === 'true'
-    setIsOnboarded(onboarded)
-  }, [])
-
-  if (isLoading || isOnboarded === null) {
+  if (isLoading) {
     return <PageLoader />
   }
 
@@ -73,7 +61,7 @@ function OnboardingRoute({ element }: ProtectedRouteProps) {
     return <Navigate to="/auth" replace />
   }
 
-  if (isOnboarded) {
+  if (user?.onboarded) {
     return <Navigate to="/home" replace />
   }
 

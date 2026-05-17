@@ -21,11 +21,11 @@ class TestVerseRoutes:
         headers = {"Authorization": "Bearer invalid.token.format"}
         response = client.get("/api/verse/today", headers=headers)
         assert response.status_code == 401
-        assert "Invalid or expired token" in response.json()["detail"]
+        assert "Invalid or expired token" in response.json()["error"]
 
     def test_verse_by_key_requires_auth(self) -> None:
         """GET /api/verse/{verse_key} requires Authorization header."""
-        response = client.get("/api/verse/2:255")
+        response = client.get("/api/verse/by-key/2:255")
         assert response.status_code == 422
 
     def test_verse_by_key_invalid_format(self) -> None:

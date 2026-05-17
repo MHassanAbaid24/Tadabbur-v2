@@ -212,10 +212,19 @@ export default function Auth() {
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
+                  className={`w-full bg-cream border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:ring-1 transition-all ${
+                    formData.username !== '' && !/^[a-zA-Z0-9_]+$/.test(formData.username)
+                      ? 'border-red-300 focus:border-red-400 focus:ring-red-200'
+                      : 'border-border focus:border-gold/50 focus:ring-gold/30'
+                  }`}
                   placeholder="username"
                   required
                 />
+                {formData.username !== '' && !/^[a-zA-Z0-9_]+$/.test(formData.username) && (
+                  <p className="text-red-500 font-sans text-[0.75rem] mt-1">
+                    Usernames can only contain letters, numbers, and underscores.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -251,7 +260,7 @@ export default function Auth() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || (formData.username !== '' && !/^[a-zA-Z0-9_]+$/.test(formData.username))}
                   className="w-full bg-ink hover:bg-gold disabled:bg-muted text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-3"
                 >
                   {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Create Account'}

@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ChevronRight, Circle as CircleIcon, Users, Zap } from 'lucide-react'
 import { api } from '../lib/api'
+import { useAuthStore } from '../store/authStore'
 
 export default function Onboarding() {
   const navigate = useNavigate()
+  const completeOnboarding = useAuthStore((state) => state.completeOnboarding)
   const [step, setStep] = useState(() => {
     const saved = localStorage.getItem('tadabbur_onboarding_step')
     return saved ? parseInt(saved, 10) : 1
@@ -22,10 +24,20 @@ export default function Onboarding() {
   const [inviteCode, setInviteCode] = useState('')
   const [reminderTime, setReminderTime] = useState('08:00')
 
-  const goToHome = () => {
-    localStorage.setItem('tadabbur_onboarded', 'true')
-    localStorage.removeItem('tadabbur_onboarding_step') // Clean up
-    navigate('/home')
+  const goToHome = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      await completeOnboarding()
+      localStorage.removeItem('tadabbur_onboarding_step') // Clean up
+      navigate('/home')
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to save onboarding state',
+      )
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSkip = () => {

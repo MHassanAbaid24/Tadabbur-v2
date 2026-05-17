@@ -35,6 +35,8 @@ class AuthResponse(BaseModel):
     display_name: str
     avatar_url: Optional[str] = None
     qf_connected: bool = False
+    onboarded: bool = False
+
 
 
 class VerificationInitResponse(BaseModel):

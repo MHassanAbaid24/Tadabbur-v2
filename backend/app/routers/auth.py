@@ -229,6 +229,7 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
                 display_name=display_name,
                 avatar_url=None,  # New user has no avatar
                 qf_connected=False,
+                onboarded=False,  # New user is not onboarded
             ).model_dump(),
         )
 
@@ -338,7 +339,7 @@ async def login(req: LoginRequest) -> APIResponse:
 
         # Fetch user profile
         profile_response = await asyncio.to_thread(supabase_client.table("profiles").select(
-            "username,display_name,email_verified,avatar_url,qf_access_token"
+            "username,display_name,email_verified,avatar_url,qf_access_token,onboarded"
         ).eq("id", user_id).execute)
 
         if not profile_response.data:
@@ -364,6 +365,7 @@ async def login(req: LoginRequest) -> APIResponse:
                 display_name=profile["display_name"] or "",
                 avatar_url=profile.get("avatar_url"),
                 qf_connected=bool(profile.get("qf_access_token")),
+                onboarded=profile.get("onboarded", False),
             ).model_dump(),
         )
 
@@ -418,6 +420,7 @@ async def get_profile(current_user: Dict[str, Any] = Depends(get_current_user)) 
                 "level": profile.get("level", 1),
                 "daily_reminder_time": profile.get("daily_reminder_time"),
                 "qf_connected": bool(profile.get("qf_access_token")),
+                "onboarded": profile.get("onboarded", False),
                 "created_at": profile.get("created_at"),
             },
         )
@@ -470,6 +473,31 @@ async def update_profile(
     except Exception as e:
         logger.error("Error updating profile for user %s: %s", user_id, str(e))
         raise HTTPException(status_code=500, detail="Failed to update profile") from e
+
+
+@router.put("/onboarding")
+async def complete_onboarding(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> APIResponse:
+    """
+    Set current user's onboarding status to completed (TRUE).
+    """
+    user_id = current_user["sub"]
+    try:
+        response = await asyncio.to_thread(
+            lambda: supabase_client.table("profiles").update({"onboarded": True}).eq("id", user_id).execute()
+        )
+        if not response.data:
+            logger.warning("Profile not found for onboarding update: %s", user_id)
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+        logger.info("Marked onboarding complete for user: %s", user_id)
+        return APIResponse(success=True, data={"onboarded": True})
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error setting onboarding complete for user %s: %s", user_id, str(e))
+        raise HTTPException(status_code=500, detail="Failed to save onboarding state")
 
 
 @router.get("/qf/connect")

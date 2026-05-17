@@ -22,6 +22,13 @@ SAMPLE_REFLECTION_SHARED = {
 }
 
 
+@pytest.fixture(autouse=True)
+def mock_background_tasks():
+    with patch("app.routers.reflection.log_activity_day", new_callable=AsyncMock) as mock_log, \
+         patch("app.routers.reflection.create_reading_session", new_callable=AsyncMock) as mock_session:
+        yield mock_log, mock_session
+
+
 @pytest.mark.asyncio
 async def test_submit_reflection_saves_to_supabase() -> None:
     """Test that reflection is saved to Supabase."""
@@ -35,7 +42,7 @@ async def test_submit_reflection_saves_to_supabase() -> None:
         with patch("app.routers.reflection.get_verse_by_key", new_callable=AsyncMock) as mock_verse:
             with patch("app.routers.reflection.create_qf_note", new_callable=AsyncMock) as mock_note:
                 with patch("app.routers.reflection.get_streaks", new_callable=AsyncMock) as mock_streaks:
-                    mock_verse.return_value = {"translation": "Your Lord encompasses all things in knowledge"}
+                    mock_verse.return_value = {"translation": "Your Lord encompasses all things in knowledge", "text_uthmani": "Arabic text Uthmani"}
                     mock_note.return_value = "note_uuid_123"
                     mock_streaks.return_value = {"current_streak": 1, "longest_streak": 1}
 
@@ -48,7 +55,7 @@ async def test_submit_reflection_saves_to_supabase() -> None:
                     mock_insert_result.data = [{"id": "reflection_uuid_123"}]
                     mock_insert.insert.return_value.execute.return_value = mock_insert_result
 
-                    mock_supabase.table.side_effect = [mock_existing, mock_insert, mock_insert]
+                    mock_supabase.table.side_effect = [mock_existing, mock_insert, mock_insert, MagicMock(), MagicMock(), MagicMock(), MagicMock()]
 
                     result = await submit_reflection(req, current_user)
 
@@ -67,9 +74,10 @@ async def test_submit_syncs_to_qf_notes() -> None:
     req = ReflectionSubmitRequest(**SAMPLE_REFLECTION)
 
     with patch("app.routers.reflection.supabase_client") as mock_supabase:
-        with patch("app.routers.reflection.get_verse_by_key", new_callable=AsyncMock):
+        with patch("app.routers.reflection.get_verse_by_key", new_callable=AsyncMock) as mock_verse:
             with patch("app.routers.reflection.create_qf_note", new_callable=AsyncMock) as mock_note:
                 with patch("app.routers.reflection.get_streaks", new_callable=AsyncMock):
+                    mock_verse.return_value = {"translation": "Mock translation", "text_uthmani": "Arabic text Uthmani"}
                     mock_note.return_value = "qf_note_id_123"
 
                     mock_existing = MagicMock()
@@ -80,7 +88,7 @@ async def test_submit_syncs_to_qf_notes() -> None:
                     mock_insert_result.data = [{"id": "reflection_uuid_123"}]
                     mock_insert.insert.return_value.execute.return_value = mock_insert_result
 
-                    mock_supabase.table.side_effect = [mock_existing, mock_insert, mock_insert]
+                    mock_supabase.table.side_effect = [mock_existing, mock_insert, mock_insert, MagicMock(), MagicMock(), MagicMock(), MagicMock()]
 
                     result = await submit_reflection(req, current_user)
 
@@ -97,17 +105,25 @@ async def test_submit_second_reflection_same_day_returns_409() -> None:
     req = ReflectionSubmitRequest(**SAMPLE_REFLECTION)
 
     with patch("app.routers.reflection.supabase_client") as mock_supabase:
-        mock_existing = MagicMock()
-        mock_existing.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
-            {"id": "existing_reflection_uuid"}
-        ]
+        with patch("app.routers.reflection.get_verse_by_key", new_callable=AsyncMock) as mock_verse, \
+             patch("app.routers.reflection.create_qf_note", new_callable=AsyncMock) as mock_note, \
+             patch("app.routers.reflection.get_streaks", new_callable=AsyncMock) as mock_streaks:
+            
+            mock_verse.return_value = {"translation": "Mock translation", "text_uthmani": "Arabic text Uthmani"}
+            mock_note.return_value = "note_uuid_123"
+            mock_streaks.return_value = {"current_streak": 1, "longest_streak": 1}
 
-        mock_supabase.table.return_value = mock_existing
+            mock_existing = MagicMock()
+            mock_existing.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+                {"id": "existing_reflection_uuid", "prompt_1_answer": SAMPLE_REFLECTION["prompt_1_answer"]}
+            ]
 
-        with pytest.raises(HTTPException) as exc_info:
-            await submit_reflection(req, current_user)
+            mock_supabase.table.return_value = mock_existing
 
-        assert exc_info.value.status_code == 409
+            with pytest.raises(HTTPException) as exc_info:
+                await submit_reflection(req, current_user)
+
+            assert exc_info.value.status_code == 409
 
 
 @pytest.mark.asyncio
@@ -119,10 +135,11 @@ async def test_shared_reflection_creates_qf_post() -> None:
     req = ReflectionSubmitRequest(**SAMPLE_REFLECTION_SHARED)
 
     with patch("app.routers.reflection.supabase_client") as mock_supabase:
-        with patch("app.routers.reflection.get_verse_by_key", new_callable=AsyncMock):
+        with patch("app.routers.reflection.get_verse_by_key", new_callable=AsyncMock) as mock_verse:
             with patch("app.routers.reflection.create_qf_note", new_callable=AsyncMock) as mock_note:
                 with patch("app.routers.reflection.create_qf_post", new_callable=AsyncMock) as mock_post:
                     with patch("app.routers.reflection.get_streaks", new_callable=AsyncMock):
+                        mock_verse.return_value = {"translation": "Mock translation", "text_uthmani": "Arabic text Uthmani"}
                         mock_note.return_value = "note_uuid_123"
                         mock_post.return_value = "post_uuid_456"
 
@@ -134,7 +151,7 @@ async def test_shared_reflection_creates_qf_post() -> None:
                         mock_insert_result.data = [{"id": "reflection_uuid_123"}]
                         mock_insert.insert.return_value.execute.return_value = mock_insert_result
 
-                        mock_supabase.table.side_effect = [mock_existing, mock_insert, mock_insert]
+                        mock_supabase.table.side_effect = [mock_existing, mock_insert, mock_insert, MagicMock(), MagicMock(), MagicMock(), MagicMock()]
 
                         result = await submit_reflection(req, current_user)
 
@@ -153,10 +170,12 @@ async def test_private_reflection_has_no_post() -> None:
     req = ReflectionSubmitRequest(**SAMPLE_REFLECTION)
 
     with patch("app.routers.reflection.supabase_client") as mock_supabase:
-        with patch("app.routers.reflection.get_verse_by_key", new_callable=AsyncMock):
-            with patch("app.routers.reflection.create_qf_note", new_callable=AsyncMock):
+        with patch("app.routers.reflection.get_verse_by_key", new_callable=AsyncMock) as mock_verse:
+            with patch("app.routers.reflection.create_qf_note", new_callable=AsyncMock) as mock_note:
                 with patch("app.routers.reflection.create_qf_post", new_callable=AsyncMock) as mock_post:
                     with patch("app.routers.reflection.get_streaks", new_callable=AsyncMock):
+                        mock_verse.return_value = {"translation": "Mock translation", "text_uthmani": "Arabic text Uthmani"}
+                        mock_note.return_value = "note_uuid_123"
                         mock_existing = MagicMock()
                         mock_existing.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
 
@@ -165,7 +184,7 @@ async def test_private_reflection_has_no_post() -> None:
                         mock_insert_result.data = [{"id": "reflection_uuid_123"}]
                         mock_insert.insert.return_value.execute.return_value = mock_insert_result
 
-                        mock_supabase.table.side_effect = [mock_existing, mock_insert, mock_insert]
+                        mock_supabase.table.side_effect = [mock_existing, mock_insert, mock_insert, MagicMock(), MagicMock(), MagicMock(), MagicMock()]
 
                         result = await submit_reflection(req, current_user)
 
@@ -203,7 +222,7 @@ async def test_get_today_reflection_not_found() -> None:
 
     with patch("app.routers.reflection.supabase_client") as mock_supabase:
         mock_select = MagicMock()
-        mock_select.eq.return_value.eq.return_value.execute.return_value.data = []
+        mock_select.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = []
 
         mock_supabase.table.return_value = mock_select
 
@@ -230,11 +249,13 @@ async def test_get_today_reflection_found() -> None:
         "qf_post_id": None,
         "ai_action_suggestion": "Call your parents today.",
         "xp_earned": 10,
+        "prompt_1_answer": "My prompt answer 1",
+        "prompt_2_answer": "My prompt answer 2",
     }
 
     with patch("app.routers.reflection.supabase_client") as mock_supabase:
         mock_select = MagicMock()
-        mock_select.eq.return_value.eq.return_value.execute.return_value.data = [mock_reflection]
+        mock_select.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [mock_reflection]
 
         mock_supabase.table.return_value = mock_select
 
@@ -263,13 +284,15 @@ async def test_get_reflection_history() -> None:
             "qf_post_id": None,
             "ai_action_suggestion": f"Action {i}",
             "xp_earned": 10,
+            "prompt_1_answer": f"Answer 1 {i}",
+            "prompt_2_answer": f"Answer 2 {i}",
         }
         for i in range(5)
     ]
 
     with patch("app.routers.reflection.supabase_client") as mock_supabase:
         mock_select = MagicMock()
-        mock_select.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = (
+        mock_select.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = (
             mock_reflections
         )
 

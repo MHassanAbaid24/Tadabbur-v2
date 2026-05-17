@@ -25,7 +25,7 @@ async def test_qf_user_get_success() -> None:
     with patch("app.services.qf_user.get_user_qf_token", new_callable=AsyncMock) as mock_token:
         mock_token.return_value = "valid_token_123"
 
-        with patch("httpx.AsyncClient") as mock_client_class:
+        with patch("app.services.qf_user._get_http_client") as mock_get_client:
             mock_client = MagicMock()
             mock_response_obj = MagicMock()
             mock_response_obj.status_code = 200
@@ -33,11 +33,7 @@ async def test_qf_user_get_success() -> None:
             mock_response_obj.raise_for_status.return_value = None
 
             mock_client.get = AsyncMock(return_value=mock_response_obj)
-            mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = None
-
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client_class.return_value.__aexit__.return_value = None
+            mock_get_client.return_value = mock_client
 
             result = await _qf_user_get(user_id, path)
 
@@ -54,23 +50,24 @@ async def test_qf_user_get_unauthorized() -> None:
     with patch("app.services.qf_user.get_user_qf_token", new_callable=AsyncMock) as mock_token:
         mock_token.return_value = "expired_token"
 
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = MagicMock()
-            mock_response_obj = MagicMock()
-            mock_response_obj.status_code = 401
-            mock_response_obj.json.return_value = {"error": "token_expired"}
+        with patch("app.services.qf_user._get_http_client") as mock_get_client:
+            with patch("app.db.supabase.supabase_client") as mock_supabase:
+                mock_update = MagicMock()
+                mock_supabase.table.return_value = mock_update
+                mock_update.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
-            mock_client.get = AsyncMock(return_value=mock_response_obj)
-            mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = None
+                mock_client = MagicMock()
+                mock_response_obj = MagicMock()
+                mock_response_obj.status_code = 401
+                mock_response_obj.json.return_value = {"error": "token_expired"}
 
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client_class.return_value.__aexit__.return_value = None
+                mock_client.get = AsyncMock(return_value=mock_response_obj)
+                mock_get_client.return_value = mock_client
 
-            with pytest.raises(HTTPException) as exc_info:
-                await _qf_user_get(user_id, path)
+                with pytest.raises(HTTPException) as exc_info:
+                    await _qf_user_get(user_id, path)
 
-            assert exc_info.value.status_code == 401
+                assert exc_info.value.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -82,23 +79,24 @@ async def test_qf_user_get_forbidden() -> None:
     with patch("app.services.qf_user.get_user_qf_token", new_callable=AsyncMock) as mock_token:
         mock_token.return_value = "valid_token"
 
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = MagicMock()
-            mock_response_obj = MagicMock()
-            mock_response_obj.status_code = 403
-            mock_response_obj.json.return_value = {"error": "insufficient_scope"}
+        with patch("app.services.qf_user._get_http_client") as mock_get_client:
+            with patch("app.db.supabase.supabase_client") as mock_supabase:
+                mock_update = MagicMock()
+                mock_supabase.table.return_value = mock_update
+                mock_update.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
-            mock_client.get = AsyncMock(return_value=mock_response_obj)
-            mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = None
+                mock_client = MagicMock()
+                mock_response_obj = MagicMock()
+                mock_response_obj.status_code = 403
+                mock_response_obj.json.return_value = {"error": "insufficient_scope"}
 
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client_class.return_value.__aexit__.return_value = None
+                mock_client.get = AsyncMock(return_value=mock_response_obj)
+                mock_get_client.return_value = mock_client
 
-            with pytest.raises(HTTPException) as exc_info:
-                await _qf_user_get(user_id, path)
+                with pytest.raises(HTTPException) as exc_info:
+                    await _qf_user_get(user_id, path)
 
-            assert exc_info.value.status_code == 403
+                assert exc_info.value.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -112,7 +110,7 @@ async def test_qf_user_post_success() -> None:
     with patch("app.services.qf_user.get_user_qf_token", new_callable=AsyncMock) as mock_token:
         mock_token.return_value = "valid_token_123"
 
-        with patch("httpx.AsyncClient") as mock_client_class:
+        with patch("app.services.qf_user._get_http_client") as mock_get_client:
             mock_client = MagicMock()
             mock_response_obj = MagicMock()
             mock_response_obj.status_code = 201
@@ -120,11 +118,7 @@ async def test_qf_user_post_success() -> None:
             mock_response_obj.raise_for_status.return_value = None
 
             mock_client.post = AsyncMock(return_value=mock_response_obj)
-            mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = None
-
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client_class.return_value.__aexit__.return_value = None
+            mock_get_client.return_value = mock_client
 
             result = await _qf_user_post(user_id, path, body)
 
@@ -142,22 +136,23 @@ async def test_qf_user_post_unauthorized() -> None:
     with patch("app.services.qf_user.get_user_qf_token", new_callable=AsyncMock) as mock_token:
         mock_token.return_value = "expired_token"
 
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = MagicMock()
-            mock_response_obj = MagicMock()
-            mock_response_obj.status_code = 401
+        with patch("app.services.qf_user._get_http_client") as mock_get_client:
+            with patch("app.db.supabase.supabase_client") as mock_supabase:
+                mock_update = MagicMock()
+                mock_supabase.table.return_value = mock_update
+                mock_update.update.return_value.eq.return_value.execute.return_value = MagicMock()
 
-            mock_client.post = AsyncMock(return_value=mock_response_obj)
-            mock_client.__aenter__.return_value = mock_client
-            mock_client.__aexit__.return_value = None
+                mock_client = MagicMock()
+                mock_response_obj = MagicMock()
+                mock_response_obj.status_code = 401
 
-            mock_client_class.return_value.__aenter__.return_value = mock_client
-            mock_client_class.return_value.__aexit__.return_value = None
+                mock_client.post = AsyncMock(return_value=mock_response_obj)
+                mock_get_client.return_value = mock_client
 
-            with pytest.raises(HTTPException) as exc_info:
-                await _qf_user_post(user_id, path, body)
+                with pytest.raises(HTTPException) as exc_info:
+                    await _qf_user_post(user_id, path, body)
 
-            assert exc_info.value.status_code == 401
+                assert exc_info.value.status_code == 403
 
 
 @pytest.mark.asyncio

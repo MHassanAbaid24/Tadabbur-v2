@@ -37,7 +37,11 @@ export function getErrorMessage(
           'msg' in firstDetail &&
           typeof firstDetail.msg === 'string'
         ) {
-          return firstDetail.msg
+          const msg = firstDetail.msg
+          if (msg.includes('^[a-zA-Z0-9_]+$')) {
+            return 'Usernames can only contain letters, numbers, and underscores.'
+          }
+          return msg
         }
       }
 

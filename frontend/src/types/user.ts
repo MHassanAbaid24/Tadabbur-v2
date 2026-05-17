@@ -7,6 +7,7 @@ export interface User {
   xp: number
   level: number
   qf_connected: boolean
+  onboarded: boolean
   avatar_url?: string
   daily_reminder_time?: string
   timezone?: string
@@ -37,4 +38,5 @@ export interface AuthResponse {
   user_id: string
   username: string
   display_name: string
+  onboarded: boolean
 }

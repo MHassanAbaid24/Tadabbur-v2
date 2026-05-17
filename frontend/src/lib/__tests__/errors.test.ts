@@ -100,4 +100,22 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage(null, 'Custom failure message')).toBe('Custom failure message')
     expect(getErrorMessage({}, 'Custom failure message')).toBe('Custom failure message')
   })
+
+  it('should parse and translate Pydantic regex pattern validation error for username', () => {
+    const error = {
+      isAxiosError: true,
+      response: {
+        data: {
+          detail: [
+            {
+              loc: ['body', 'username'],
+              msg: "String should match pattern '^[a-zA-Z0-9_]+$'",
+              type: 'value_error.any_str.pattern'
+            }
+          ]
+        }
+      }
+    }
+    expect(getErrorMessage(error)).toBe('Usernames can only contain letters, numbers, and underscores.')
+  })
 })

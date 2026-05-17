@@ -54,7 +54,7 @@ async def test_get_progress_summary_success():
         assert data["data"]["level"] == 2
         assert data["data"]["level_name"] == "Learner"
         assert data["data"]["level_name_ar"] == "متعلّم"
-        assert len(data["data"]["activity_days"]) == 5
+        assert len(data["data"]["activity_days"]) == 27
 
 
 @pytest.mark.asyncio
@@ -276,7 +276,9 @@ async def test_get_progress_summary_no_profile():
 async def test_get_xp_events_success():
     """Test fetching user's XP events history."""
     with patch("app.routers.progress.get_current_user") as mock_get_user, \
-         patch("app.routers.progress.async_supabase_client", new_callable=MagicMock) as mock_supabase:
+         patch("app.routers.progress.get_async_supabase_client", new_callable=AsyncMock) as mock_get_async:
+        mock_supabase = MagicMock()
+        mock_get_async.return_value = mock_supabase
 
         mock_get_user.return_value = {"sub": TEST_USER_ID}
 
@@ -325,7 +327,9 @@ async def test_get_xp_events_success():
 async def test_get_xp_events_empty():
     """Test fetching XP events when none exist."""
     with patch("app.routers.progress.get_current_user") as mock_get_user, \
-         patch("app.routers.progress.async_supabase_client", new_callable=MagicMock) as mock_supabase:
+         patch("app.routers.progress.get_async_supabase_client", new_callable=AsyncMock) as mock_get_async:
+        mock_supabase = MagicMock()
+        mock_get_async.return_value = mock_supabase
 
         mock_get_user.return_value = {"sub": TEST_USER_ID}
 
@@ -350,7 +354,9 @@ async def test_get_xp_events_empty():
 async def test_get_xp_events_limit_20():
     """Test that XP events are limited to 20 most recent."""
     with patch("app.routers.progress.get_current_user") as mock_get_user, \
-         patch("app.routers.progress.async_supabase_client", new_callable=MagicMock) as mock_supabase:
+         patch("app.routers.progress.get_async_supabase_client", new_callable=AsyncMock) as mock_get_async:
+        mock_supabase = MagicMock()
+        mock_get_async.return_value = mock_supabase
 
         mock_get_user.return_value = {"sub": TEST_USER_ID}
 

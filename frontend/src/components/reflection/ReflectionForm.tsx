@@ -3,6 +3,8 @@ import { useReflectionStore } from '../../store/reflectionStore'
 import { useCircleStore } from '../../store/circleStore'
 import QFAuthModal from '../ui/QFAuthModal'
 import { Mood } from '../../types/reflection'
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
+import DictationButton from './DictationButton'
 
 interface ReflectionFormProps {
   verseKey: string
@@ -33,6 +35,28 @@ export default function ReflectionForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [showQFAuthModal, setShowQFAuthModal] = useState(false)
+  const [activeDictationField, setActiveDictationField] = useState<'prompt1' | 'prompt2' | null>(null)
+
+  const { isListening, isSupported, error: speechError, startListening, stopListening } = useSpeechRecognition((text) => {
+    if (activeDictationField) {
+      setFormData(prev => ({
+        ...prev,
+        [activeDictationField]: prev[activeDictationField] + (prev[activeDictationField] && !prev[activeDictationField].endsWith(' ') ? ' ' : '') + text
+      }))
+    }
+  })
+
+  const handleDictationToggle = (field: 'prompt1' | 'prompt2') => {
+    if (activeDictationField === field && isListening) {
+      stopListening();
+      setActiveDictationField(null);
+    } else {
+      if (isListening) stopListening();
+      setActiveDictationField(field);
+      // Give state a moment to update before starting
+      setTimeout(() => startListening(), 0);
+    }
+  }
 
   const [formData, setFormData] = useState({
     prompt1: '',
@@ -103,17 +127,25 @@ export default function ReflectionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Error Message */}
-      {error && (
+      {(error || speechError) && (
         <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-          {error}
+          {error || speechError}
         </div>
       )}
 
       {/* Prompt 1 */}
-      <div className="bg-white border border-border p-6 rounded-[4px] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-        <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink mb-3">
-          {prompt1Label || DEFAULT_PROMPT_1}
-        </label>
+      <div className={`bg-white border p-6 rounded-[4px] transition-all duration-300 ${activeDictationField === 'prompt1' && isListening ? 'border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-border shadow-[0_2px_10px_rgba(0,0,0,0.02)]'}`}>
+        <div className="flex justify-between items-center mb-3">
+          <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink">
+            {prompt1Label || DEFAULT_PROMPT_1}
+          </label>
+          <DictationButton 
+            isListening={activeDictationField === 'prompt1' && isListening} 
+            isSupported={isSupported} 
+            onClick={() => handleDictationToggle('prompt1')}
+            disabled={isSubmitting}
+          />
+        </div>
         <textarea
           value={formData.prompt1}
           onChange={(e) => handleInputChange(e, 'prompt1')}
@@ -129,10 +161,18 @@ export default function ReflectionForm({
       </div>
 
       {/* Prompt 2 */}
-      <div className="bg-white border border-border p-6 rounded-[4px] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-        <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink mb-3">
-          {prompt2Label || DEFAULT_PROMPT_2}
-        </label>
+      <div className={`bg-white border p-6 rounded-[4px] transition-all duration-300 ${activeDictationField === 'prompt2' && isListening ? 'border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-border shadow-[0_2px_10px_rgba(0,0,0,0.02)]'}`}>
+        <div className="flex justify-between items-center mb-3">
+          <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink">
+            {prompt2Label || DEFAULT_PROMPT_2}
+          </label>
+          <DictationButton 
+            isListening={activeDictationField === 'prompt2' && isListening} 
+            isSupported={isSupported} 
+            onClick={() => handleDictationToggle('prompt2')}
+            disabled={isSubmitting}
+          />
+        </div>
         <textarea
           value={formData.prompt2}
           onChange={(e) => handleInputChange(e, 'prompt2')}

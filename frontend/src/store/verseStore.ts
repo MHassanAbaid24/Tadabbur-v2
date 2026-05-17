@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Verse, Chapter, VerseListItem } from '../types/verse'
 import api from '../lib/api'
+import { getErrorMessage } from '../lib/errors'
 
 interface VerseStore {
   verse: Verse | null
@@ -48,7 +49,7 @@ export const useVerseStore = create<VerseStore>((set, get) => ({
       })
     } catch (error: any) {
       set({
-        error: error.response?.data?.detail || error.message || 'Failed to fetch verse',
+        error: getErrorMessage(error, 'Failed to fetch verse'),
         isLoading: false,
       })
     }
@@ -60,7 +61,7 @@ export const useVerseStore = create<VerseStore>((set, get) => ({
       const response = await api.get<{ data: Chapter[] }>('/api/verse/chapters')
       set({ chapters: response.data.data, isLoadingChapters: false })
     } catch (error: any) {
-      set({ error: error.message, isLoadingChapters: false })
+      set({ error: getErrorMessage(error, 'Failed to fetch chapters'), isLoadingChapters: false })
     }
   },
 
@@ -70,7 +71,7 @@ export const useVerseStore = create<VerseStore>((set, get) => ({
       const response = await api.get<{ data: VerseListItem[] }>(`/api/verse/chapters/${chapterNumber}/verses`)
       set({ versesList: response.data.data, isLoadingVerses: false })
     } catch (error: any) {
-      set({ error: error.message, isLoadingVerses: false })
+      set({ error: getErrorMessage(error, 'Failed to fetch verses'), isLoadingVerses: false })
     }
   }
 }))

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
+import { getErrorMessage } from '../../lib/errors'
 
 interface VerifyEmailProps {
   email: string
@@ -92,8 +93,7 @@ export default function VerifyEmail({ email, onSuccess, onCancel }: VerifyEmailP
       await verifyOTP(otpCode)
       onSuccess()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Verification failed. Please try again.'
-      setError(message)
+      setError(getErrorMessage(err, 'Verification failed. Please try again.'))
       setOtp(['', '', '', '', '', ''])
       inputRefs.current[0]?.focus()
     } finally {
@@ -113,7 +113,7 @@ export default function VerifyEmail({ email, onSuccess, onCancel }: VerifyEmailP
       setOtp(['', '', '', '', '', ''])
       inputRefs.current[0]?.focus()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend code')
+      setError(getErrorMessage(err, 'Failed to resend code'))
     }
   }
 

@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/authStore'
 import PageWrapper from '../components/layout/PageWrapper'
 import UserAvatar from '../components/ui/UserAvatar'
 import { User as UserIcon, LogOut, Save, Bell, Camera, Loader2 } from 'lucide-react'
+import { getErrorMessage } from '../lib/errors'
 
 const MAX_SIZE_MB = 2
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -61,8 +62,7 @@ export default function Profile() {
       await uploadAvatar(file)
     } catch (err: any) {
       setAvatarPreview(null)
-      const msg = err?.response?.data?.detail || err?.response?.data?.error || 'Failed to upload avatar.'
-      setAvatarError(msg)
+      setAvatarError(getErrorMessage(err, 'Failed to upload avatar.'))
     } finally {
       setIsUploadingAvatar(false)
       URL.revokeObjectURL(previewUrl)
@@ -85,8 +85,7 @@ export default function Profile() {
       setTimeout(() => setMessage(null), 3000)
     } catch (err: any) {
       console.error('Update profile error:', err)
-      const errorMsg = err.response?.data?.detail || 'Failed to update profile.'
-      setMessage({ type: 'error', text: errorMsg })
+      setMessage({ type: 'error', text: getErrorMessage(err, 'Failed to update profile.') })
     } finally {
       setIsSaving(false)
     }

@@ -4,6 +4,7 @@ import { Users, ArrowLeft, Copy, Check, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PageWrapper from '../components/layout/PageWrapper'
 import api from '../lib/api'
+import { getErrorMessage } from '../lib/errors'
 
 type Step = 'form' | 'success'
 
@@ -52,11 +53,11 @@ export default function CircleNew() {
       setCircle(response.data.data)
       setStep('success')
     } catch (err: any) {
-      const detail = err?.response?.data?.detail
-      if (detail?.includes('already in a circle')) {
+      const parsedError = getErrorMessage(err, 'Failed to create circle. Please try again.')
+      if (parsedError.includes('already in a circle') || err?.response?.data?.detail?.includes('already in a circle')) {
         setError('You are already in a circle. Leave your current circle first.')
       } else {
-        setError(detail || 'Failed to create circle. Please try again.')
+        setError(parsedError)
       }
     } finally {
       setIsSubmitting(false)

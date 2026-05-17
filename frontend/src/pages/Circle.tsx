@@ -8,6 +8,7 @@ import PageWrapper from '../components/layout/PageWrapper'
 import { Users } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import api from '../lib/api'
+import { getErrorMessage } from '../lib/errors'
 
 export default function Circle() {
   const { 
@@ -54,8 +55,7 @@ export default function Circle() {
       await fetchMyCircle(true)
       await fetchCircleFeed(true)
     } catch (err: any) {
-      const errorData = err?.response?.data
-      setJoinError(errorData?.detail || errorData?.error || 'Failed to join circle')
+      setJoinError(getErrorMessage(err, 'Failed to join circle'))
     } finally {
       setIsJoining(false)
     }

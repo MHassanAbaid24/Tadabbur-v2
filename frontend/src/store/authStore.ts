@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { User, AuthState, LoginRequest, RegisterRequest, AuthResponse } from '../types/user'
 import api from '../lib/api'
+import { getErrorMessage } from '../lib/errors'
 
 const TOKEN_KEY = 'tadabbur_token'
 const VERIFICATION_USER_ID_KEY = 'tadabbur_verification_user_id'
@@ -177,7 +178,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         verification: {
           ...state.verification,
           verificationStatus: 'failed',
-          verificationMessage: error instanceof Error ? error.message : 'Verification failed',
+          verificationMessage: getErrorMessage(error, 'Verification failed'),
         },
       }))
       throw error
@@ -206,7 +207,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set((state) => ({
         verification: {
           ...state.verification,
-          verificationMessage: error instanceof Error ? error.message : 'Failed to resend OTP',
+          verificationMessage: getErrorMessage(error, 'Failed to resend OTP'),
         },
       }))
       throw error

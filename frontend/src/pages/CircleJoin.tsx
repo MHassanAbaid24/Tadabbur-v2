@@ -4,6 +4,7 @@ import { useCircleStore } from '../store/circleStore'
 import PageWrapper from '../components/layout/PageWrapper'
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { api } from '../lib/api'
+import { getErrorMessage } from '../lib/errors'
 
 export default function CircleJoin() {
   const { code } = useParams<{ code: string }>()
@@ -35,8 +36,7 @@ export default function CircleJoin() {
         }, 2000)
       } catch (err: any) {
         setStatus('error')
-        const errorMessage = err?.response?.data?.detail || err?.response?.data?.error || 'Failed to join circle'
-        setError(errorMessage)
+        setError(getErrorMessage(err, 'Failed to join circle'))
       }
     }
 

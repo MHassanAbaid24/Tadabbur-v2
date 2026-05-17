@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import VerifyEmail from '../components/auth/VerifyEmail'
 import { useAuthStore } from '../store/authStore'
+import { getErrorMessage } from '../lib/errors'
 
 type TabType = 'login' | 'register'
 
@@ -45,8 +46,7 @@ export default function Auth() {
       await login(formData.email, formData.password)
       navigate('/home')
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed'
-      setError(errorMessage)
+      setError(getErrorMessage(err, 'Login failed'))
     } finally {
       setIsLoading(false)
     }
@@ -67,8 +67,7 @@ export default function Auth() {
       setVerificationEmail(email)
       setShowVerification(true)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed'
-      setError(errorMessage)
+      setError(getErrorMessage(err, 'Registration failed'))
     } finally {
       setIsLoading(false)
     }

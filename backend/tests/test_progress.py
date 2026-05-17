@@ -384,3 +384,104 @@ async def test_get_xp_events_limit_20():
         assert r.status_code == 200
         data = r.json()
         assert len(data["data"]["events"]) == 20
+
+
+@pytest.mark.asyncio
+async def test_get_weekly_insights_success():
+    """Returns generated markdown from last 7 days of user reflections."""
+    with patch("app.routers.progress.get_current_user") as mock_get_user, \
+         patch("app.routers.progress.supabase_client") as mock_supabase, \
+         patch("app.routers.progress.generate_weekly_insights", new_callable=AsyncMock) as mock_generate:
+        mock_get_user.return_value = {"sub": TEST_USER_ID}
+        mock_generate.return_value = "## Weekly Insight\nYou showed consistency."
+
+        reflections_result = MagicMock()
+        reflections_result.data = [
+            {
+                "date": "2026-05-15",
+                "verse_key": "2:255",
+                "prompt_1_answer": "I felt more trust this week.",
+                "prompt_2_answer": "I will call my parents.",
+            },
+            {
+                "date": "2026-05-16",
+                "verse_key": "94:5",
+                "prompt_1_answer": "Hardship comes with ease.",
+                "prompt_2_answer": "I will stay patient at work.",
+            },
+        ]
+        mock_supabase.table.return_value.select.return_value.eq.return_value.gte.return_value.order.return_value.limit.return_value.execute.return_value = reflections_result
+
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.get(
+                "/api/progress/weekly-insights",
+                headers={"Authorization": "Bearer test_token"},
+            )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["success"] is True
+        assert payload["data"]["status"] == "ready"
+        assert payload["data"]["insight_markdown"] == "## Weekly Insight\nYou showed consistency."
+        assert payload["data"]["reflection_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_get_weekly_insights_not_enough_data():
+    """Returns a not-enough-data response when user has no recent reflections."""
+    with patch("app.routers.progress.get_current_user") as mock_get_user, \
+         patch("app.routers.progress.supabase_client") as mock_supabase, \
+         patch("app.routers.progress.generate_weekly_insights", new_callable=AsyncMock) as mock_generate:
+        mock_get_user.return_value = {"sub": TEST_USER_ID}
+
+        reflections_result = MagicMock()
+        reflections_result.data = []
+        mock_supabase.table.return_value.select.return_value.eq.return_value.gte.return_value.order.return_value.limit.return_value.execute.return_value = reflections_result
+
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.get(
+                "/api/progress/weekly-insights",
+                headers={"Authorization": "Bearer test_token"},
+            )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["success"] is True
+        assert payload["data"]["status"] == "not_enough_data"
+        assert payload["data"]["insight_markdown"] is None
+        assert payload["data"]["reflection_count"] == 0
+        mock_generate.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_weekly_insights_ai_failure():
+    """Returns an unavailable response if OpenRouter summary generation fails."""
+    with patch("app.routers.progress.get_current_user") as mock_get_user, \
+         patch("app.routers.progress.supabase_client") as mock_supabase, \
+         patch("app.routers.progress.generate_weekly_insights", new_callable=AsyncMock) as mock_generate:
+        mock_get_user.return_value = {"sub": TEST_USER_ID}
+        mock_generate.return_value = None
+
+        reflections_result = MagicMock()
+        reflections_result.data = [
+            {
+                "date": "2026-05-15",
+                "verse_key": "2:255",
+                "prompt_1_answer": "I felt more trust this week.",
+                "prompt_2_answer": "I will call my parents.",
+            }
+        ]
+        mock_supabase.table.return_value.select.return_value.eq.return_value.gte.return_value.order.return_value.limit.return_value.execute.return_value = reflections_result
+
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.get(
+                "/api/progress/weekly-insights",
+                headers={"Authorization": "Bearer test_token"},
+            )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["success"] is True
+        assert payload["data"]["status"] == "unavailable"
+        assert payload["data"]["insight_markdown"] is None
+        assert payload["data"]["reflection_count"] == 1

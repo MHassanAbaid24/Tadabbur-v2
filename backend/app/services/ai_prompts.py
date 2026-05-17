@@ -149,3 +149,50 @@ async def generate_action_suggestion(
     except Exception as e:
         logger.warning("OpenRouter API call failed (non-blocking): %s", str(e))
         return None
+
+
+async def generate_weekly_insights(reflections: list[dict[str, str]]) -> Optional[str]:
+    """Generate a markdown weekly insight summary from recent reflections."""
+    if not reflections:
+        return None
+
+    system_prompt = (
+        "You are a gentle Islamic reflection companion.\n"
+        "Analyze the user's last 7 days of reflection entries and produce markdown.\n"
+        "Strict output format:\n"
+        "## Recurring Themes\n"
+        "- 2-4 concise bullets grounded only in the user's reflections\n"
+        "## Signs of Growth\n"
+        "- 2-3 concise bullets highlighting progress over the week\n"
+        "## Gentle Advice for Next Week\n"
+        "- 2-3 practical, warm suggestions based on their own words\n"
+        "Rules:\n"
+        "- Do not quote Quran text or invent facts outside the provided reflections\n"
+        "- Be encouraging, never judgmental or preachy\n"
+        "- Keep the full response under 220 words"
+    )
+
+    lines = []
+    for idx, reflection in enumerate(reflections, start=1):
+        lines.append(
+            f"{idx}. Date: {reflection.get('date', '')}; Verse: {reflection.get('verse_key', '')}; "
+            f"Meaning: {reflection.get('prompt_1_answer', '')}; "
+            f"Action: {reflection.get('prompt_2_answer', '')}"
+        )
+    user_prompt = "Weekly reflections:\n" + "\n".join(lines)
+
+    try:
+        response = await openrouter_client.chat.completions.create(
+            model=settings.openrouter_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=350,
+            temperature=0.5,
+        )
+        summary = (response.choices[0].message.content or "").strip()
+        return summary or None
+    except Exception as e:
+        logger.warning("OpenRouter weekly insights generation failed: %s", str(e))
+        return None

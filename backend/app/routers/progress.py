@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from app.auth.jwt import get_current_user
 from app.db.supabase import supabase_client, get_async_supabase_client
 from app.models.schemas import APIResponse
+from app.services.ai_prompts import generate_weekly_insights
 from app.services.qf_user import get_activity_days, get_streaks
 
 logger = logging.getLogger(__name__)
@@ -224,3 +225,70 @@ async def get_xp_events(
     except Exception as e:
         logger.error("Failed to fetch XP events: %s", str(e))
         raise HTTPException(status_code=500, detail="Failed to fetch XP events")
+
+
+@router.get("/weekly-insights")
+async def get_weekly_insights(
+    authorization: str = Header(...),
+) -> APIResponse:
+    """Generate an on-demand weekly reflection wrap-up for the current user."""
+    current_user: dict[str, Any] = await get_current_user(authorization)
+    user_id = current_user["sub"]
+    seven_days_ago = (datetime.utcnow().date() - timedelta(days=6)).isoformat()
+
+    try:
+        reflection_result = await asyncio.to_thread(
+            lambda: supabase_client.table("reflections")
+            .select("date, verse_key, prompt_1_answer, prompt_2_answer")
+            .eq("user_id", user_id)
+            .gte("date", seven_days_ago)
+            .order("date", desc=False)
+            .limit(7)
+            .execute()
+        )
+    except Exception as e:
+        logger.error("Failed to fetch weekly reflections for %s: %s", user_id, str(e))
+        raise HTTPException(status_code=500, detail="Failed to load weekly reflections") from e
+
+    reflections = [
+        {
+            "date": row.get("date", ""),
+            "verse_key": row.get("verse_key", ""),
+            "prompt_1_answer": row.get("prompt_1_answer", ""),
+            "prompt_2_answer": row.get("prompt_2_answer", ""),
+        }
+        for row in (reflection_result.data or [])
+        if row.get("prompt_1_answer") or row.get("prompt_2_answer")
+    ]
+
+    if not reflections:
+        return APIResponse(
+            success=True,
+            data={
+                "status": "not_enough_data",
+                "insight_markdown": None,
+                "message": "Not enough reflection data from the last 7 days yet.",
+                "reflection_count": 0,
+            },
+        )
+
+    insight = await generate_weekly_insights(reflections)
+    if not insight:
+        return APIResponse(
+            success=True,
+            data={
+                "status": "unavailable",
+                "insight_markdown": None,
+                "message": "Could not generate your weekly insights right now. Please try again soon.",
+                "reflection_count": len(reflections),
+            },
+        )
+
+    return APIResponse(
+        success=True,
+        data={
+            "status": "ready",
+            "insight_markdown": insight,
+            "reflection_count": len(reflections),
+        },
+    )

@@ -111,7 +111,9 @@ CREATE TABLE daily_verse_log (
   date DATE PRIMARY KEY,
   verse_key TEXT NOT NULL,
   chapter_number INTEGER NOT NULL,
-  verse_number INTEGER NOT NULL
+  verse_number INTEGER NOT NULL,
+  prompt_1 TEXT,
+  prompt_2 TEXT
 );
 
 CREATE INDEX idx_daily_verse_log_verse_key ON daily_verse_log(verse_key);

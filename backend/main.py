@@ -93,6 +93,7 @@ app.include_router(reflection.router, prefix="/api/reflection", tags=["Reflectio
 app.include_router(circle.router, prefix="/api/circle", tags=["Circle"])
 app.include_router(progress.router, prefix="/api/progress", tags=["Progress"])
 app.include_router(daily.router, prefix="/api/daily", tags=["Daily"])
+app.include_router(daily.router, prefix="/api/v1/daily", tags=["Daily"])
 app.include_router(events.router, prefix="/api/events", tags=["Events"])
 app.include_router(profile.router)
 

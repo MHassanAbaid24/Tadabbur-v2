@@ -114,7 +114,9 @@ CREATE TABLE daily_verse_log (
   date DATE PRIMARY KEY,  -- UTC date (YYYY-MM-DD)
   verse_key TEXT NOT NULL,  -- Format: "chapter:verse"
   chapter_number INTEGER NOT NULL,  -- For sorting/filtering
-  verse_number INTEGER NOT NULL  -- For sorting/filtering
+  verse_number INTEGER NOT NULL,  -- For sorting/filtering
+  prompt_1 TEXT,  -- Cached daily reflection prompt 1
+  prompt_2 TEXT  -- Cached daily reflection prompt 2
 );
 
 -- Indexes for daily_verse_log

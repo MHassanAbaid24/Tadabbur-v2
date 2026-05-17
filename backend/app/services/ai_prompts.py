@@ -1,9 +1,10 @@
 """AI-powered reflection suggestions via OpenRouter."""
 
+import json
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 
-from openai import AsyncOpenAI
+from openai import APIConnectionError, APIError, APITimeoutError, AsyncOpenAI, RateLimitError
 
 from app.config import settings
 
@@ -17,6 +18,48 @@ openrouter_client = AsyncOpenAI(
         "X-Title": "Tadabbur",
     },
 )
+
+async def generate_daily_reflection_prompts(
+    verse_translation: str,
+    verse_tafsir: str,
+) -> Optional[Tuple[str, str]]:
+    """Generate two context-aware reflection prompts for the daily verse."""
+    system_prompt = (
+        "You generate two reflective questions for a Quran reflection journal.\n"
+        "Return strictly valid JSON with shape: "
+        '{"prompt_1":"...","prompt_2":"..."}.\n'
+        "Rules:\n"
+        "- Questions must be practical and personal\n"
+        "- Keep each question under 140 characters\n"
+        "- Do not include markdown, numbering, or extra keys\n"
+        "- Use the same language as the verse translation"
+    )
+    user_prompt = (
+        f"Verse translation: {verse_translation}\n"
+        f"Tafsir snippet: {verse_tafsir}\n"
+        "Generate two reflection questions."
+    )
+
+    try:
+        response = await openrouter_client.chat.completions.create(
+            model=settings.openrouter_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=180,
+            temperature=0.4,
+        )
+        content = response.choices[0].message.content or ""
+        parsed = json.loads(content)
+        prompt_1 = str(parsed["prompt_1"]).strip()
+        prompt_2 = str(parsed["prompt_2"]).strip()
+        if not prompt_1 or not prompt_2:
+            return None
+        return prompt_1, prompt_2
+    except (APIError, APIConnectionError, APITimeoutError, RateLimitError, json.JSONDecodeError, KeyError, TypeError):
+        logger.warning("OpenRouter daily prompt generation failed")
+        return None
 
 
 async def generate_action_suggestion(

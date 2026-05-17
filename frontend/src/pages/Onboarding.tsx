@@ -99,9 +99,27 @@ export default function Onboarding() {
     setStep(4)
   }
 
-  const handleCompleteOnboarding = () => {
-    localStorage.setItem('tadabbur_reminder_time', reminderTime)
-    goToHome()
+  const handleCompleteOnboarding = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      await api.put('/api/auth/profile', {
+        daily_reminder_time: reminderTime,
+        timezone,
+        reminders_enabled: true,
+      })
+      localStorage.setItem('tadabbur_reminder_time', reminderTime)
+      await completeOnboarding()
+      localStorage.removeItem('tadabbur_onboarding_step')
+      navigate('/home')
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to save reminder settings',
+      )
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const containerVariants = {
@@ -442,10 +460,17 @@ export default function Onboarding() {
 
               <button
                 onClick={handleCompleteOnboarding}
+                disabled={isLoading}
                 className="w-full bg-ink hover:bg-gold text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-3 shadow-[0_4px_15px_rgba(28,26,22,0.2)]"
               >
-                Start Reflecting
-                <ChevronRight size={16} />
+                {isLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Start Reflecting
+                    <ChevronRight size={16} />
+                  </>
+                )}
               </button>
             </div>
           )}

@@ -215,7 +215,11 @@ class ProfileUpdateRequest(BaseModel):
 
     display_name: Optional[str] = Field(None, max_length=50)
     avatar_url: Optional[str] = Field(None)
-    daily_reminder_time: Optional[str] = Field(None, description="Format HH:MM:SS or HH:MM")
+    daily_reminder_time: Optional[str] = Field(
+        None,
+        pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$",
+        description="Format HH:MM or HH:MM:SS",
+    )
     reminders_enabled: Optional[bool] = Field(None)
     timezone: Optional[str] = Field(None)
 
@@ -240,4 +244,3 @@ class VerseListResponse(BaseModel):
     verse_key: str
     text_uthmani: str
     translation: str
-

@@ -419,6 +419,8 @@ async def get_profile(current_user: Dict[str, Any] = Depends(get_current_user)) 
                 "xp": profile.get("xp", 0),
                 "level": profile.get("level", 1),
                 "daily_reminder_time": profile.get("daily_reminder_time"),
+                "timezone": profile.get("timezone"),
+                "reminders_enabled": profile.get("reminders_enabled"),
                 "qf_connected": bool(profile.get("qf_access_token")),
                 "onboarded": profile.get("onboarded", False),
                 "created_at": profile.get("created_at"),

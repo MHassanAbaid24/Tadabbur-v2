@@ -6,6 +6,8 @@ export interface Verse {
   translation: string
   tafsir: string
   audio_url: string | null
+  prompt_1?: string
+  prompt_2?: string
 }
 
 export interface Chapter {

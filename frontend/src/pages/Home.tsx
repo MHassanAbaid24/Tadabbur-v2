@@ -137,6 +137,8 @@ export default function Home() {
             
             <ReflectionForm
               verseKey={verse.verse_key}
+              prompt1Label={verse.prompt_1}
+              prompt2Label={verse.prompt_2}
               onSubmitted={handleReflectionSubmitted}
             />
             {/* Tip */}

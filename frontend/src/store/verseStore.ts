@@ -41,7 +41,7 @@ export const useVerseStore = create<VerseStore>((set, get) => ({
 
     try {
       set({ isLoading: true, error: null })
-      const response = await api.get<{ data: Verse }>('/api/verse/today')
+      const response = await api.get<{ data: Verse }>('/api/v1/daily')
       set({
         verse: response.data.data,
         isLoading: false,

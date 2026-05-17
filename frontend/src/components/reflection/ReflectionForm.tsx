@@ -7,7 +7,12 @@ import { Mood } from '../../types/reflection'
 interface ReflectionFormProps {
   verseKey: string
   onSubmitted: () => void
+  prompt1Label?: string
+  prompt2Label?: string
 }
+
+const DEFAULT_PROMPT_1 = 'What does this ayah mean to you, right now, in your life?'
+const DEFAULT_PROMPT_2 = 'What is one thing you will do differently today because of this ayah?'
 
 const MOOD_OPTIONS: Array<{ value: Mood; label: string; emoji: string }> = [
   { value: 'supplication', label: 'In supplication', emoji: '🤲' },
@@ -20,6 +25,8 @@ const MOOD_OPTIONS: Array<{ value: Mood; label: string; emoji: string }> = [
 export default function ReflectionForm({
   verseKey,
   onSubmitted,
+  prompt1Label,
+  prompt2Label,
 }: ReflectionFormProps) {
   const { submitReflection } = useReflectionStore()
   const { circle } = useCircleStore()
@@ -105,7 +112,7 @@ export default function ReflectionForm({
       {/* Prompt 1 */}
       <div className="bg-white border border-border p-6 rounded-[4px] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
         <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink mb-3">
-          What does this ayah mean to you, right now, in your life?
+          {prompt1Label || DEFAULT_PROMPT_1}
         </label>
         <textarea
           value={formData.prompt1}
@@ -124,7 +131,7 @@ export default function ReflectionForm({
       {/* Prompt 2 */}
       <div className="bg-white border border-border p-6 rounded-[4px] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
         <label className="block font-cinzel text-[0.8rem] font-medium tracking-[0.06em] text-ink mb-3">
-          What is one thing you will do differently today because of this ayah?
+          {prompt2Label || DEFAULT_PROMPT_2}
         </label>
         <textarea
           value={formData.prompt2}

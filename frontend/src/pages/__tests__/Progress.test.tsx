@@ -63,7 +63,7 @@ describe('Progress weekly insights', () => {
     fireEvent.click(analyzeButton)
 
     await waitFor(() => {
-      expect(mockedGet).toHaveBeenCalledWith('/api/v1/progress/weekly-insights')
+      expect(mockedGet).toHaveBeenCalledWith('/api/progress/weekly-insights')
     })
 
     expect(await screen.findByText('Weekly Wrap-Up')).toBeDefined()

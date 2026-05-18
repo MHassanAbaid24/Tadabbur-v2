@@ -67,6 +67,16 @@ export const verse = {
    */
   getTafsir: (verseKey: string) =>
     api.get<{ success: boolean; data: { tafsir: string; verse_key: string } }>(`/api/tafsir/${verseKey}`).then(res => res.data),
+
+  /**
+   * Fetch recitation audio URL for a specific verse.
+   * GET /api/audio/{verse_key}
+   *
+   * @param verseKey - Format "chapter:verse" (e.g., "2:255")
+   * @returns Audio URL and metadata
+   */
+  getAudio: (verseKey: string) =>
+    api.get<{ success: boolean; data: { audio_url: string; verse_key: string } }>(`/api/audio/${verseKey}`).then(res => res.data),
 }
 
 export default api

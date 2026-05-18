@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useVerseStore } from '../store/verseStore'
 import PageWrapper from '../components/layout/PageWrapper'
-import { Loader2, Search, BookOpen, MessageSquarePlus, ChevronDown } from 'lucide-react'
+import { Loader2, Search, BookOpen, MessageSquarePlus, ChevronDown, Play, Pause } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Modal from '../components/ui/Modal'
 import ReflectionForm from '../components/reflection/ReflectionForm'
@@ -96,6 +96,30 @@ export default function Explore() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
+  // Audio player state
+  const [playingVerseKey, setPlayingVerseKey] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isLoadingAudio, setIsLoadingAudio] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Cleanup audio on unmount or when chapter changes
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      setIsPlaying(false)
+      setPlayingVerseKey(null)
+    }
+  }, [selectedChapter])
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
@@ -165,6 +189,63 @@ export default function Explore() {
       setTafsirContent('Failed to load tafsir. Please try again.')
     } finally {
       setIsLoadingTafsir(false)
+    }
+  }
+
+  const handlePlayAudio = async (verseKey: string) => {
+    // If the clicked verse is already playing, toggle play/pause
+    if (playingVerseKey === verseKey) {
+      if (audioRef.current) {
+        if (isPlaying) {
+          audioRef.current.pause()
+          setIsPlaying(false)
+        } else {
+          try {
+            await audioRef.current.play()
+            setIsPlaying(true)
+          } catch (error) {
+            console.error('Failed to resume audio:', error)
+          }
+        }
+      }
+      return
+    }
+
+    // Stop current audio if playing a different verse
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+      setIsPlaying(false)
+      setPlayingVerseKey(null)
+    }
+
+    try {
+      setIsLoadingAudio(verseKey)
+      // Fetch audio url from API
+      const response = await verse.getAudio(verseKey)
+      const audioUrl = response.data.audio_url
+
+      if (!audioUrl) {
+        throw new Error('Audio URL is empty')
+      }
+
+      // Initialize and play new audio element
+      const newAudio = new Audio(audioUrl)
+      audioRef.current = newAudio
+
+      newAudio.onended = () => {
+        setIsPlaying(false)
+        setPlayingVerseKey(null)
+      }
+
+      await newAudio.play()
+      setPlayingVerseKey(verseKey)
+      setIsPlaying(true)
+    } catch (error) {
+      console.error('Failed to play recitation:', error)
+      alert('Recitation audio could not be loaded. Please try again.')
+    } finally {
+      setIsLoadingAudio(null)
     }
   }
 
@@ -400,6 +481,24 @@ export default function Explore() {
                               {verse.verse_key}
                             </span>
                             <div className="flex gap-2 md:opacity-0 group-hover:opacity-100 transition-all">
+                              <button
+                                onClick={() => handlePlayAudio(verse.verse_key)}
+                                disabled={isLoadingAudio !== null && isLoadingAudio !== verse.verse_key}
+                                className={`flex items-center gap-2 font-cinzel text-[0.7rem] tracking-[0.1em] transition-all px-4 py-2 rounded-full active:scale-95 uppercase ${
+                                  playingVerseKey === verse.verse_key && isPlaying
+                                    ? 'bg-ink text-white border border-ink hover:bg-gold hover:border-gold'
+                                    : 'bg-gold-faint text-gold border border-gold-light hover:text-ink hover:bg-gold-faint/60'
+                                }`}
+                              >
+                                {isLoadingAudio === verse.verse_key ? (
+                                  <Loader2 size={15} className="animate-spin" />
+                                ) : playingVerseKey === verse.verse_key && isPlaying ? (
+                                  <Pause size={15} />
+                                ) : (
+                                  <Play size={15} />
+                                )}
+                                {playingVerseKey === verse.verse_key && isPlaying ? 'Pause' : 'Play'}
+                              </button>
                               <button
                                 onClick={() => handleOpenTafsir(verse.verse_key)}
                                 className="flex items-center gap-2 font-cinzel text-[0.7rem] tracking-[0.1em] text-green hover:text-ink transition-all px-4 py-2 bg-green/10 border border-green/30 rounded-full active:scale-95 uppercase"

@@ -73,7 +73,7 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
   fetchWeeklyInsights: async () => {
     try {
       set({ isInsightsLoading: true, insightsError: null })
-      const response = await api.get<{ data: WeeklyInsights }>('/api/v1/progress/weekly-insights')
+      const response = await api.get<{ data: WeeklyInsights }>('/api/progress/weekly-insights')
       set({
         weeklyInsights: response.data.data,
         isInsightsLoading: false,

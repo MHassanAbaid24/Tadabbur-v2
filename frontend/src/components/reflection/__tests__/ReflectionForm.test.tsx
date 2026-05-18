@@ -19,6 +19,18 @@ vi.mock('../../ui/QFAuthModal', () => ({
   default: () => null,
 }))
 
+vi.mock('../../../lib/api', () => ({
+  default: {
+    get: vi.fn().mockResolvedValue({ data: { data: {} } }),
+  },
+}))
+
+vi.mock('../../lib/api', () => ({
+  default: {
+    get: vi.fn().mockResolvedValue({ data: { data: {} } }),
+  },
+}))
+
 afterEach(() => {
   cleanup()
 })
@@ -38,14 +50,14 @@ describe('ReflectionForm prompt labels', () => {
     expect(screen.getByText('Dynamic prompt two')).toBeDefined()
   })
 
-  it('falls back to static prompts when dynamic prompts are missing', () => {
+  it('falls back to static prompts when dynamic prompts are missing', async () => {
     render(<ReflectionForm verseKey="2:255" onSubmitted={() => {}} />)
 
     expect(
-      screen.getByText('What does this ayah mean to you, right now, in your life?'),
+      await screen.findByText('What does this ayah mean to you, right now, in your life?'),
     ).toBeDefined()
     expect(
-      screen.getByText('What is one thing you will do differently today because of this ayah?'),
+      await screen.findByText('What is one thing you will do differently today because of this ayah?'),
     ).toBeDefined()
   })
 })

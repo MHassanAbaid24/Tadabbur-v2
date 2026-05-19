@@ -169,8 +169,8 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
         <span>Swipe left to view past activity</span>
       </div>
 
-      <div className="mt-10 flex items-center justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider border-t border-gray-50 pt-6">
-        <div className="flex items-center gap-3">
+      <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-[11px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider border-t border-gray-50 pt-6">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <span>Less</span>
           <div className="flex gap-1.5">
             <div className="w-3.5 h-3.5 bg-gray-100 rounded-[2px]" />
@@ -181,15 +181,15 @@ export default function ActivityCalendar({ activityDays, currentStreak }: Activi
           </div>
           <span>More</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex w-full sm:w-auto items-start sm:items-center justify-between sm:justify-start gap-4">
           <div className="flex items-center gap-2">
             <span className="text-emerald-700 font-bold">{Object.keys(activityMap).length}</span>
-            <span className="text-gray-400">{Object.keys(activityMap).length === 1 ? 'Day' : 'Days'} Active</span>
+            <span className="text-gray-400 leading-tight">{Object.keys(activityMap).length === 1 ? 'Day' : 'Days'} Active</span>
           </div>
-          <span className="text-gray-200">|</span>
+          <span className="hidden sm:inline text-gray-200">|</span>
           <div className="flex items-center gap-2">
             <span className="text-gold-600 font-bold">{currentStreak}</span>
-            <span className="text-gray-400">Day Streak</span>
+            <span className="text-gray-400 leading-tight">Day Streak</span>
           </div>
         </div>
       </div>

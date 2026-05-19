@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_expiry_hours: int = 168
     frontend_url: str = "http://localhost:5173"
+    backend_url: Optional[str] = None
     
     # Gmail SMTP settings for OTP email verification
     gmail_sender_email: str

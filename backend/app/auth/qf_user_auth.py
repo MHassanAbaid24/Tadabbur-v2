@@ -28,7 +28,10 @@ def get_qf_authorization_url(state: str) -> str:
     """
     import urllib.parse
 
-    callback_url = f"{settings.frontend_url.replace(':5173', ':8000')}/api/auth/callback"
+    if settings.backend_url:
+        callback_url = f"{settings.backend_url}/api/auth/callback"
+    else:
+        callback_url = f"{settings.frontend_url.replace(':5173', ':8000')}/api/auth/callback"
     
     params = {
         "response_type": "code",
@@ -58,7 +61,10 @@ async def exchange_code_for_token(code: str) -> Dict[str, Any]:
     Raises:
         HTTPException(400): Code exchange failed
     """
-    callback_url = f"{settings.frontend_url.replace(':5173', ':8000')}/api/auth/callback"
+    if settings.backend_url:
+        callback_url = f"{settings.backend_url}/api/auth/callback"
+    else:
+        callback_url = f"{settings.frontend_url.replace(':5173', ':8000')}/api/auth/callback"
     
     try:
         async with httpx.AsyncClient() as client:

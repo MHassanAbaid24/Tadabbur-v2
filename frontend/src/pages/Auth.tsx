@@ -19,6 +19,8 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState<TabType>('login')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showVerification, setShowVerification] = useState(false)
   const [verificationEmail, setVerificationEmail] = useState('')
   const [formData, setFormData] = useState<FormData>({
@@ -162,15 +164,25 @@ export default function Auth() {
                 <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] uppercase text-ink">
                   Password
                 </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
-                  placeholder="••••••••"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full bg-cream border border-border p-4 pr-20 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-[0.75rem] text-muted hover:text-ink transition-colors"
+                    aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showLoginPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-2">
@@ -246,15 +258,25 @@ export default function Auth() {
                 <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] uppercase text-ink">
                   Password
                 </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
-                  placeholder="••••••••"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showRegisterPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full bg-cream border border-border p-4 pr-20 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-[0.75rem] text-muted hover:text-ink transition-colors"
+                    aria-label={showRegisterPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showRegisterPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-2">

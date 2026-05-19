@@ -5,12 +5,12 @@ import { useAuthStore } from '../store/authStore'
 import { getErrorMessage } from '../lib/errors'
 
 type TabType = 'login' | 'register'
+const NAME_REGEX = /^(?=.*[A-Za-z])[A-Za-z ]+$/
 
 interface FormData {
   email: string
   password: string
   username: string
-  displayName: string
 }
 
 export default function Auth() {
@@ -27,7 +27,6 @@ export default function Auth() {
     email: '',
     password: '',
     username: '',
-    displayName: '',
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,8 +62,7 @@ export default function Auth() {
       const { email } = await initRegister(
         formData.email,
         formData.password,
-        formData.username,
-        formData.displayName
+        formData.username
       )
       setVerificationEmail(email)
       setShowVerification(true)
@@ -86,9 +84,10 @@ export default function Auth() {
       email: '',
       password: '',
       username: '',
-      displayName: '',
     })
   }
+
+  const isValidName = formData.username === '' || NAME_REGEX.test(formData.username)
 
   return (
     <div className="min-h-[100dvh] bg-cream flex items-center justify-center p-4 bg-geometric relative z-0">
@@ -101,18 +100,17 @@ export default function Auth() {
 
         {/* Card */}
         <div className="bg-white rounded-[4px] shadow-[0_4px_25px_rgba(184,146,42,0.06)] border border-border p-8 relative overflow-hidden group hover:border-gold/30 transition-colors duration-500">
-           {/* Subtle highlight */}
+          {/* Subtle highlight */}
           <div className="absolute top-0 inset-x-0 h-[100px] bg-gradient-to-b from-parchment/60 to-transparent -z-10 opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
 
           {/* Tabs */}
           <div className="flex gap-6 mb-8 border-b border-border/60">
             <button
               onClick={() => setActiveTab('login')}
-              className={`pb-3 font-cinzel text-[0.75rem] tracking-[0.14em] uppercase transition-colors relative ${
-                activeTab === 'login'
+              className={`pb-3 font-cinzel text-[0.75rem] tracking-[0.14em] uppercase transition-colors relative ${activeTab === 'login'
                   ? 'text-ink font-medium'
                   : 'text-muted hover:text-ink/80'
-              }`}
+                }`}
             >
               Login
               {activeTab === 'login' && (
@@ -121,11 +119,10 @@ export default function Auth() {
             </button>
             <button
               onClick={() => setActiveTab('register')}
-              className={`pb-3 font-cinzel text-[0.75rem] tracking-[0.14em] uppercase transition-colors relative ${
-                activeTab === 'register'
+              className={`pb-3 font-cinzel text-[0.75rem] tracking-[0.14em] uppercase transition-colors relative ${activeTab === 'register'
                   ? 'text-ink font-medium'
                   : 'text-muted hover:text-ink/80'
-              }`}
+                }`}
             >
               Register
               {activeTab === 'register' && (
@@ -217,41 +214,25 @@ export default function Auth() {
 
               <div className="space-y-2">
                 <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] uppercase text-ink">
-                  Username
+                  Name
                 </label>
                 <input
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className={`w-full bg-cream border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:ring-1 transition-all ${
-                    formData.username !== '' && !/^[a-zA-Z0-9_]+$/.test(formData.username)
+                  className={`w-full bg-cream border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:ring-1 transition-all ${!isValidName
                       ? 'border-red-300 focus:border-red-400 focus:ring-red-200'
                       : 'border-border focus:border-gold/50 focus:ring-gold/30'
-                  }`}
-                  placeholder="username"
+                    }`}
+                  placeholder="Your Name Here"
                   required
                 />
-                {formData.username !== '' && !/^[a-zA-Z0-9_]+$/.test(formData.username) && (
+                {!isValidName && (
                   <p className="text-red-500 font-sans text-[0.75rem] mt-1">
-                    Usernames can only contain letters, numbers, and underscores.
+                    Name can only contain letters and spaces.
                   </p>
                 )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="block font-cinzel text-[0.7rem] tracking-[0.1em] uppercase text-ink">
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  name="displayName"
-                  value={formData.displayName}
-                  onChange={handleInputChange}
-                  className="w-full bg-cream border border-border p-4 rounded-[2px] font-sans text-[0.95rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
-                  placeholder="Your Name"
-                  required
-                />
               </div>
 
               <div className="space-y-2">
@@ -282,7 +263,7 @@ export default function Auth() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={isLoading || (formData.username !== '' && !/^[a-zA-Z0-9_]+$/.test(formData.username))}
+                  disabled={isLoading || !isValidName}
                   className="w-full bg-ink hover:bg-gold disabled:bg-muted text-white font-cinzel text-[0.75rem] tracking-[0.14em] uppercase py-4 rounded-[2px] transition-all duration-300 flex items-center justify-center gap-3"
                 >
                   {isLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Create Account'}

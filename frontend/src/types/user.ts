@@ -30,7 +30,7 @@ export interface RegisterRequest {
   email: string
   password: string
   username: string
-  display_name: string
+  display_name?: string
 }
 
 export interface AuthResponse {

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 import secrets
 from typing import Any, Dict
 
@@ -55,14 +56,17 @@ async def register(req: RegisterRequest) -> APIResponse:
         HTTPException(500): Database or email service error
     """
     try:
-        logger.info("Registration attempt - email: %s, username: %s", req.email, req.username)
+        normalized_name = re.sub(r"\s+", " ", req.username).strip()
+        if not normalized_name or not re.search(r"[A-Za-z]", normalized_name):
+            raise HTTPException(status_code=422, detail="Name can only contain letters and spaces.")
+        logger.info("Registration attempt - email: %s, username: %s", req.email, normalized_name)
 
         # Check if username already exists
         username_check = await asyncio.to_thread(supabase_client.table("profiles").select("id").eq(
-            "username", req.username
+            "username", normalized_name
         ).execute)
         if username_check.data:
-            logger.warning("Username already exists: %s", req.username)
+            logger.warning("Username already exists: %s", normalized_name)
             raise HTTPException(status_code=409, detail="Username already taken")
 
         # Step 1: Create Supabase Auth user first so profiles FK (profiles.id -> auth.users.id) is valid
@@ -91,8 +95,8 @@ async def register(req: RegisterRequest) -> APIResponse:
             await asyncio.to_thread(supabase_client.table("profiles").insert(
                 {
                     "id": user_id,
-                    "username": req.username,
-                    "display_name": req.display_name,
+                    "username": normalized_name,
+                    "display_name": req.display_name or normalized_name,
                     "email_verified": False,
                     "verification_status": "pending",
                 }

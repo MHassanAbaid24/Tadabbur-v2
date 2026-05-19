@@ -52,6 +52,9 @@ export function getErrorMessage(
           if (msg.includes('^[a-zA-Z0-9_]+$')) {
             return 'Usernames can only contain letters, numbers, and underscores.'
           }
+          if (msg.includes('^[A-Za-z ]+$') || msg.includes('^(?=.*[A-Za-z])[A-Za-z ]+$')) {
+            return 'Name can only contain letters and spaces.'
+          }
           return msg
         }
       }

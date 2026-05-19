@@ -109,13 +109,13 @@ describe('getErrorMessage', () => {
           detail: [
             {
               loc: ['body', 'username'],
-              msg: "String should match pattern '^[a-zA-Z0-9_]+$'",
+              msg: "String should match pattern '^[A-Za-z ]+$'",
               type: 'value_error.any_str.pattern'
             }
           ]
         }
       }
     }
-    expect(getErrorMessage(error)).toBe('Usernames can only contain letters, numbers, and underscores.')
+    expect(getErrorMessage(error)).toBe('Name can only contain letters and spaces.')
   })
 })

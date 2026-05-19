@@ -19,8 +19,7 @@ interface AuthStore extends AuthState {
   initRegister: (
     email: string,
     password: string,
-    username: string,
-    displayName: string
+    username: string
   ) => Promise<{ user_id: string; email: string }>
   verifyOTP: (otp: string) => Promise<void>
   resendOTP: () => Promise<void>
@@ -101,18 +100,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   initRegister: async (
     email: string,
     password: string,
-    username: string,
-    displayName: string
+    username: string
   ) => {
     try {
       set({ isLoading: true })
+      const normalizedName = username.trim().replace(/\s+/g, ' ')
       const response = await api.post<{ data: { user_id: string; email: string; message: string } }>(
         '/api/auth/register',
         {
           email,
           password,
-          username,
-          display_name: displayName,
+          username: normalizedName,
+          display_name: normalizedName,
         }
       )
 
@@ -412,4 +411,3 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }))
   },
 }))
-

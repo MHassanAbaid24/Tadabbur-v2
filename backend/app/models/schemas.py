@@ -11,10 +11,10 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, description="Password must be 8+ characters")
     username: str = Field(
-        min_length=3,
+        min_length=2,
         max_length=30,
-        pattern=r"^[a-zA-Z0-9_]+$",
-        description="Username: 3-30 chars, alphanumeric + underscore only",
+        pattern=r"^[A-Za-z ]+$",
+        description="Name: letters and spaces only",
     )
     display_name: str = Field(default="", max_length=50, description="Display name, max 50 chars (optional)")
 

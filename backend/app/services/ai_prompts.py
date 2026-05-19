@@ -135,7 +135,7 @@ async def generate_action_suggestion(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_tokens=100,
+            max_tokens=1000,
             temperature=0.7,
         )
 
@@ -185,7 +185,6 @@ async def generate_weekly_insights(reflections: list[dict[str, str]]) -> Optiona
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_tokens=350,
             temperature=0.5,
         )
         summary = (response.choices[0].message.content or "").strip()

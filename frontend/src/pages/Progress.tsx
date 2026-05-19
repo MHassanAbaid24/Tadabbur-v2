@@ -7,6 +7,24 @@ import XPBar from '../components/progress/XPBar'
 import ActivityCalendar from '../components/progress/ActivityCalendar'
 import PageWrapper from '../components/layout/PageWrapper'
 
+function parseInlineStyles(text: string): ReactNode {
+  const parts = text.split(/(\*\*.*?\*\*)/g)
+  return (
+    <>
+      {parts.map((part, idx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <strong key={idx} className='font-bold text-gray-900'>
+              {part.slice(2, -2)}
+            </strong>
+          )
+        }
+        return part
+      })}
+    </>
+  )
+}
+
 function renderSafeMarkdown(markdown: string) {
   const lines = markdown.split('\n')
   const nodes: ReactNode[] = []
@@ -15,9 +33,9 @@ function renderSafeMarkdown(markdown: string) {
   const flushList = () => {
     if (listItems.length > 0) {
       nodes.push(
-        <ul key={`list-${nodes.length}`} className='list-disc pl-6 space-y-1 text-gray-700'>
-          {listItems.map((item) => (
-            <li key={item}>{item}</li>
+        <ul key={`list-${nodes.length}`} className='list-disc pl-6 space-y-2 text-gray-700 my-2'>
+          {listItems.map((item, idx) => (
+            <li key={idx}>{parseInlineStyles(item)}</li>
           ))}
         </ul>,
       )
@@ -33,7 +51,7 @@ function renderSafeMarkdown(markdown: string) {
       return
     }
 
-    if (trimmed.startsWith('- ')) {
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       listItems.push(trimmed.slice(2))
       return
     }
@@ -41,16 +59,16 @@ function renderSafeMarkdown(markdown: string) {
     flushList()
     if (trimmed.startsWith('## ')) {
       nodes.push(
-        <h3 key={`h3-${idx}`} className='text-lg font-semibold text-gray-900'>
-          {trimmed.slice(3)}
+        <h3 key={`h3-${idx}`} className='text-lg font-bold text-gray-900 mt-4 mb-2 first:mt-0'>
+          {parseInlineStyles(trimmed.slice(3))}
         </h3>,
       )
       return
     }
 
     nodes.push(
-      <p key={`p-${idx}`} className='text-gray-700 leading-relaxed'>
-        {trimmed}
+      <p key={`p-${idx}`} className='text-gray-700 leading-relaxed my-1'>
+        {parseInlineStyles(trimmed)}
       </p>,
     )
   })

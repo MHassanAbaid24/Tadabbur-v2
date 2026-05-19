@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useReflectionStore } from '../../store/reflectionStore'
 import { useCircleStore } from '../../store/circleStore'
 import QFAuthModal from '../ui/QFAuthModal'
@@ -16,6 +16,7 @@ interface ReflectionFormProps {
 
 const DEFAULT_PROMPT_1 = 'What does this ayah mean to you, right now, in your life?'
 const DEFAULT_PROMPT_2 = 'What is one thing you will do differently today because of this ayah?'
+const UNSUPPORTED_DICTATION_MESSAGE = 'Mic dictation unavailable in this browser. Typing still works.'
 
 const MOOD_OPTIONS: Array<{ value: Mood; label: string; emoji: string }> = [
   { value: 'supplication', label: 'In supplication', emoji: '🤲' },
@@ -37,6 +38,7 @@ export default function ReflectionForm({
   const [error, setError] = useState('')
   const [showQFAuthModal, setShowQFAuthModal] = useState(false)
   const [activeDictationField, setActiveDictationField] = useState<'prompt1' | 'prompt2' | null>(null)
+  const activeDictationFieldRef = useRef<'prompt1' | 'prompt2' | null>(null)
 
   // Dynamic prompt states when prompt1Label and prompt2Label are not passed as props
   const [dynamicPrompt1, setDynamicPrompt1] = useState<string | null>(null)
@@ -73,24 +75,39 @@ export default function ReflectionForm({
   const displayPrompt1 = prompt1Label || dynamicPrompt1 || DEFAULT_PROMPT_1
   const displayPrompt2 = prompt2Label || dynamicPrompt2 || DEFAULT_PROMPT_2
 
+  useEffect(() => {
+    activeDictationFieldRef.current = activeDictationField
+  }, [activeDictationField])
+
   const { isListening, isSupported, error: speechError, startListening, stopListening } = useSpeechRecognition((text) => {
-    if (activeDictationField) {
+    const field = activeDictationFieldRef.current
+    if (field) {
       setFormData(prev => ({
         ...prev,
-        [activeDictationField]: prev[activeDictationField] + (prev[activeDictationField] && !prev[activeDictationField].endsWith(' ') ? ' ' : '') + text
+        [field]: prev[field] + (prev[field] && !prev[field].endsWith(' ') ? ' ' : '') + text
       }))
     }
   })
 
+  useEffect(() => {
+    if (!isListening && activeDictationFieldRef.current) {
+      const timeoutId = window.setTimeout(() => {
+        activeDictationFieldRef.current = null
+        setActiveDictationField(null)
+      }, 250)
+
+      return () => window.clearTimeout(timeoutId)
+    }
+  }, [isListening])
+
   const handleDictationToggle = (field: 'prompt1' | 'prompt2') => {
     if (activeDictationField === field && isListening) {
       stopListening();
-      setActiveDictationField(null);
     } else {
       if (isListening) stopListening();
+      activeDictationFieldRef.current = field
       setActiveDictationField(field);
-      // Give state a moment to update before starting
-      setTimeout(() => startListening(), 0);
+      startListening();
     }
   }
 
@@ -182,6 +199,11 @@ export default function ReflectionForm({
             disabled={isSubmitting}
           />
         </div>
+        {!isSupported && (
+          <p className="mb-3 rounded-[2px] border border-amber-200 bg-amber-50 px-3 py-2 text-[0.78rem] text-amber-800">
+            {UNSUPPORTED_DICTATION_MESSAGE}
+          </p>
+        )}
         <textarea
           value={formData.prompt1}
           onChange={(e) => handleInputChange(e, 'prompt1')}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronRight, Circle as CircleIcon, Users, Zap } from 'lucide-react'
+import { ChevronRight, Users, Zap } from 'lucide-react'
 import { api } from '../lib/api'
 import { useAuthStore } from '../store/authStore'
 
@@ -311,8 +311,7 @@ export default function Onboarding() {
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="font-cinzel text-[0.95rem] font-medium text-ink tracking-[0.06em] flex items-center gap-2 mb-1">
-                        <CircleIcon size={16} className="text-gold" />
+                      <p className="font-cinzel text-[0.95rem] font-medium text-ink tracking-[0.06em] mb-1">
                         Create a Circle
                       </p>
                       <p className="font-sans text-[0.8rem] text-muted mb-4">

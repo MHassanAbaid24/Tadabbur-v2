@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ChevronRight, Users, Zap } from 'lucide-react'
 import { api } from '../lib/api'
+import { getErrorMessage } from '../lib/errors'
 import { useAuthStore } from '../store/authStore'
 
 export default function Onboarding() {
@@ -86,10 +87,10 @@ export default function Onboarding() {
     setIsLoading(true)
     setError(null)
     try {
-      await api.get(`/api/circle/join/${inviteCode}`)
+      await api.post(`/api/circle/join/${inviteCode}`)
       setStep(4)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to join circle')
+      setError(getErrorMessage(err, 'Failed to join circle'))
     } finally {
       setIsLoading(false)
     }

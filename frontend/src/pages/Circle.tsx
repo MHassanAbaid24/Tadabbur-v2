@@ -1,16 +1,48 @@
 import { useEffect, useState } from 'react'
+import axios from 'axios'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCircleStore } from '../store/circleStore'
 import CircleFeed from '../components/circle/CircleFeed'
 import CircleInvite from '../components/circle/CircleInvite'
 import CircleMembers from '../components/circle/CircleMembers'
-import { Link } from 'react-router-dom'
 import PageWrapper from '../components/layout/PageWrapper'
 import { Users } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import api from '../lib/api'
 import { getErrorMessage } from '../lib/errors'
 
+type CircleSummary = {
+  id: string
+  name: string
+  invite_code?: string
+}
+
+type SwitchConflictDetail = {
+  code: 'requires_switch'
+  message: string
+  requires_switch: boolean
+  current_circle: CircleSummary
+  target_circle: CircleSummary
+}
+
+function getSwitchConflictDetail(error: unknown): SwitchConflictDetail | null {
+  if (!axios.isAxiosError(error)) return null
+  const detail = error.response?.data?.detail
+  if (
+    detail &&
+    typeof detail === 'object' &&
+    detail.code === 'requires_switch' &&
+    detail.current_circle &&
+    detail.target_circle
+  ) {
+    return detail as SwitchConflictDetail
+  }
+  return null
+}
+
 export default function Circle() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const { 
     circle: circleData, 
     feed: feedItems, 
@@ -24,12 +56,24 @@ export default function Circle() {
   const [joinCode, setJoinCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
+  const [switchDetail, setSwitchDetail] = useState<SwitchConflictDetail | null>(null)
+  const [isSwitching, setIsSwitching] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
+  const [notice, setNotice] = useState<string | null>(
+    typeof location.state === 'object' && location.state && 'notice' in location.state
+      ? String((location.state as { notice?: string }).notice ?? '')
+      : null,
+  )
 
   useEffect(() => {
     fetchMyCircle()
     fetchCircleFeed()
   }, [fetchMyCircle, fetchCircleFeed])
+
+  useEffect(() => {
+    if (!notice) return
+    navigate(location.pathname, { replace: true, state: {} })
+  }, [notice, navigate, location.pathname])
 
 
   const handleLike = async (reflectionId: string, isUnlike: boolean) => {
@@ -48,16 +92,40 @@ export default function Circle() {
     if (!joinCode.trim()) return
     setIsJoining(true)
     setJoinError(null)
+    setSwitchDetail(null)
 
     try {
-      await api.get(`/api/circle/join/${joinCode.trim()}`)
+      await api.post(`/api/circle/join/${joinCode.trim()}`)
       // Refresh circle data after successful join
       await fetchMyCircle(true)
       await fetchCircleFeed(true)
-    } catch (err: any) {
+      setNotice('You joined the circle successfully.')
+    } catch (err) {
+      const conflictDetail = getSwitchConflictDetail(err)
+      if (conflictDetail) {
+        setSwitchDetail(conflictDetail)
+        return
+      }
       setJoinError(getErrorMessage(err, 'Failed to join circle'))
     } finally {
       setIsJoining(false)
+    }
+  }
+
+  const handleSwitchCircle = async () => {
+    if (!joinCode.trim()) return
+    setIsSwitching(true)
+    setJoinError(null)
+    try {
+      await api.post(`/api/circle/switch/${joinCode.trim()}`)
+      await fetchMyCircle(true)
+      await fetchCircleFeed(true)
+      setNotice(`Switched to ${switchDetail?.target_circle.name ?? 'the new circle'}.`)
+      setSwitchDetail(null)
+    } catch (err) {
+      setJoinError(getErrorMessage(err, 'Failed to switch circles'))
+    } finally {
+      setIsSwitching(false)
     }
   }
 
@@ -107,6 +175,11 @@ export default function Circle() {
           <p className="text-center font-sans text-muted mb-10 text-[0.95rem] leading-[1.6]">
             Share reflections with family and friends. Reflect together on the same verse daily.
           </p>
+          {notice && (
+            <p className="text-[0.82rem] text-emerald-800 bg-emerald-50 p-3 rounded-[2px] border border-emerald-100 text-center mb-6">
+              {notice}
+            </p>
+          )}
 
           <Link
             to="/circle/new"
@@ -205,6 +278,40 @@ export default function Circle() {
               onClick={() => setShowMembers(false)} 
             />
             <CircleMembers onClose={() => setShowMembers(false)} />
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {switchDetail && (
+          <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="absolute inset-0 z-0" onClick={() => !isSwitching && setSwitchDetail(null)} />
+            <div className="relative z-10 bg-white rounded-[4px] border border-border shadow-xl w-full max-w-[520px] p-6 space-y-5">
+              <h2 className="font-cinzel text-[1.1rem] tracking-[0.06em] text-ink">Switch circles?</h2>
+              <p className="font-sans text-[0.92rem] text-muted leading-[1.6]">{switchDetail.message}</p>
+              <div className="space-y-1 font-sans text-[0.9rem] text-ink">
+                <p><span className="font-semibold">Current:</span> {switchDetail.current_circle.name}</p>
+                <p><span className="font-semibold">Target:</span> {switchDetail.target_circle.name}</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={handleSwitchCircle}
+                  disabled={isSwitching}
+                  className="flex-1 bg-ink hover:bg-gold text-white font-cinzel text-[0.72rem] tracking-[0.12em] uppercase px-5 py-3 rounded-[2px] transition-all duration-300 disabled:opacity-60"
+                >
+                  {isSwitching ? 'Switching...' : 'Confirm Switch'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSwitchDetail(null)}
+                  disabled={isSwitching}
+                  className="flex-1 bg-transparent border border-gold-light text-gold font-cinzel text-[0.72rem] tracking-[0.12em] uppercase px-5 py-3 rounded-[2px] transition-all duration-300 hover:bg-gold-faint disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </AnimatePresence>

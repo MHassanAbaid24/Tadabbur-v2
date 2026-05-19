@@ -28,6 +28,17 @@ export function getErrorMessage(
         return data.detail
       }
 
+      // 1b. Structured detail object
+      if (
+        'detail' in data &&
+        data.detail &&
+        typeof data.detail === 'object' &&
+        'message' in data.detail &&
+        typeof data.detail.message === 'string'
+      ) {
+        return data.detail.message
+      }
+
       // 2. FastAPI validation error list (array of details)
       if ('detail' in data && Array.isArray(data.detail) && data.detail.length > 0) {
         const firstDetail = data.detail[0]

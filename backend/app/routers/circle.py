@@ -23,6 +23,132 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _is_duplicate_circle_membership_error(error: Exception) -> bool:
+    """Detect duplicate (circle_id, user_id) insert errors from Supabase/Postgres."""
+    error_code = getattr(error, "code", None)
+    if error_code == "23505":
+        return True
+    error_text = str(error)
+    return "23505" in error_text and "circle_members_pkey" in error_text
+
+
+async def _get_circle_by_invite_code(invite_code: str) -> dict[str, Any]:
+    circles = await asyncio.to_thread(
+        lambda: supabase_client.table("circles").select("*").eq("invite_code", invite_code).execute()
+    )
+    if not circles.data:
+        raise HTTPException(status_code=404, detail="Circle not found")
+    return circles.data[0]
+
+
+async def _get_circle_response(circle: dict[str, Any]) -> dict[str, Any]:
+    members = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("user_id").eq("circle_id", circle["id"]).execute()
+    )
+    member_count = len(members.data) if members.data else 0
+    return CircleResponse(
+        id=circle["id"],
+        name=circle["name"],
+        invite_code=circle["invite_code"],
+        member_count=member_count,
+        qf_room_id=circle["qf_room_id"],
+    ).model_dump()
+
+
+async def _join_circle_internal(invite_code: str, user_id: str, allow_switch: bool) -> dict[str, Any]:
+    target_circle = await _get_circle_by_invite_code(invite_code)
+    target_circle_id = target_circle["id"]
+
+    memberships = await asyncio.to_thread(
+        lambda: supabase_client.table("circle_members").select("circle_id").eq("user_id", user_id).execute()
+    )
+    existing_membership = memberships.data[0] if memberships.data else None
+
+    if existing_membership:
+        current_circle_id = existing_membership["circle_id"]
+        if current_circle_id == target_circle_id:
+            # Idempotent join: already in this circle.
+            return APIResponse(success=True, data=await _get_circle_response(target_circle)).model_dump()
+
+        current_circle_result = await asyncio.to_thread(
+            lambda: supabase_client.table("circles").select("id, name, invite_code").eq("id", current_circle_id).execute()
+        )
+        current_circle = current_circle_result.data[0] if current_circle_result.data else {
+            "id": current_circle_id,
+            "name": "Current circle",
+            "invite_code": "",
+        }
+
+        if not allow_switch:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": "You are already in another circle. Confirm switch to continue.",
+                    "code": "requires_switch",
+                    "requires_switch": True,
+                    "current_circle": current_circle,
+                    "target_circle": {
+                        "id": target_circle["id"],
+                        "name": target_circle["name"],
+                        "invite_code": target_circle["invite_code"],
+                    },
+                },
+            )
+
+        inserted_target_membership = False
+        try:
+            await asyncio.to_thread(
+                lambda: supabase_client.table("circle_members").insert({
+                    "circle_id": target_circle_id,
+                    "user_id": user_id,
+                }).execute()
+            )
+            inserted_target_membership = True
+        except Exception as insert_error:
+            if not _is_duplicate_circle_membership_error(insert_error):
+                logger.error("Failed to insert target membership during circle switch: %s", str(insert_error))
+                raise HTTPException(status_code=500, detail="Failed to switch circles") from insert_error
+
+        try:
+            await asyncio.to_thread(
+                lambda: supabase_client.table("circle_members")
+                .delete()
+                .eq("circle_id", current_circle_id)
+                .eq("user_id", user_id)
+                .execute()
+            )
+        except Exception as delete_error:
+            # Compensate to avoid leaving the user switched halfway when delete fails.
+            if inserted_target_membership:
+                await asyncio.to_thread(
+                    lambda: supabase_client.table("circle_members")
+                    .delete()
+                    .eq("circle_id", target_circle_id)
+                    .eq("user_id", user_id)
+                    .execute()
+                )
+            logger.error("Failed to remove previous membership during circle switch: %s", str(delete_error))
+            raise HTTPException(status_code=500, detail="Failed to switch circles") from delete_error
+
+        logger.info("User %s switched circles: %s -> %s", user_id, current_circle_id, target_circle_id)
+        return APIResponse(success=True, data=await _get_circle_response(target_circle)).model_dump()
+
+    try:
+        await asyncio.to_thread(
+            lambda: supabase_client.table("circle_members").insert({
+                "circle_id": target_circle_id,
+                "user_id": user_id,
+            }).execute()
+        )
+    except Exception as insert_error:
+        if not _is_duplicate_circle_membership_error(insert_error):
+            logger.error("Failed to join circle: %s", str(insert_error))
+            raise HTTPException(status_code=500, detail="Failed to join circle") from insert_error
+
+    logger.info("User %s joined circle %s", user_id, target_circle_id)
+    return APIResponse(success=True, data=await _get_circle_response(target_circle)).model_dump()
+
+
 @router.post("/create")
 async def create_circle(
     req: CreateCircleRequest,
@@ -99,66 +225,35 @@ async def create_circle(
 
 
 
-@router.get("/join/{invite_code}")
+@router.post("/join/{invite_code}")
 async def join_circle(
     invite_code: str,
     authorization: str = Header(...),
 ) -> dict[str, Any]:
-    """
-    Join a circle by invite code.
-
-    - Enforces: user can only be in one circle
-    - Adds user to circle_members
-    """
     current_user: dict[str, Any] = await get_current_user(authorization)
     user_id = current_user["sub"]
+    return await _join_circle_internal(invite_code=invite_code, user_id=user_id, allow_switch=False)
 
-    # Find circle by invite code
-    circles = await asyncio.to_thread(
-        lambda: supabase_client.table("circles").select("*").eq("invite_code", invite_code).execute()
-    )
-    if not circles.data or len(circles.data) == 0:
-        raise HTTPException(status_code=404, detail="Circle not found")
+@router.get("/join/{invite_code}")
+async def join_circle_legacy_get(
+    invite_code: str,
+    authorization: str = Header(...),
+) -> dict[str, Any]:
+    """Backward-compatible GET endpoint for existing clients."""
+    current_user: dict[str, Any] = await get_current_user(authorization)
+    user_id = current_user["sub"]
+    return await _join_circle_internal(invite_code=invite_code, user_id=user_id, allow_switch=False)
 
-    circle = circles.data[0]
-    circle_id = circle["id"]
 
-    # Check user not already in a circle
-    existing = await asyncio.to_thread(
-        lambda: supabase_client.table("circle_members").select("*").eq("user_id", user_id).execute()
-    )
-    if existing.data and len(existing.data) > 0:
-        raise HTTPException(status_code=409, detail="User is already in a circle")
-
-    # Add user to circle
-    try:
-        await asyncio.to_thread(
-            lambda: supabase_client.table("circle_members").insert({
-                "circle_id": circle_id,
-                "user_id": user_id,
-            }).execute()
-        )
-
-        # Get updated member count
-        members = await asyncio.to_thread(
-            lambda: supabase_client.table("circle_members").select("*").eq("circle_id", circle_id).execute()
-        )
-        member_count = len(members.data) if members.data else 0
-
-        circle_data = CircleResponse(
-            id=circle_id,
-            name=circle["name"],
-            invite_code=circle["invite_code"],
-            member_count=member_count,
-            qf_room_id=circle["qf_room_id"],
-        )
-
-        logger.info("User %s joined circle %s", user_id, circle_id)
-        return APIResponse(success=True, data=circle_data.dict()).dict()
-
-    except Exception as e:
-        logger.error("Failed to join circle: %s", str(e))
-        raise HTTPException(status_code=500, detail="Failed to join circle")
+@router.post("/switch/{invite_code}")
+async def switch_circle(
+    invite_code: str,
+    authorization: str = Header(...),
+) -> dict[str, Any]:
+    """Explicitly switch from current circle to a different invite target."""
+    current_user: dict[str, Any] = await get_current_user(authorization)
+    user_id = current_user["sub"]
+    return await _join_circle_internal(invite_code=invite_code, user_id=user_id, allow_switch=True)
 
 
 @router.get("/my")

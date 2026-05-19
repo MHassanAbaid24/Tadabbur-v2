@@ -3,6 +3,7 @@
 import pytest
 from httpx import AsyncClient
 from unittest.mock import AsyncMock, MagicMock, patch
+from fastapi import HTTPException
 
 from main import app
 
@@ -78,43 +79,19 @@ async def test_create_circle_user_already_in_circle():
 
 @pytest.mark.asyncio
 async def test_join_circle_success():
-    """Test joining a circle by invite code."""
+    """Test joining a circle endpoint returns success payload."""
     with patch("app.routers.circle.get_current_user") as mock_get_user, \
-         patch("app.routers.circle.supabase_client") as mock_supabase:
-
+         patch("app.routers.circle._join_circle_internal", new=AsyncMock(return_value={
+             "success": True,
+             "data": {
+                 "id": TEST_CIRCLE_ID,
+                 "name": "Family",
+                 "invite_code": TEST_INVITE_CODE,
+                 "member_count": 2,
+                 "qf_room_id": "qf-123",
+             },
+         })):
         mock_get_user.return_value = {"sub": TEST_USER_ID_2}
-
-        # Mock: look up circle by invite code
-        circle_lookup = MagicMock()
-        circle_lookup.data = [{"id": TEST_CIRCLE_ID, "name": "Family", "invite_code": TEST_INVITE_CODE, "qf_room_id": "qf-123"}]
-
-        # Mock: check user not already in circle
-        membership_check = MagicMock()
-        membership_check.data = []
-
-        # Mock: insert membership and count members
-        member_count_result = MagicMock()
-        member_count_result.data = [
-            {"user_id": TEST_USER_ID},  # creator
-            {"user_id": TEST_USER_ID_2},  # new member
-        ]
-
-        call_count = 0
-        def side_effect(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if "circle_members" in str(mock_supabase.table.call_args_list[-1]):
-                if call_count == 1:  # membership check
-                    return MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=membership_check))))
-                elif call_count == 2:  # insert
-                    return MagicMock(insert=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=MagicMock(data=[])))))
-                else:  # member count
-                    return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=member_count_result))))))
-            else:  # circles table
-                return MagicMock(select=MagicMock(return_value=MagicMock(eq=MagicMock(return_value=MagicMock(execute=MagicMock(return_value=circle_lookup))))))
-
-        mock_supabase.table.side_effect = side_effect
-
         async with AsyncClient(app=app, base_url="http://test") as client:
             r = await client.get(
                 f"/api/circle/join/{TEST_INVITE_CODE}",
@@ -379,3 +356,63 @@ async def test_like_reflection_not_found():
             )
 
         assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_join_circle_idempotent_when_already_member_of_target():
+    """Joining the same circle twice should return success (idempotent)."""
+    target_circle = {"id": TEST_CIRCLE_ID, "name": "Family", "invite_code": TEST_INVITE_CODE, "qf_room_id": "qf-123"}
+    memberships = MagicMock(data=[{"circle_id": TEST_CIRCLE_ID}])
+
+    with patch("app.routers.circle._get_circle_by_invite_code", new=AsyncMock(return_value=target_circle)), \
+         patch("app.routers.circle._get_circle_response", new=AsyncMock(return_value={"id": TEST_CIRCLE_ID, "name": "Family"})), \
+         patch("app.routers.circle.asyncio.to_thread", new=AsyncMock(return_value=memberships)):
+        from app.routers.circle import _join_circle_internal
+
+        response = await _join_circle_internal(TEST_INVITE_CODE, TEST_USER_ID, allow_switch=False)
+
+    assert response["success"] is True
+    assert response["data"]["id"] == TEST_CIRCLE_ID
+
+
+@pytest.mark.asyncio
+async def test_join_circle_requires_switch_for_different_circle():
+    """Joining a different circle should return a structured requires_switch conflict."""
+    target_circle = {"id": TEST_CIRCLE_ID_2, "name": "Friends", "invite_code": "newcode", "qf_room_id": "qf-456"}
+    memberships = MagicMock(data=[{"circle_id": TEST_CIRCLE_ID}])
+    current_circle = MagicMock(data=[{"id": TEST_CIRCLE_ID, "name": "Family", "invite_code": TEST_INVITE_CODE}])
+
+    with patch("app.routers.circle._get_circle_by_invite_code", new=AsyncMock(return_value=target_circle)), \
+         patch("app.routers.circle.asyncio.to_thread", new=AsyncMock(side_effect=[memberships, current_circle])):
+        from app.routers.circle import _join_circle_internal
+
+        with pytest.raises(HTTPException) as exc_info:
+            await _join_circle_internal("newcode", TEST_USER_ID, allow_switch=False)
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail["code"] == "requires_switch"
+    assert exc_info.value.detail["current_circle"]["name"] == "Family"
+    assert exc_info.value.detail["target_circle"]["name"] == "Friends"
+
+
+@pytest.mark.asyncio
+async def test_join_circle_duplicate_insert_maps_to_success():
+    """Duplicate membership insert race should be treated as success."""
+    target_circle = {"id": TEST_CIRCLE_ID, "name": "Family", "invite_code": TEST_INVITE_CODE, "qf_room_id": "qf-123"}
+    memberships = MagicMock(data=[])
+
+    class DuplicateMembershipError(Exception):
+        code = "23505"
+
+    with patch("app.routers.circle._get_circle_by_invite_code", new=AsyncMock(return_value=target_circle)), \
+         patch("app.routers.circle._get_circle_response", new=AsyncMock(return_value={"id": TEST_CIRCLE_ID, "name": "Family"})), \
+         patch(
+             "app.routers.circle.asyncio.to_thread",
+             new=AsyncMock(side_effect=[memberships, DuplicateMembershipError("duplicate key")]),
+         ):
+        from app.routers.circle import _join_circle_internal
+
+        response = await _join_circle_internal(TEST_INVITE_CODE, TEST_USER_ID, allow_switch=False)
+
+    assert response["success"] is True
+    assert response["data"]["id"] == TEST_CIRCLE_ID

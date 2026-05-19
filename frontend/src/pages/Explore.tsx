@@ -480,11 +480,13 @@ export default function Explore() {
                             <span className="font-cinzel text-[0.65rem] tracking-[0.12em] text-muted bg-cream px-3 py-1.5 rounded-[2px] border border-border">
                               {verse.verse_key}
                             </span>
-                            <div className="flex gap-2 md:opacity-0 group-hover:opacity-100 transition-all">
+                            <div className="flex items-center gap-1.5 sm:gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
                               <button
                                 onClick={() => handlePlayAudio(verse.verse_key)}
                                 disabled={isLoadingAudio !== null && isLoadingAudio !== verse.verse_key}
-                                className={`flex items-center gap-2 font-cinzel text-[0.7rem] tracking-[0.1em] transition-all px-4 py-2 rounded-full active:scale-95 uppercase ${
+                                title={playingVerseKey === verse.verse_key && isPlaying ? 'Pause recitation' : 'Play recitation'}
+                                aria-label={playingVerseKey === verse.verse_key && isPlaying ? 'Pause recitation' : 'Play recitation'}
+                                className={`inline-flex items-center justify-center sm:justify-start gap-0 sm:gap-2 min-w-11 min-h-11 sm:min-w-0 font-cinzel text-[0.65rem] sm:text-[0.7rem] tracking-[0.08em] sm:tracking-[0.1em] transition-all px-0 sm:px-4 py-0 sm:py-2 rounded-full active:scale-95 uppercase ${
                                   playingVerseKey === verse.verse_key && isPlaying
                                     ? 'bg-ink text-white border border-ink hover:bg-gold hover:border-gold'
                                     : 'bg-gold-faint text-gold border border-gold-light hover:text-ink hover:bg-gold-faint/60'
@@ -497,21 +499,25 @@ export default function Explore() {
                                 ) : (
                                   <Play size={15} />
                                 )}
-                                {playingVerseKey === verse.verse_key && isPlaying ? 'Pause' : 'Play'}
+                                <span className="hidden sm:inline">{playingVerseKey === verse.verse_key && isPlaying ? 'Pause' : 'Play'}</span>
                               </button>
                               <button
                                 onClick={() => handleOpenTafsir(verse.verse_key)}
-                                className="flex items-center gap-2 font-cinzel text-[0.7rem] tracking-[0.1em] text-green hover:text-ink transition-all px-4 py-2 bg-green/10 border border-green/30 rounded-full active:scale-95 uppercase"
+                                title="Read tafsir"
+                                aria-label="Read tafsir"
+                                className="inline-flex items-center justify-center sm:justify-start gap-0 sm:gap-2 min-w-11 min-h-11 sm:min-w-0 font-cinzel text-[0.65rem] sm:text-[0.7rem] tracking-[0.08em] sm:tracking-[0.1em] text-green hover:text-ink transition-all px-0 sm:px-4 py-0 sm:py-2 bg-green/10 border border-green/30 rounded-full active:scale-95 uppercase"
                               >
                                 <BookOpen size={15} />
-                                Tafsir
+                                <span className="hidden sm:inline">Tafsir</span>
                               </button>
                               <button
                                 onClick={() => setReflectionVerseKey(verse.verse_key)}
-                                className="flex items-center gap-2 font-cinzel text-[0.7rem] tracking-[0.1em] text-gold hover:text-ink transition-all px-4 py-2 bg-gold-faint border border-gold-light rounded-full active:scale-95 uppercase"
+                                title="Add reflection"
+                                aria-label="Add reflection"
+                                className="inline-flex items-center justify-center sm:justify-start gap-0 sm:gap-2 min-w-11 min-h-11 sm:min-w-0 font-cinzel text-[0.65rem] sm:text-[0.7rem] tracking-[0.08em] sm:tracking-[0.1em] text-gold hover:text-ink transition-all px-0 sm:px-4 py-0 sm:py-2 bg-gold-faint border border-gold-light rounded-full active:scale-95 uppercase"
                               >
                                 <MessageSquarePlus size={15} />
-                                Reflect
+                                <span className="hidden sm:inline">Reflect</span>
                               </button>
                             </div>
                           </div>

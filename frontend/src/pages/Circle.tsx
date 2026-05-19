@@ -10,6 +10,7 @@ import { Users } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import api from '../lib/api'
 import { getErrorMessage } from '../lib/errors'
+import { parseInviteCodeInput } from '../lib/invite'
 
 type CircleSummary = {
   id: string
@@ -89,13 +90,19 @@ export default function Circle() {
   }
 
   const handleJoin = async () => {
-    if (!joinCode.trim()) return
+    const { inviteCode, error: inviteError } = parseInviteCodeInput(joinCode)
+    if (inviteError) {
+      setJoinError(inviteError)
+      return
+    }
+    if (!inviteCode) return
+
     setIsJoining(true)
     setJoinError(null)
     setSwitchDetail(null)
 
     try {
-      await api.post(`/api/circle/join/${joinCode.trim()}`)
+      await api.post(`/api/circle/join/${inviteCode}`)
       // Refresh circle data after successful join
       await fetchMyCircle(true)
       await fetchCircleFeed(true)
@@ -113,11 +120,17 @@ export default function Circle() {
   }
 
   const handleSwitchCircle = async () => {
-    if (!joinCode.trim()) return
+    const { inviteCode, error: inviteError } = parseInviteCodeInput(joinCode)
+    if (inviteError) {
+      setJoinError(inviteError)
+      return
+    }
+    if (!inviteCode) return
+
     setIsSwitching(true)
     setJoinError(null)
     try {
-      await api.post(`/api/circle/switch/${joinCode.trim()}`)
+      await api.post(`/api/circle/switch/${inviteCode}`)
       await fetchMyCircle(true)
       await fetchCircleFeed(true)
       setNotice(`Switched to ${switchDetail?.target_circle.name ?? 'the new circle'}.`)
@@ -203,7 +216,7 @@ export default function Circle() {
             )}
             <input
               type="text"
-              placeholder="Paste invite code here"
+              placeholder="Paste invite code or invite link"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
               disabled={isJoining}

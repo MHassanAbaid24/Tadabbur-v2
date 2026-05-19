@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { ChevronRight, Users, Zap } from 'lucide-react'
 import { api } from '../lib/api'
 import { getErrorMessage } from '../lib/errors'
+import { parseInviteCodeInput } from '../lib/invite'
 import { useAuthStore } from '../store/authStore'
 
 export default function Onboarding() {
@@ -84,10 +85,20 @@ export default function Onboarding() {
       setError('Please enter an invite code')
       return
     }
+    const { inviteCode: parsedInviteCode, error: inviteError } = parseInviteCodeInput(inviteCode)
+    if (inviteError) {
+      setError(inviteError)
+      return
+    }
+    if (!parsedInviteCode) {
+      setError('Please enter an invite code')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
     try {
-      await api.post(`/api/circle/join/${inviteCode}`)
+      await api.post(`/api/circle/join/${parsedInviteCode}`)
       setStep(4)
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to join circle'))
@@ -350,7 +361,7 @@ export default function Onboarding() {
                       </p>
                       <input
                         type="text"
-                        placeholder="Paste invite code here"
+                        placeholder="Paste invite code or invite link"
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value)}
                         className="w-full bg-cream border border-border p-3 rounded-[2px] font-sans text-[0.9rem] text-ink placeholder:text-muted/60 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all group-has-[:checked]:border-gold/30"

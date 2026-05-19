@@ -14,6 +14,19 @@ vi.mock('../../lib/api', () => ({
 
 const mockedGet = vi.mocked(api.get)
 
+const today = new Date()
+const formatDate = (d: Date) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dateStr = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dateStr}`
+}
+
+const day1 = new Date(today)
+day1.setDate(today.getDate() - 1)
+const day2 = new Date(today)
+day2.setDate(today.getDate() - 2)
+
 const summaryPayload = {
   current_streak: 3,
   longest_streak: 8,
@@ -21,7 +34,7 @@ const summaryPayload = {
   level: 2,
   level_name: 'Learner',
   level_name_ar: 'متعلّم',
-  activity_days: ['2026-05-15', '2026-05-16'],
+  activity_days: [formatDate(day1), formatDate(day2)],
   xp_to_next_level: 30,
 }
 
@@ -143,5 +156,55 @@ describe('Progress weekly insights', () => {
     })
 
     expect(await screen.findByText('Weekly Wrap-Up')).toBeDefined()
+  })
+
+  it('shows placeholder message in Weekly Insights section when there is no recent activity', async () => {
+    const inactivePayload = {
+      ...summaryPayload,
+      activity_days: [],
+    }
+
+    mockedGet.mockResolvedValueOnce({ data: { data: inactivePayload } })
+
+    render(
+      <MemoryRouter>
+        <Progress />
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('Your Progress')
+
+    expect(screen.queryByText('Weekly Insights')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Analyze My Week' })).toBeNull()
+    expect(
+      screen.queryByText('Please have at least one day of activity to get weekly insights.'),
+    ).toBeDefined()
+  })
+
+  it('shows placeholder message in Weekly Insights section when activity is older than 7 days', async () => {
+    const oldDate = new Date()
+    oldDate.setDate(oldDate.getDate() - 10)
+    const oldDateStr = `${oldDate.getFullYear()}-${String(oldDate.getMonth() + 1).padStart(2, '0')}-${String(oldDate.getDate()).padStart(2, '0')}`
+
+    const oldActivityPayload = {
+      ...summaryPayload,
+      activity_days: [oldDateStr],
+    }
+
+    mockedGet.mockResolvedValueOnce({ data: { data: oldActivityPayload } })
+
+    render(
+      <MemoryRouter>
+        <Progress />
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('Your Progress')
+
+    expect(screen.queryByText('Weekly Insights')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Analyze My Week' })).toBeNull()
+    expect(
+      screen.queryByText('Please have at least one day of activity to get weekly insights.'),
+    ).toBeDefined()
   })
 })

@@ -33,12 +33,12 @@ export default function VerseCard({
   return (
     <div className="bg-white border border-border rounded-[4px] p-0 overflow-hidden shadow-[0_4px_40px_rgba(184,146,42,0.08),0_1px_4px_rgba(0,0,0,0.06)] mb-10 fade-up">
       {/* Gold ornamental top strip */}
-      <div className="bg-green py-[0.85rem] px-8 flex items-center justify-center gap-4">
-        <span className="text-gold-light text-[1.1rem] opacity-70 tracking-[0.3em]">❧ ✦ ❧</span>
-        <span className="font-cinzel text-[0.7rem] tracking-[0.14em] text-white/80 uppercase">
+      <div className="bg-green py-[0.85rem] px-3 md:px-8 flex items-center justify-center gap-2 md:gap-4 text-center">
+        <span className="text-gold-light text-[0.8rem] md:text-[1.1rem] opacity-70 tracking-[0.1em] md:tracking-[0.3em] whitespace-nowrap">❧ ✦ ❧</span>
+        <span className="font-cinzel text-[0.65rem] md:text-[0.7rem] tracking-[0.1em] md:tracking-[0.14em] text-white/80 uppercase whitespace-nowrap">
           {surahName} · {surahNum}:{ayahNum}
         </span>
-        <span className="text-gold-light text-[1.1rem] opacity-70 tracking-[0.3em]">❧ ✦ ❧</span>
+        <span className="text-gold-light text-[0.8rem] md:text-[1.1rem] opacity-70 tracking-[0.1em] md:tracking-[0.3em] whitespace-nowrap">❧ ✦ ❧</span>
       </div>
 
       <div className="pt-10 px-5 md:px-10 pb-8">

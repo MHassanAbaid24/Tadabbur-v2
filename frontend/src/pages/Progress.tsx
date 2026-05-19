@@ -77,6 +77,50 @@ function renderSafeMarkdown(markdown: string) {
   return nodes
 }
 
+function hasRecentActivity(activityDays: string[]): boolean {
+  if (!activityDays || activityDays.length === 0) return false
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const formatLocalDate = (date: Date) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
+  const recentDates = new Set<string>()
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    recentDates.add(formatLocalDate(d))
+  }
+
+  return activityDays.some((day) => {
+    if (!day) return false
+    let key = day
+    if (day.includes('T') || day.includes('Z')) {
+      key = formatLocalDate(new Date(day))
+    } else {
+      try {
+        const parts = day.split('-')
+        if (parts.length === 3) {
+          const parsedDate = new Date(
+            parseInt(parts[0], 10),
+            parseInt(parts[1], 10) - 1,
+            parseInt(parts[2], 10),
+          )
+          key = formatLocalDate(parsedDate)
+        }
+      } catch (e) {
+        // Fallback to key as-is
+      }
+    }
+    return recentDates.has(key)
+  })
+}
+
 export default function Progress() {
   const {
     summary,
@@ -116,6 +160,8 @@ export default function Progress() {
       </PageWrapper>
     )
   }
+
+  const hasActivity = hasRecentActivity(summary.activity_days)
 
   return (
     <PageWrapper title="Your Progress">
@@ -157,36 +203,46 @@ export default function Progress() {
         <section className='bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4'>
           <div className='flex items-center justify-between gap-3'>
             <h2 className='text-sm font-bold text-gray-700 uppercase tracking-wider'>Weekly Insights</h2>
-            <button
-              type='button'
-              disabled={isInsightsLoading}
-              onClick={() => {
-                useProgressStore.getState().fetchWeeklyInsights()
-              }}
-              className='px-4 py-2 rounded-full bg-emerald-700 text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed'
-            >
-              {isInsightsLoading ? 'Analyzing...' : 'Analyze My Week'}
-            </button>
+            {hasActivity && (
+              <button
+                type='button'
+                disabled={isInsightsLoading}
+                onClick={() => {
+                  useProgressStore.getState().fetchWeeklyInsights()
+                }}
+                className='px-4 py-2 rounded-full bg-emerald-700 text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed'
+              >
+                {isInsightsLoading ? 'Analyzing...' : 'Analyze My Week'}
+              </button>
+            )}
           </div>
 
-          {isInsightsLoading && (
-            <div className='space-y-2'>
-              <div className='h-4 bg-gray-200 rounded animate-pulse w-1/2' />
-              <div className='h-4 bg-gray-200 rounded animate-pulse w-full' />
-              <div className='h-4 bg-gray-200 rounded animate-pulse w-5/6' />
-            </div>
-          )}
-
-          {insightsError && <p className='text-sm text-red-600'>{insightsError}</p>}
-
-          {weeklyInsights && weeklyInsights.status === 'ready' && weeklyInsights.insight_markdown && (
-            <div className='space-y-3'>{renderSafeMarkdown(weeklyInsights.insight_markdown)}</div>
-          )}
-
-          {weeklyInsights && weeklyInsights.status !== 'ready' && (
-            <p className='text-sm text-gray-600'>
-              {weeklyInsights.message || 'Not enough data to generate insights yet.'}
+          {!hasActivity ? (
+            <p className='text-sm text-gray-500 italic'>
+              Please have at least one day of activity to get weekly insights.
             </p>
+          ) : (
+            <>
+              {isInsightsLoading && (
+                <div className='space-y-2'>
+                  <div className='h-4 bg-gray-200 rounded animate-pulse w-1/2' />
+                  <div className='h-4 bg-gray-200 rounded animate-pulse w-full' />
+                  <div className='h-4 bg-gray-200 rounded animate-pulse w-5/6' />
+                </div>
+              )}
+
+              {insightsError && <p className='text-sm text-red-600'>{insightsError}</p>}
+
+              {weeklyInsights && weeklyInsights.status === 'ready' && weeklyInsights.insight_markdown && (
+                <div className='space-y-3'>{renderSafeMarkdown(weeklyInsights.insight_markdown)}</div>
+              )}
+
+              {weeklyInsights && weeklyInsights.status !== 'ready' && (
+                <p className='text-sm text-gray-600'>
+                  {weeklyInsights.message || 'Not enough data to generate insights yet.'}
+                </p>
+              )}
+            </>
           )}
         </section>
       </div>

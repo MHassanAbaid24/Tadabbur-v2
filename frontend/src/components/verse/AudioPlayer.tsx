@@ -47,7 +47,7 @@ export default function AudioPlayer({ audioUrl }: AudioPlayerProps) {
         onEnded={handleAudioEnd}
         className="hidden"
       />
-      <span className="text-[0.85rem] text-muted italic flex-1">
+      <span className="text-[0.85rem] text-muted italic flex-1 hidden md:inline">
         {isPlaying ? 'Playing recitation...' : 'Listen to recitation'}
       </span>
     </>

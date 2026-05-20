@@ -1,10 +1,10 @@
 """Authentication routes: register, login, get current user profile."""
 
 import asyncio
+import json
 import logging
-import random
-import re
 import secrets
+import time
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -35,6 +35,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+def _debug_log(hypothesis_id: str, location: str, message: str, data: Dict[str, Any]) -> None:
+    """Append NDJSON runtime debug logs for this debug session."""
+    try:
+        payload = {
+            "sessionId": "a0f3d7",
+            "runId": "auth-500-debug",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data,
+            "timestamp": int(time.time() * 1000),
+        }
+        with open("/home/ali-jafar/Hackathon/Tadabbur/.cursor/debug-a0f3d7.log", "a", encoding="utf-8") as fp:
+            fp.write(json.dumps(payload, ensure_ascii=True) + "\n")
+    except Exception:
+        # Never break auth flow due to debug logging.
+        pass
+
+
 @router.post("/register")
 async def register(req: RegisterRequest) -> APIResponse:
     """
@@ -57,43 +76,27 @@ async def register(req: RegisterRequest) -> APIResponse:
         HTTPException(500): Database or email service error
     """
     try:
-        normalized_name = re.sub(r"\s+", " ", req.username).strip()
-        if not normalized_name or not re.search(r"[A-Za-z]", normalized_name):
-            raise HTTPException(status_code=422, detail="Name can only contain letters and spaces.")
-        
-        # Derive unique username handle from email prefix
-        email_prefix = req.email.split("@")[0]
-        base_username = re.sub(r"[^A-Za-z0-9_]", "", email_prefix).lower()
-        if not base_username:
-            base_username = "user"
-            
-        username_handle = base_username
-        is_unique = False
-        attempts = 0
-        
-        while not is_unique and attempts < 10:
-            if attempts > 0:
-                suffix = str(random.randint(100, 999))
-                username_handle = f"{base_username}_{suffix}"
-            
-            # Check uniqueness — capture username_handle by value via default argument
-            _handle = username_handle
-            username_check = await asyncio.to_thread(
-                lambda h=_handle: supabase_client.table("profiles")
-                .select("id")
-                .eq("username", h)
-                .execute()
-            )
-            if not username_check.data:
-                is_unique = True
-            attempts += 1
-
-        logger.info(
-            "Registration attempt - email: %s, display_name: %s, derived_username: %s",
-            req.email,
-            normalized_name,
-            username_handle,
+        logger.info("Registration attempt - email: %s, username: %s", req.email, req.username)
+        # #region agent log
+        _debug_log(
+            "H2",
+            "auth.py:register:start",
+            "register request received",
+            {
+                "supabase_project_ref": settings.supabase_url.split("//")[-1].split(".")[0],
+                "username_len": len(req.username or ""),
+                "email_domain": req.email.split("@")[-1] if "@" in req.email else "invalid",
+            },
         )
+        # #endregion
+
+        # Check if username already exists
+        username_check = await asyncio.to_thread(supabase_client.table("profiles").select("id").eq(
+            "username", req.username
+        ).execute)
+        if username_check.data:
+            logger.warning("Username already exists: %s", req.username)
+            raise HTTPException(status_code=409, detail="Username already taken")
 
         # Step 1: Create Supabase Auth user first so profiles FK (profiles.id -> auth.users.id) is valid
         try:
@@ -118,23 +121,58 @@ async def register(req: RegisterRequest) -> APIResponse:
 
         # Step 2: Create pending profile linked to auth user
         try:
+            # #region agent log
+            _debug_log(
+                "H1",
+                "auth.py:register:profile_insert",
+                "attempting profile insert",
+                {
+                    "profile_fields": ["id", "username", "display_name", "email_verified", "verification_status"],
+                    "user_id_prefix": str(user_id)[:8],
+                },
+            )
+            # #endregion
             await asyncio.to_thread(supabase_client.table("profiles").insert(
                 {
                     "id": user_id,
-                    "username": username_handle,
-                    "display_name": normalized_name,
+                    "username": req.username,
+                    "display_name": req.display_name,
                     "email_verified": False,
                     "verification_status": "pending",
                 }
             ).execute)
-            logger.info("Created pending profile for user_id: %s (username: %s)", user_id, username_handle)
+            logger.info("Created pending profile for user_id: %s", user_id)
         except Exception as e:
             logger.error("Failed to create profile: %s", str(e))
+            # #region agent log
+            err_text = str(e)
+            _debug_log(
+                "H1",
+                "auth.py:register:profile_insert_exception",
+                "profile insert failed",
+                {
+                    "error_has_email_verified": "email_verified" in err_text,
+                    "error_has_verification_status": "verification_status" in err_text,
+                    "error_has_reminders_enabled": "reminders_enabled" in err_text,
+                    "error_has_pgrst204": "PGRST204" in err_text,
+                },
+            )
+            # #endregion
             # Best-effort cleanup for auth user if profile creation fails
             try:
                 supabase_client.auth.admin.delete_user(user_id)
             except Exception as cleanup_error:
                 logger.error("Failed to cleanup auth user %s: %s", user_id, str(cleanup_error))
+                # #region agent log
+                _debug_log(
+                    "H5",
+                    "auth.py:register:cleanup_exception",
+                    "auth cleanup failed",
+                    {"cleanup_error_has_user_not_found": "User not found" in str(cleanup_error)},
+                )
+                # #endregion
+            if "duplicate key" in str(e).lower() and "username" in str(e).lower():
+                raise HTTPException(status_code=409, detail="Username already taken") from e
             raise HTTPException(status_code=500, detail="Failed to create profile") from e
 
         # Step 3: Send OTP and create verification record
@@ -257,7 +295,6 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
                 display_name=display_name,
                 avatar_url=None,  # New user has no avatar
                 qf_connected=False,
-                onboarded=False,  # New user is not onboarded
             ).model_dump(),
         )
 
@@ -356,6 +393,14 @@ async def login(req: LoginRequest) -> APIResponse:
         HTTPException(500): Auth service error
     """
     try:
+        # #region agent log
+        _debug_log(
+            "H4",
+            "auth.py:login:start",
+            "login request received",
+            {"email_domain": req.email.split("@")[-1] if "@" in req.email else "invalid"},
+        )
+        # #endregion
         # Sign in with Supabase Auth to verify credentials (use a temporary client so we don't contaminate the global service role client)
         auth_client = create_client(settings.supabase_url, settings.supabase_service_key)
         auth_response = auth_client.auth.sign_in_with_password(
@@ -366,8 +411,16 @@ async def login(req: LoginRequest) -> APIResponse:
         user_id = auth_response.user.id
 
         # Fetch user profile
+        # #region agent log
+        _debug_log(
+            "H4",
+            "auth.py:login:profile_select",
+            "fetching profile for login",
+            {"selected_fields": "username,display_name,email_verified,avatar_url,qf_access_token"},
+        )
+        # #endregion
         profile_response = await asyncio.to_thread(supabase_client.table("profiles").select(
-            "username,display_name,email_verified,avatar_url,qf_access_token,onboarded"
+            "username,display_name,email_verified,avatar_url,qf_access_token"
         ).eq("id", user_id).execute)
 
         if not profile_response.data:
@@ -393,13 +446,25 @@ async def login(req: LoginRequest) -> APIResponse:
                 display_name=profile["display_name"] or "",
                 avatar_url=profile.get("avatar_url"),
                 qf_connected=bool(profile.get("qf_access_token")),
-                onboarded=profile.get("onboarded", False),
             ).model_dump(),
         )
 
     except HTTPException:
         raise
     except Exception as e:
+        # #region agent log
+        err_text = str(e)
+        _debug_log(
+            "H4",
+            "auth.py:login:exception",
+            "login flow exception",
+            {
+                "error_has_email_verified": "email_verified" in err_text,
+                "error_has_pgrst204": "PGRST204" in err_text,
+                "error_has_invalid_credentials": "invalid credentials" in err_text.lower(),
+            },
+        )
+        # #endregion
         if "Invalid login credentials" in str(e) or "invalid credentials" in str(e).lower():
             logger.warning("Invalid login attempt for email: %s", req.email)
             raise HTTPException(status_code=401, detail="Invalid credentials") from e
@@ -447,10 +512,7 @@ async def get_profile(current_user: Dict[str, Any] = Depends(get_current_user)) 
                 "xp": profile.get("xp", 0),
                 "level": profile.get("level", 1),
                 "daily_reminder_time": profile.get("daily_reminder_time"),
-                "timezone": profile.get("timezone"),
-                "reminders_enabled": profile.get("reminders_enabled"),
                 "qf_connected": bool(profile.get("qf_access_token")),
-                "onboarded": profile.get("onboarded", False),
                 "created_at": profile.get("created_at"),
             },
         )
@@ -503,31 +565,6 @@ async def update_profile(
     except Exception as e:
         logger.error("Error updating profile for user %s: %s", user_id, str(e))
         raise HTTPException(status_code=500, detail="Failed to update profile") from e
-
-
-@router.put("/onboarding")
-async def complete_onboarding(
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> APIResponse:
-    """
-    Set current user's onboarding status to completed (TRUE).
-    """
-    user_id = current_user["sub"]
-    try:
-        response = await asyncio.to_thread(
-            lambda: supabase_client.table("profiles").update({"onboarded": True}).eq("id", user_id).execute()
-        )
-        if not response.data:
-            logger.warning("Profile not found for onboarding update: %s", user_id)
-            raise HTTPException(status_code=404, detail="Profile not found")
-
-        logger.info("Marked onboarding complete for user: %s", user_id)
-        return APIResponse(success=True, data={"onboarded": True})
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Error setting onboarding complete for user %s: %s", user_id, str(e))
-        raise HTTPException(status_code=500, detail="Failed to save onboarding state")
 
 
 @router.get("/qf/connect")

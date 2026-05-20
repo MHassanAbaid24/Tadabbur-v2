@@ -35,13 +35,36 @@ async def send_daily_reminders():
         logger.info(f"Checking for reminders (Current UTC: {now_utc.strftime('%H:%M:%S')})")
 
         # 1. Fetch all profiles with a reminder time set and enabled
-        profiles_resp = await asyncio.to_thread(
-            lambda: supabase_client.table("profiles")
-            .select("id, display_name, daily_reminder_time, timezone")
-            .eq("reminders_enabled", True)
-            .not_.is_("daily_reminder_time", "null")
-            .execute()
-        )
+        def _fetch_profiles_with_reminders_enabled():
+            return (
+                supabase_client.table("profiles")
+                .select("id, display_name, daily_reminder_time, timezone")
+                .eq("reminders_enabled", True)
+                .not_.is_("daily_reminder_time", "null")
+                .execute()
+            )
+
+        def _fetch_profiles_reminder_time_only():
+            """Fallback when DB has no reminders_enabled column (pre-migration)."""
+            return (
+                supabase_client.table("profiles")
+                .select("id, display_name, daily_reminder_time, timezone")
+                .not_.is_("daily_reminder_time", "null")
+                .execute()
+            )
+
+        try:
+            profiles_resp = await asyncio.to_thread(_fetch_profiles_with_reminders_enabled)
+        except Exception as first_err:  # noqa: BLE001 — PostgREST errors vary by client version
+            err_text = str(first_err)
+            if "42703" in err_text or "reminders_enabled" in err_text:
+                logger.warning(
+                    "profiles.reminders_enabled missing; using fallback query. "
+                    "Run backend/migrations/004_add_profiles_reminders_enabled.sql in Supabase."
+                )
+                profiles_resp = await asyncio.to_thread(_fetch_profiles_reminder_time_only)
+            else:
+                raise
         
         candidates = profiles_resp.data or []
         if not candidates:

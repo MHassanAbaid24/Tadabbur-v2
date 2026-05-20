@@ -72,13 +72,14 @@ To store secrets safely without exposing them, navigate to **Settings ➡️ Var
 | `QF_CLIENT_ID` | `qf_client_xxx` | Your Quran Foundation Client ID |
 | `QF_CLIENT_SECRET` | `qf_secret_xxx` | Your Quran Foundation Client Secret |
 | `QF_ENV` | `prelive` | `prelive` for dev keys, `production` for live keys |
+| `QF_USER_SCOPES` | `notes:read notes:write` | **OIDC Scopes** to request (Set to this subset to avoid `invalid_scope` errors if credentials are restricted) |
 | `SUPABASE_URL` | `https://xxxx.supabase.co` | Your current Supabase URL |
 | `SUPABASE_SERVICE_KEY` | `eyJhbGci...` | Supabase Service Role Key (Server-side only) |
 | `GEMINI_API_KEY` | `AIzaSy...` | Google AI Studio Gemini API Key |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model to use for action suggestions |
 | `JWT_SECRET` | `your-random-64-character-jwt-key` | Random string to encrypt local JWT auth tokens |
-| `FRONTEND_URL` | `https://tadabbur.netlify.app` | **Your Netlify Frontend URL** (No trailing slash) |
-| `BACKEND_URL` | `https://yourusername-tadabbur-backend.hf.space` | **Your Hugging Face Space URL** (Details below) |
+| `FRONTEND_URL` | `https://tadabbur-live.netlify.app` | **Your Netlify Frontend URL** (No trailing slash) |
+| `BACKEND_URL` | `https://muhammadhassan24-tadabbur-backend.hf.space` | **Your Hugging Face Space URL** (Details below) |
 | `BREVO_API_KEY` | `xkeysib-...` | **Recommended:** Brevo API Key (allows HTTPS email delivery on HF Spaces) |
 | `BREVO_SENDER_EMAIL` | `sender@example.com` | **Recommended:** Verified Sender Email in your Brevo Account |
 | `GMAIL_SENDER_EMAIL` | `your-email@gmail.com` | *Optional/Fallback:* Gmail address for sending verification OTPs |
@@ -108,19 +109,41 @@ To keep the Hugging Face space clean and build *only* the backend, push the `bac
 ---
 
 ## 🔑 Phase 3: Sync Quran Foundation Redirect URIs
-Because user authentication relies on the secure Quran Foundation OIDC/OAuth2 flow, you must whitelist your production callback endpoint:
 
-1. Go to your **Quran Foundation API Developer Dashboard**.
-2. Edit your Application configuration.
-3. Add your production backend callback URL to the **Redirect URIs** list:
-   `https://yourusername-tadabbur-backend.hf.space/api/auth/callback`
-4. Save the changes.
+> [!IMPORTANT]
+> **Only register backend URIs — never the frontend URL.**
+> The Quran Foundation auth server sends the one-time `code` directly to your **FastAPI backend** (`/api/auth/callback`). Your backend handles the token exchange privately using `QF_CLIENT_SECRET`, then redirects the user's browser to your frontend. The frontend URL `https://tadabbur-live.netlify.app/auth/qf-callback` is your own internal route — QF never calls it and it must NOT be whitelisted.
+
+### How the OIDC flow works in this app
+
+```
+1. User clicks "Connect quran.com" on Netlify (frontend)
+2. Frontend calls backend → backend generates authorization URL
+3. User's browser → QF Login Page (redirect_uri = backend /api/auth/callback)
+4. User logs in → QF sends `code` to → backend /api/auth/callback  ← ONLY THIS IS WHITELISTED
+5. Backend exchanges code for token (server-side, secret never exposed)
+6. Backend redirects browser → Netlify /auth/qf-callback (your own route, not registered)
+```
+
+### 🌐 Whitelist for Production — Backend (Hugging Face Spaces) only
+Add **only** the following two backend URIs to your **Redirect URIs** list in the **Quran Foundation Developer Dashboard**:
+* **Auth Callback**: `https://muhammadhassan24-tadabbur-backend.hf.space/api/auth/callback`
+* **Logout Callback**: `https://muhammadhassan24-tadabbur-backend.hf.space/api/auth/logout-callback`
+
+### 💻 Whitelist for Local Development — Backend only
+* **Auth Callback**: `http://localhost:8000/api/auth/callback`
+* **Logout Callback**: `http://localhost:8000/api/auth/logout-callback`
+
+> [!CAUTION]
+> **Do NOT add** `https://tadabbur-live.netlify.app` or any frontend URL as a callback. The frontend is never the direct recipient of the authorization code. Adding it would expose your flow to a security vulnerability (the code would arrive at the browser directly, before the secure server-side exchange).
+
+Once added, save your dashboard configurations to apply.
 
 ---
 
 ## 🔍 Phase 4: Verification & Checklist
 Once deployed, perform these checks:
-1. **Health Endpoint**: Visit `https://yourusername-tadabbur-backend.hf.space/health` in your browser. It should return `{"status":"ok","version":"1.0.0"}`.
-2. **Page Refreshes**: Navigate to your Netlify URL, go to `/circle`, and hit refresh. The page should reload successfully (verifying the Netlify `_redirects` rule).
+1. **Health Endpoint**: Visit `https://muhammadhassan24-tadabbur-backend.hf.space/health` in your browser. It should return `{"status":"ok","version":"1.0.0"}`.
+2. **Page Refreshes**: Navigate to your Netlify URL (`https://tadabbur-live.netlify.app`), go to `/circle`, and hit refresh. The page should reload successfully (verifying the Netlify `_redirects` rule).
 3. **User Flow**: Register a new account. You should receive a verification OTP email instantly via Brevo HTTP API (or Gmail SMTP).
 4. **AI Generation**: Answer a daily reflection and verify that the Gemini action suggestion appears as a `"💡 You might also consider..."` pop-up.

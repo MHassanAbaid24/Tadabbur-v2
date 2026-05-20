@@ -10,6 +10,15 @@ class Settings(BaseSettings):
     qf_client_secret: str
     qf_env: str = "prelive"
     qf_test_user_token: Optional[str] = None
+    qf_user_scopes: str = (
+        "streaks:read streaks:write "
+        "activity_days:read activity_days:write "
+        "notes:read notes:write "
+        "rooms:read rooms:write "
+        "posts:read posts:write "
+        "goals:read goals:write "
+        "reading_sessions:read reading_sessions:write"
+    )
     supabase_url: str
     supabase_service_key: str
     gemini_api_key: str

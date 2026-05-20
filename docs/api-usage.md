@@ -58,32 +58,36 @@ Used for user-scoped data and social interactions:
 - Token metadata (expiry) is tracked server-side
 - Frontend only receives app JWT/session context; raw QF user tokens are not exposed
 
+> [!TIP]
+> **Configurable scopes:** By default, all 7 user scopes are requested. If your registered client credentials are restricted or have limited permissions on the Quran Foundation developer portal, you can override the scopes requested by setting the `QF_USER_SCOPES` environment variable (e.g. `notes:read notes:write`) on your backend deployment to completely avoid `invalid_scope` OIDC errors.
+
 ## 3. Endpoints Used in Practice
 
-## Content APIs
-- `GET /content/api/v4/verses/by_key/{verse_key}`
-- `GET /content/api/v4/verses/random`
-- `GET /content/api/v4/chapters`
-- `GET /content/api/v4/tafsirs/169/by_ayah/{verse_key}`
-- `GET /content/api/v4/recitations/7/by_ayah/{verse_key}`
+Tadabbur maintains a hybrid architecture: Core content queries and direct user progress updates are synchronised directly with the **Quran Foundation APIs**, while read-heavy social listings (such as circle feeds, invitation validation, and like timelines) are offloaded to **Supabase PostgreSQL** to guarantee sub-millisecond response times, offline resilience, and rich query flexibilities.
 
-## User APIs
-- `GET /api/v1/streaks`
-- `POST /api/v1/activity-days`
-- `GET /api/v1/activity-days`
-- `POST /api/v1/reading-sessions`
-- `POST /api/v1/notes`
-- `GET /api/v1/notes`
-- `PUT /api/v1/notes/{id}`
-- `POST /api/v1/rooms/groups`
-- `GET /api/v1/rooms`
-- `GET /api/v1/rooms/{id}/members`
-- `POST /api/v1/rooms/{id}/invite`
-- `POST /api/v1/posts`
-- `GET /api/v1/posts/feed`
-- `POST /api/v1/posts/{id}/like`
-- `POST /api/v1/goals`
-- `GET /api/v1/goals/today`
+### 📖 Active Content API Integrations (Client Credentials)
+These endpoints are actively queried via our server-side token manager to fetch core Quranic data:
+* `GET /content/api/v4/verses/by_key/{verse_key}` — Fetches the Arabic Uthmani text and Abdul Haleem translation context.
+* `GET /content/api/v4/chapters` — Fetches Quranic chapter (Surah) metadata for explore tools.
+* `GET /content/api/v4/tafsirs/169/by_ayah/{verse_key}` — Fetches Ibn Kathir's Tafsir text to populate the slide-up context drawer.
+* `GET /content/api/v4/recitations/7/by_ayah/{verse_key}` — Fetches Mishary Rashid Al-Afasy's audio recitation files.
+
+### 👤 Active User API Integrations (OIDC Authorization Code)
+These endpoints are actively triggered by authorized users, keeping their Quran.com profile synchronized in real time:
+* `GET /api/v1/streaks` — Fetches the current streak state from Quran.com to calculate and award milestone XP bonuses (+20 for 7-day, +50 for 30-day).
+* `POST /api/v1/activity-days` — Records reflection completion, immediately locking the user's daily streak state on Quran.com.
+* `GET /api/v1/activity-days?from=YYYY-MM-DD&to=YYYY-MM-DD` — Fetches verified activity logs for the past 90 days to render the progress calendar heatmap.
+* `POST /api/v1/reading-sessions` — Logs a reading session when today's verse card is opened, updating the user's official reading stats.
+* `POST /api/v1/notes` — Automatically saves every reflection as an official Note on Quran.com tagged with `["tadabbur"]`.
+* `POST /api/v1/rooms/groups` — Syncs a new reflection circle by creating a corresponding private Room on Quran.com.
+* `POST /api/v1/posts` — Cross-posts shared circle reflections directly to the matching Quran.com Room.
+* `POST /api/v1/posts/{id}/like` (and `DELETE /posts/{id}/like`) — Synchronizes likes on shared reflections with the official Quran.com Post like registry.
+
+### 🔒 OIDC Scopes Authorized & Ready (Offloaded for Performance)
+The following scopes are requested during OIDC onboarding to ensure the app is authorized to manage the full suite of future sync configurations. To protect performance and prevent API latency bottlenecks on critical user paths, read operations are offloaded locally:
+* `rooms:read` & `posts:read` — Circle lists and feed timelines are fetched locally from PostgreSQL to allow immediate batch fetching of display profiles, reaction states, and like totals in a single database pass.
+* `notes:write` (Edits) — Edits are currently committed locally to ensure smooth offline writing and resilience against network jitter.
+* `goals:read` & `goals:write` — Authorized for OIDC profiles, pre-configured for future milestone goals features.
 
 ## 4. Error Handling, Retries, and Rate Limiting
 

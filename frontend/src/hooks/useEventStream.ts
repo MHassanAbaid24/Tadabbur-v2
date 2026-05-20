@@ -9,12 +9,14 @@ import { useProgressStore } from '../store/progressStore'
  */
 export function useEventStream() {
   const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
   const eventSourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
-    // Only connect if we have a token
-    if (!token) {
+    // Only connect if we have a token and the user is fully onboarded
+    if (!token || !user?.onboarded) {
       if (eventSourceRef.current) {
+        console.debug('[SSE] Closing connection: user is not authenticated or not onboarded')
         eventSourceRef.current.close()
         eventSourceRef.current = null
       }
@@ -63,5 +65,5 @@ export function useEventStream() {
       es.close()
       eventSourceRef.current = null
     }
-  }, [token])
+  }, [token, user?.onboarded])
 }

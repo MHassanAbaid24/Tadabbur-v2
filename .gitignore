@@ -52,11 +52,7 @@ htmlcov/
 # PWA
 dist/
 
-# MD
-*.md
 
-# gitignore
-.gitignore
 
 icon*.png
 *test*.py

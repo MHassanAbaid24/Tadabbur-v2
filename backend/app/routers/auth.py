@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import random
 import re
 import secrets
 from typing import Any, Dict
@@ -59,15 +60,40 @@ async def register(req: RegisterRequest) -> APIResponse:
         normalized_name = re.sub(r"\s+", " ", req.username).strip()
         if not normalized_name or not re.search(r"[A-Za-z]", normalized_name):
             raise HTTPException(status_code=422, detail="Name can only contain letters and spaces.")
-        logger.info("Registration attempt - email: %s, username: %s", req.email, normalized_name)
+        
+        # Derive unique username handle from email prefix
+        email_prefix = req.email.split("@")[0]
+        base_username = re.sub(r"[^A-Za-z0-9_]", "", email_prefix).lower()
+        if not base_username:
+            base_username = "user"
+            
+        username_handle = base_username
+        is_unique = False
+        attempts = 0
+        
+        while not is_unique and attempts < 10:
+            if attempts > 0:
+                suffix = str(random.randint(100, 999))
+                username_handle = f"{base_username}_{suffix}"
+            
+            # Check uniqueness — capture username_handle by value via default argument
+            _handle = username_handle
+            username_check = await asyncio.to_thread(
+                lambda h=_handle: supabase_client.table("profiles")
+                .select("id")
+                .eq("username", h)
+                .execute()
+            )
+            if not username_check.data:
+                is_unique = True
+            attempts += 1
 
-        # Check if username already exists
-        username_check = await asyncio.to_thread(supabase_client.table("profiles").select("id").eq(
-            "username", normalized_name
-        ).execute)
-        if username_check.data:
-            logger.warning("Username already exists: %s", normalized_name)
-            raise HTTPException(status_code=409, detail="Username already taken")
+        logger.info(
+            "Registration attempt - email: %s, display_name: %s, derived_username: %s",
+            req.email,
+            normalized_name,
+            username_handle,
+        )
 
         # Step 1: Create Supabase Auth user first so profiles FK (profiles.id -> auth.users.id) is valid
         try:
@@ -95,13 +121,13 @@ async def register(req: RegisterRequest) -> APIResponse:
             await asyncio.to_thread(supabase_client.table("profiles").insert(
                 {
                     "id": user_id,
-                    "username": normalized_name,
-                    "display_name": req.display_name or normalized_name,
+                    "username": username_handle,
+                    "display_name": normalized_name,
                     "email_verified": False,
                     "verification_status": "pending",
                 }
             ).execute)
-            logger.info("Created pending profile for user_id: %s", user_id)
+            logger.info("Created pending profile for user_id: %s (username: %s)", user_id, username_handle)
         except Exception as e:
             logger.error("Failed to create profile: %s", str(e))
             # Best-effort cleanup for auth user if profile creation fails
@@ -109,8 +135,6 @@ async def register(req: RegisterRequest) -> APIResponse:
                 supabase_client.auth.admin.delete_user(user_id)
             except Exception as cleanup_error:
                 logger.error("Failed to cleanup auth user %s: %s", user_id, str(cleanup_error))
-            if "duplicate key" in str(e).lower() and "username" in str(e).lower():
-                raise HTTPException(status_code=409, detail="Username already taken") from e
             raise HTTPException(status_code=500, detail="Failed to create profile") from e
 
         # Step 3: Send OTP and create verification record

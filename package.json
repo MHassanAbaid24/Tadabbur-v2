@@ -4,6 +4,9 @@
   "private": true,
   "description": "Root orchestration for Tadabbur Frontend and Backend",
   "scripts": {
-    "dev": "npx concurrently -n \"frontend,backend\" -c \"cyan,green\" \"npm --prefix frontend run dev\" \"cd backend && ./venv/bin/uvicorn main:app --reload --port 8000\""
+    "dev": "npx concurrently -n \"frontend,backend\" -c \"cyan,green\" \"npm --prefix frontend run dev\" \"cd backend && ./venv/bin/uvicorn main:app --reload --port 8000\"",
+    "test": "npm run test --prefix frontend -- --run && cd backend && ./venv/bin/pytest tests/",
+    "typecheck": "npm run type-check --prefix frontend",
+    "lint": "npm run lint --prefix frontend"
   }
 }

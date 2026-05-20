@@ -13,6 +13,14 @@ export default function QFCallback() {
   useEffect(() => {
     const code = searchParams.get('code')
     const state = searchParams.get('state')
+    const urlError = searchParams.get('error')
+    const errorDesc = searchParams.get('error_description')
+
+    if (urlError) {
+      setError(`${urlError}: ${errorDesc || 'OIDC Authorization failed'}`)
+      setIsLoading(false)
+      return
+    }
 
     if (!code || !state) {
       setError('Missing authorization code or state parameter')

@@ -20,14 +20,6 @@ const DEFAULT_PROMPT_1 = 'What does this ayah mean to you, right now, in your li
 const DEFAULT_PROMPT_2 = 'What is one thing you will do differently today because of this ayah?'
 const UNSUPPORTED_DICTATION_MESSAGE = 'Mic dictation unavailable in this browser. Typing still works.'
 
-const REFLECTION_WAITING_MESSAGES = [
-  'Pondering the depth of this Ayah...',
-  'Calming the mind to connect with the word of Allah...',
-  'Seeking wisdom and personal guidance...',
-  'Preparing a bespoke reflective prompt for you...',
-  "Open your heart to the Quran's message..."
-]
-
 const MOOD_OPTIONS: Array<{ value: Mood; label: string; emoji: string }> = [
   { value: 'supplication', label: 'In supplication', emoji: '🤲' },
   { value: 'moved', label: 'Moved to tears', emoji: '😢' },
@@ -69,17 +61,6 @@ export default function ReflectionForm({
   const [dynamicPrompt1, setDynamicPrompt1] = useState<string | null>(null)
   const [dynamicPrompt2, setDynamicPrompt2] = useState<string | null>(null)
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false)
-  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
-
-  useEffect(() => {
-    if (!isLoadingPrompts) return
-
-    const interval = setInterval(() => {
-      setLoadingMessageIndex((prev) => (prev + 1) % REFLECTION_WAITING_MESSAGES.length)
-    }, 2500)
-
-    return () => clearInterval(interval)
-  }, [isLoadingPrompts])
 
   useEffect(() => {
     // If prompts are passed down as props, do not fetch
@@ -229,7 +210,7 @@ export default function ReflectionForm({
             {isLoadingPrompts ? (
               <span className="flex items-center gap-2 text-gold animate-pulse italic">
                 <Loader2 size={13} className="animate-spin text-gold shrink-0" />
-                <span>{REFLECTION_WAITING_MESSAGES[loadingMessageIndex]}</span>
+                <span>Fetching the question for you to ponder...</span>
               </span>
             ) : (
               displayPrompt1
@@ -286,7 +267,7 @@ export default function ReflectionForm({
             {isLoadingPrompts ? (
               <span className="flex items-center gap-2 text-gold animate-pulse italic">
                 <Loader2 size={13} className="animate-spin text-gold shrink-0" />
-                <span>Formulating actionable goal...</span>
+                <span>Fetching the commitment for you to act on...</span>
               </span>
             ) : (
               displayPrompt2

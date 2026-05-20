@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Modal from '../components/ui/Modal'
 import ReflectionForm from '../components/reflection/ReflectionForm'
 import TafsirDrawer from '../components/verse/TafsirDrawer'
-import { verse } from '../lib/api'
 
 const VerseCollapsible = ({ verse }: { verse: any }) => {
   const [showAyah, setShowAyah] = useState(false)
@@ -83,7 +82,10 @@ export default function Explore() {
     isLoadingVerses, 
     fetchVersesByChapter,
     hasMoreVerses,
-    nextVersePage
+    nextVersePage,
+    getAudioUrl,
+    getTafsir,
+    isRevalidating
   } = useVerseStore()
 
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null)
@@ -204,8 +206,6 @@ export default function Explore() {
 
   const handleChapterClick = (chapterId: number) => {
     setSelectedChapter(chapterId)
-    // Clear list instantly to prevent flash of old verses
-    useVerseStore.setState({ versesList: [], hasMoreVerses: false, nextVersePage: 1, totalVerses: 0 })
     fetchVersesByChapter(chapterId)
   }
 
@@ -213,8 +213,8 @@ export default function Explore() {
     setTafsirVerseKey(verseKey)
     setIsLoadingTafsir(true)
     try {
-      const response = await verse.getTafsir(verseKey)
-      setTafsirContent(response.data.tafsir)
+      const content = await getTafsir(verseKey)
+      setTafsirContent(content)
     } catch (error) {
       console.error('Failed to fetch tafsir:', error)
       setTafsirContent('Failed to load tafsir. Please try again.')
@@ -252,9 +252,8 @@ export default function Explore() {
 
     try {
       setIsLoadingAudio(verseKey)
-      // Fetch audio url from API
-      const response = await verse.getAudio(verseKey)
-      const audioUrl = response.data.audio_url
+      // Fetch audio url using the cached getAudioUrl from the store
+      const audioUrl = await getAudioUrl(verseKey)
 
       if (!audioUrl) {
         throw new Error('Audio URL is empty')
@@ -483,8 +482,14 @@ export default function Explore() {
                           {currentChapter?.verses_count} Verses • {currentChapter?.revelation_place}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end gap-1.5">
                         <p className="text-4xl font-scheherazade text-gold-light" dir="rtl">{currentChapter?.name_arabic}</p>
+                        {isRevalidating && (
+                          <div className="flex items-center gap-1.5 text-[0.6rem] font-cinzel text-gold-light/75 tracking-[0.1em] uppercase animate-pulse">
+                            <Loader2 size={10} className="animate-spin" />
+                            <span>Syncing...</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     {/* Abstract decoration */}

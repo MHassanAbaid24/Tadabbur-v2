@@ -19,66 +19,12 @@ const MOOD_EMOJI: Record<string, string> = {
 
 export default function CircleFeed({ items, isLoading, onLike }: CircleFeedProps) {
   const navigate = useNavigate()
-  const [likedIds, setLikedIds] = useState<Set<string>>(() => {
-    const initialLiked = new Set<string>();
-    items.forEach(item => {
-      if (item.is_liked) initialLiked.add(item.reflection_id);
-    });
-    return initialLiked;
-  });
-  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set())
 
-  // update likedIds when items change (e.g. initial load vs refetch)
-  useEffect(() => {
-    setLikedIds(() => {
-      const next = new Set<string>();
-      items.forEach(item => {
-        if (item.is_liked) next.add(item.reflection_id);
-      });
-      return next;
-    });
-  }, [items]);
-
-
-  const handleLike = async (reflectionId: string) => {
-    if (loadingIds.has(reflectionId)) return;
-    
-    setLoadingIds((prev) => new Set(prev).add(reflectionId));
-    const isUnlike = likedIds.has(reflectionId);
-    
-    try {
-      if (isUnlike) {
-        setLikedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(reflectionId);
-          return next;
-        });
-      } else {
-        setLikedIds((prev) => new Set(prev).add(reflectionId));
-      }
-      
-      if (onLike) {
-        try {
-          await onLike(reflectionId, isUnlike);
-        } catch (e) {
-          // Revert on error
-          if (isUnlike) {
-            setLikedIds((prev) => new Set(prev).add(reflectionId));
-          } else {
-            setLikedIds((prev) => {
-              const next = new Set(prev);
-              next.delete(reflectionId);
-              return next;
-            });
-          }
-        }
-      }
-    } finally {
-      setLoadingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(reflectionId);
-        return next;
-      });
+  const handleLike = (reflectionId: string) => {
+    const item = items.find((i) => i.reflection_id === reflectionId)
+    if (!item) return
+    if (onLike) {
+      onLike(reflectionId, !!item.is_liked)
     }
   }
 
@@ -209,20 +155,17 @@ export default function CircleFeed({ items, isLoading, onLike }: CircleFeedProps
 
             <button
               onClick={() => handleLike(item.reflection_id)}
-              disabled={loadingIds.has(item.reflection_id)}
-              className={`flex items-center gap-[6px] font-cinzel text-[0.7rem] tracking-[0.1em] uppercase ${likedIds.has(item.reflection_id) ? 'text-green' : 'text-muted hover:text-gold'} disabled:opacity-50 transition-colors`}
+              className={`flex items-center gap-[6px] font-cinzel text-[0.7rem] tracking-[0.1em] uppercase ${item.is_liked ? 'text-green' : 'text-muted hover:text-gold'} transition-colors`}
             >
               <Heart
                 size={15}
-                className={likedIds.has(item.reflection_id) ? 'fill-green' : ''}
+                className={item.is_liked ? 'fill-green' : ''}
               />
               <div className="flex items-center gap-1">
                 {item.likes_count && item.likes_count > 0 ? (
-                  <span className="font-sans font-medium">{likedIds.has(item.reflection_id) && !item.is_liked ? item.likes_count + 1 : !likedIds.has(item.reflection_id) && item.is_liked ? item.likes_count - 1 : item.likes_count}</span>
-                ) : (
-                  likedIds.has(item.reflection_id) && !item.is_liked ? <span className="font-sans font-medium">1</span> : null
-                )}
-                <span className="hidden sm:inline">{likedIds.has(item.reflection_id) ? 'Liked' : 'Like'}</span>
+                  <span className="font-sans font-medium">{item.likes_count}</span>
+                ) : null}
+                <span className="hidden sm:inline">{item.is_liked ? 'Liked' : 'Like'}</span>
               </div>
             </button>
           </div>

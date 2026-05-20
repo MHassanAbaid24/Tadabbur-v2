@@ -51,7 +51,8 @@ export default function Circle() {
     lastFeedFetchedAt,
     error: storeError, 
     fetchMyCircle, 
-    fetchCircleFeed 
+    fetchCircleFeed,
+    toggleLike
   } = useCircleStore()
 
   const [joinCode, setJoinCode] = useState('')
@@ -77,16 +78,8 @@ export default function Circle() {
   }, [notice, navigate, location.pathname])
 
 
-  const handleLike = async (reflectionId: string, isUnlike: boolean) => {
-    try {
-      const endpoint = isUnlike ? `/api/circle/unlike/${reflectionId}` : `/api/circle/like/${reflectionId}`;
-      await api.post(endpoint)
-      // Refresh feed after like to be safe (or we could optimistically update store)
-      fetchCircleFeed(true)
-    } catch (err) {
-      console.error('Failed to update like status:', err)
-      throw err;
-    }
+  const handleLike = (reflectionId: string) => {
+    toggleLike(reflectionId)
   }
 
   const handleJoin = async () => {

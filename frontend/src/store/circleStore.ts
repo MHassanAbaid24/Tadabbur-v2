@@ -20,6 +20,7 @@ interface CircleStore {
   error: string | null
   lastCircleFetchedAt: number | null
   lastFeedFetchedAt: number | null
+  pendingLikes: Record<string, number>
   fetchMyCircle: (force?: boolean) => Promise<void>
   fetchCircleFeed: (force?: boolean) => Promise<void>
   fetchMembers: () => Promise<void>
@@ -27,6 +28,7 @@ interface CircleStore {
   demoteAdmin: (userId: string) => Promise<void>
   removeMember: (userId: string) => Promise<void>
   likeReflection: (reflectionId: string) => Promise<void>
+  toggleLike: (reflectionId: string) => Promise<void>
 }
 
 const CIRCLE_STALE_MS = 5 * 60 * 1000 // 5 minutes
@@ -41,6 +43,7 @@ export const useCircleStore = create<CircleStore>((set, get) => ({
   error: null,
   lastCircleFetchedAt: null,
   lastFeedFetchedAt: null,
+  pendingLikes: {},
 
   fetchMyCircle: async (force = false) => {
     const state = get()
@@ -170,6 +173,70 @@ export const useCircleStore = create<CircleStore>((set, get) => ({
       await api.post(`/api/circle/like/${reflectionId}`)
     } catch (err) {
       console.error('Failed to like reflection:', err)
+    }
+  },
+
+  toggleLike: async (reflectionId: string) => {
+    const { feed, pendingLikes } = get()
+    const targetItem = feed.find((item) => item.reflection_id === reflectionId)
+    if (!targetItem) return
+
+    // Capture snapshot of this item's current state
+    const snapshot = {
+      is_liked: !!targetItem.is_liked,
+      likes_count: targetItem.likes_count ?? 0,
+    }
+
+    const nextIsLiked = !snapshot.is_liked
+    const nextLikesCount = nextIsLiked
+      ? snapshot.likes_count + 1
+      : Math.max(0, snapshot.likes_count - 1)
+
+    // Increment request counter
+    const currentPending = pendingLikes[reflectionId] ?? 0
+    const nextPendingLikes = { ...pendingLikes, [reflectionId]: currentPending + 1 }
+
+    // Update state immediately (optimistic)
+    set({
+      feed: feed.map((item) =>
+        item.reflection_id === reflectionId
+          ? { ...item, is_liked: nextIsLiked, likes_count: nextLikesCount }
+          : item
+      ),
+      pendingLikes: nextPendingLikes,
+    })
+
+    try {
+      const endpoint = snapshot.is_liked
+        ? `/api/circle/unlike/${reflectionId}`
+        : `/api/circle/like/${reflectionId}`
+      await api.post(endpoint)
+    } catch (err) {
+      console.error('Failed to toggle like:', err)
+      // Check if this was the latest in-flight request
+      const currentStoreState = get()
+      const activePending = currentStoreState.pendingLikes[reflectionId] ?? 1
+      if (activePending === 1) {
+        // Rollback
+        set({
+          feed: currentStoreState.feed.map((item) =>
+            item.reflection_id === reflectionId
+              ? { ...item, is_liked: snapshot.is_liked, likes_count: snapshot.likes_count }
+              : item
+          ),
+        })
+      }
+    } finally {
+      // Decrement pending request count
+      const finalState = get()
+      const currentPendingCount = finalState.pendingLikes[reflectionId] ?? 1
+      const finalPendingLikes = { ...finalState.pendingLikes }
+      if (currentPendingCount <= 1) {
+        delete finalPendingLikes[reflectionId]
+      } else {
+        finalPendingLikes[reflectionId] = currentPendingCount - 1
+      }
+      set({ pendingLikes: finalPendingLikes })
     }
   },
 }))

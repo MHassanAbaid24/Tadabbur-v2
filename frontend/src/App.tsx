@@ -70,13 +70,39 @@ function OnboardingRoute({ element }: ProtectedRouteProps) {
 }
 
 export default function App() {
-  const { loadUser } = useAuthStore()
+  const { loadUser, isAuthenticated, user } = useAuthStore()
   useEventStream()
 
   // Load user session on app mount
   useEffect(() => {
     loadUser()
   }, [loadUser])
+
+  // Idle background preloading for authenticated onboarded users
+  useEffect(() => {
+    if (isAuthenticated && user?.onboarded) {
+      const preloadPages = () => {
+        const pages = [
+          () => import('./pages/Journal'),
+          () => import('./pages/Circle'),
+          () => import('./pages/CircleNew'),
+          () => import('./pages/CircleJoin'),
+          () => import('./pages/Progress'),
+          () => import('./pages/ProfilePage'),
+          () => import('./pages/Explore'),
+        ]
+        pages.forEach((load) => {
+          load().catch((err) => console.warn('Preload page chunk failed:', err))
+        })
+      }
+
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(() => preloadPages())
+      } else {
+        setTimeout(preloadPages, 2000)
+      }
+    }
+  }, [isAuthenticated, user?.onboarded])
 
   return (
     <Router>

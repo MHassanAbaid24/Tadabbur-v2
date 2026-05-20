@@ -19,6 +19,8 @@ const CircleJoin = lazy(() => import('./pages/CircleJoin'))
 const Progress = lazy(() => import('./pages/Progress'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const Explore = lazy(() => import('./pages/Explore'))
+const TermsOfService = lazy(() => import('./pages/TermsOfService'))
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 
 // Shared loading spinner for Suspense fallback
 function PageLoader() {
@@ -134,8 +136,9 @@ export default function App() {
           {/* Public routes */}
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/qf-callback" element={<QFCallback />} />
-
           <Route path="/" element={<Landing />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
 
           <Route
             path="/onboarding"

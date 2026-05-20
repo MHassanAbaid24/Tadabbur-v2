@@ -518,7 +518,12 @@ export default function Landing() {
             <span className="font-cinzel font-medium text-lg tracking-[0.06em] text-white">Tadabbur</span>
             <span className="font-scheherazade text-lg text-gold leading-none" lang="ar" dir="rtl">تدبّر</span>
           </div>
-          
+
+          <div className="flex items-center gap-6 font-cinzel text-xs tracking-[0.08em] uppercase">
+            <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+          </div>
+
           <p className="font-cormorant text-sm text-center sm:text-right">
             © 2026 Tadabbur. Built for the Quran Foundation Hackathon 2026.
           </p>

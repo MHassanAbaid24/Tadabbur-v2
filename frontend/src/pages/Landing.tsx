@@ -60,7 +60,7 @@ export default function Landing() {
       {/* ─── STICKY HEADER ─── */}
       <nav className="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-border transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-baseline gap-2 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="flex items-baseline gap-2 cursor-pointer" onClick={() => navigate('/home')}>
             <span className="font-cinzel font-medium text-xl sm:text-2xl tracking-[0.06em] text-green">Tadabbur</span>
             <span className="font-scheherazade text-xl sm:text-2xl text-gold leading-none" lang="ar" dir="rtl">تدبّر</span>
           </div>

@@ -16,7 +16,7 @@ export default function Navbar() {
   return (
     <nav className="hidden md:block sticky top-0 z-50 bg-cream/92 backdrop-blur-md border-b border-border">
       <div className="max-w-[1100px] mx-auto px-8 h-16 flex items-center justify-between">
-        <div className="flex items-baseline gap-2.5">
+        <Link to="/home" className="flex items-baseline gap-2.5 hover:opacity-80 transition-opacity cursor-pointer">
           <span className="font-cinzel font-medium text-[1.35rem] tracking-[0.06em] text-green">Tadabbur</span>
           <span
             className="font-scheherazade text-[1.4rem] text-gold leading-none"
@@ -25,7 +25,7 @@ export default function Navbar() {
           >
             تدبّر
           </span>
-        </div>
+        </Link>
 
         <ul className="flex items-center gap-8 list-none m-0 p-0">
           {navLinks.map((link) => (

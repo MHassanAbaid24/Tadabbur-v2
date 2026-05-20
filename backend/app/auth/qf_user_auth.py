@@ -13,7 +13,15 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 # QF OAuth2 scopes for User APIs
-QF_USER_SCOPES = "streak activity_day note room post goal reading_session"
+QF_USER_SCOPES = (
+    "streaks:read streaks:write "
+    "activity_days:read activity_days:write "
+    "notes:read notes:write "
+    "rooms:read rooms:write "
+    "posts:read posts:write "
+    "goals:read goals:write "
+    "reading_sessions:read reading_sessions:write"
+)
 
 
 def get_qf_authorization_url(state: str) -> str:

@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore'
 import { useEventStream } from './hooks/useEventStream'
 
 // Lazy-loaded page components — only loaded when navigated to
+const Landing = lazy(() => import('./pages/Landing'))
 const Auth = lazy(() => import('./pages/Auth'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
 const QFCallback = lazy(() => import('./pages/QFCallback'))
@@ -85,11 +86,7 @@ export default function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/qf-callback" element={<QFCallback />} />
 
-          {/* Protected routes - require auth + onboarding */}
-          <Route
-            path="/"
-            element={<ProtectedRoute element={<Navigate to="/home" replace />} />}
-          />
+          <Route path="/" element={<Landing />} />
 
           <Route
             path="/onboarding"

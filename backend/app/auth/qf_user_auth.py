@@ -1,12 +1,68 @@
 """QF User OAuth2 Authorization Code flow for per-user API access."""
 
 import asyncio
+import base64
+import hashlib
+import hmac
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Any, Dict
 
 import httpx
 from fastapi import HTTPException
+
+
+def encrypt_token(plaintext: str, secret_key: str) -> str:
+    """
+    Encrypt a string token using an authenticated SHA-256 CTR stream cipher.
+    """
+    iv = os.urandom(16)
+    key = hashlib.sha256(secret_key.encode()).digest()
+    plaintext_bytes = plaintext.encode('utf-8')
+    ciphertext = bytearray()
+    counter = 0
+    for i in range(0, len(plaintext_bytes), 32):
+        counter_bytes = counter.to_bytes(4, 'big')
+        keystream_block = hmac.new(key, iv + counter_bytes, hashlib.sha256).digest()
+        chunk = plaintext_bytes[i:i+32]
+        for b, k in zip(chunk, keystream_block):
+            ciphertext.append(b ^ k)
+        counter += 1
+    mac = hmac.new(key, iv + ciphertext, hashlib.sha256).digest()
+    combined = iv + mac + ciphertext
+    return base64.urlsafe_b64encode(combined).decode('utf-8')
+
+
+def decrypt_token(encrypted_str: str, secret_key: str) -> str:
+    """
+    Decrypt an authenticated CTR-mode stream ciphertext string.
+    Gracefully returns the original string if decryption fails (backward compatibility).
+    """
+    try:
+        combined = base64.urlsafe_b64decode(encrypted_str.encode('utf-8'))
+        if len(combined) < 48:  # 16 bytes IV + 32 bytes HMAC
+            return encrypted_str
+        iv = combined[:16]
+        mac = combined[16:48]
+        ciphertext = combined[48:]
+        key = hashlib.sha256(secret_key.encode()).digest()
+        expected_mac = hmac.new(key, iv + ciphertext, hashlib.sha256).digest()
+        if not hmac.compare_digest(mac, expected_mac):
+            return encrypted_str
+        plaintext_bytes = bytearray()
+        counter = 0
+        for i in range(0, len(ciphertext), 32):
+            counter_bytes = counter.to_bytes(4, 'big')
+            keystream_block = hmac.new(key, iv + counter_bytes, hashlib.sha256).digest()
+            chunk = ciphertext[i:i+32]
+            for c, k in zip(chunk, keystream_block):
+                plaintext_bytes.append(c ^ k)
+            counter += 1
+        return plaintext_bytes.decode('utf-8')
+    except Exception:
+        return encrypted_str
+
 
 from app.config import settings
 
@@ -114,13 +170,16 @@ async def store_user_qf_token(user_id: str, token_data: Dict[str, Any]) -> None:
         expires_in = token_data.get("expires_in", 3600)
         expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
 
+        # Encrypt token before saving to Supabase
+        encrypted_token = encrypt_token(access_token, settings.jwt_secret)
+
         # Use the sync client because we are in a simple script or the async one is being problematic
         # But wait, we want async. Let's fix the import if needed.
         from app.db.supabase import supabase_client
         await asyncio.to_thread(
             lambda: supabase_client.table("profiles").update(
                 {
-                    "qf_access_token": access_token,
+                    "qf_access_token": encrypted_token,
                     "qf_token_expires_at": expires_at.isoformat(),
                 }
             ).eq("id", user_id).execute()
@@ -167,16 +226,19 @@ async def get_user_qf_token(user_id: str) -> str:
             raise HTTPException(status_code=404, detail="Profile not found")
 
         profile = profile_response.data[0]
-        access_token = profile.get("qf_access_token")
+        encrypted_token = profile.get("qf_access_token")
         expires_at = profile.get("qf_token_expires_at")
 
         # Check if token is set and not expired
-        if not access_token:
+        if not encrypted_token:
             logger.warning("QF account not connected for user: %s", user_id)
             raise HTTPException(
                 status_code=403,
                 detail="QF_ACCOUNT_NOT_CONNECTED: Please connect your Quran.com account to use this feature.",
             )
+
+        # Decrypt token upon retrieval
+        access_token = decrypt_token(encrypted_token, settings.jwt_secret)
 
         if expires_at:
             expiry_dt = datetime.fromisoformat(expires_at)

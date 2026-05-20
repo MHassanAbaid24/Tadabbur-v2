@@ -210,3 +210,29 @@ async def test_get_user_qf_token_valid() -> None:
             token = await get_user_qf_token(user_id)
 
             assert token == valid_token
+
+
+def test_token_encryption_decryption_roundtrip() -> None:
+    """Test that token encryption and decryption yield the exact original token."""
+    from app.auth.qf_user_auth import encrypt_token, decrypt_token
+    
+    secret_key = "test_secret_key_12345"
+    original_token = "qf_oauth_access_token_abcdef123456"
+    
+    encrypted = encrypt_token(original_token, secret_key)
+    assert encrypted != original_token
+    assert len(encrypted) > len(original_token)
+    
+    decrypted = decrypt_token(encrypted, secret_key)
+    assert decrypted == original_token
+
+
+def test_token_decryption_plaintext_fallback() -> None:
+    """Test that decrypt_token gracefully falls back to raw string on legacy/unencrypted data."""
+    from app.auth.qf_user_auth import decrypt_token
+    
+    secret_key = "test_secret_key_12345"
+    legacy_plaintext_token = "qf_oauth_access_token_unencrypted_123"
+    
+    decrypted = decrypt_token(legacy_plaintext_token, secret_key)
+    assert decrypted == legacy_plaintext_token

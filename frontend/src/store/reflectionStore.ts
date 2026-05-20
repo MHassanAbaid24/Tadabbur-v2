@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { Reflection, ReflectionSubmitRequest } from '../types/reflection'
 import api, { generateReflectionInsight } from '../lib/api'
 
@@ -15,12 +16,15 @@ interface ReflectionStore {
   submitReflection: (data: ReflectionSubmitRequest) => Promise<Reflection>
   fetchHistory: (force?: boolean) => Promise<void>
   generateInsight: (reflectionId: string) => Promise<void>
+  checkRollover: () => void
 }
 
 const TODAY_STALE_MS = 2 * 60 * 1000 // 2 minutes
 const HISTORY_STALE_MS = 5 * 60 * 1000 // 5 minutes
 
-export const useReflectionStore = create<ReflectionStore>((set, get) => ({
+export const useReflectionStore = create<ReflectionStore>()(
+  persist(
+    (set, get) => ({
   todayReflection: null,
   history: [],
   isSubmitting: false,
@@ -142,4 +146,31 @@ export const useReflectionStore = create<ReflectionStore>((set, get) => ({
       })
     }
   },
-}))
+
+  checkRollover: () => {
+    const { lastTodayFetchedAt } = get()
+    if (lastTodayFetchedAt) {
+      const lastDate = new Date(lastTodayFetchedAt).toDateString()
+      const todayDate = new Date().toDateString()
+      if (lastDate !== todayDate) {
+        set({ todayReflection: null, lastTodayFetchedAt: null })
+      }
+    }
+  },
+    }),
+    {
+      name: 'tadabbur-reflection-store',
+      partialize: (state) => ({
+        todayReflection: state.todayReflection,
+        history: state.history,
+        lastTodayFetchedAt: state.lastTodayFetchedAt,
+        lastHistoryFetchedAt: state.lastHistoryFetchedAt,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.checkRollover()
+        }
+      },
+    }
+  )
+)

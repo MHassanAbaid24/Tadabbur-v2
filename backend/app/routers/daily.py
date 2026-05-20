@@ -88,9 +88,7 @@ async def _resolve_daily_prompts(day: str, verse_key: str, verse_context: Dict[s
 
 @router.get("")
 @router.get("/verse")
-async def get_daily_verse_route(
-    current_user: Dict[str, Any] = Depends(get_current_user),
-) -> APIResponse:
+async def get_daily_verse_route() -> APIResponse:
     today = date.today().isoformat()
     verse_key = get_today_verse_key()
     verse_context = await get_verse_with_full_context(verse_key)

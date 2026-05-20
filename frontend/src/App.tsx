@@ -2,6 +2,9 @@ import React, { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useEventStream } from './hooks/useEventStream'
+import { useVerseStore } from './store/verseStore'
+import { useReflectionStore } from './store/reflectionStore'
+import { useProgressStore } from './store/progressStore'
 
 // Lazy-loaded page components — only loaded when navigated to
 const Landing = lazy(() => import('./pages/Landing'))
@@ -77,6 +80,26 @@ export default function App() {
   useEffect(() => {
     loadUser()
   }, [loadUser])
+
+  // Early prefetching for public daily verse (on boot)
+  useEffect(() => {
+    useVerseStore.getState().fetchTodayVerse().catch((err) => {
+      console.warn("Pre-fetch today's verse failed:", err)
+    })
+  }, [])
+
+  // Early prefetching for authed user resources
+  useEffect(() => {
+    if (isAuthenticated) {
+      useReflectionStore.getState().fetchTodayReflection().catch((err) => {
+        console.warn("Pre-fetch today's reflection failed:", err)
+      })
+      useProgressStore.getState().fetchSummary().catch((err) => {
+        console.warn("Pre-fetch progress summary failed:", err)
+      })
+    }
+  }, [isAuthenticated])
+
 
   // Idle background preloading for authenticated onboarded users
   useEffect(() => {

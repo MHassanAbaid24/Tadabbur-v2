@@ -116,4 +116,36 @@ describe('verseStore - central caching and revalidation', () => {
     expect(url2).toBe('http://cdn/audio.mp3')
     expect(api.get).not.toHaveBeenCalled()
   })
+
+  describe('Zustand Persist & Rollover Invalidation', () => {
+    it('should clear verse and lastFetchedAt if checkRollover detects a different day', () => {
+      const yesterday = Date.now() - 24 * 60 * 60 * 1000
+      useVerseStore.setState({
+        verse: { verse_key: '2:255' } as any,
+        lastFetchedAt: yesterday,
+      } as any)
+
+      // @ts-ignore
+      useVerseStore.getState().checkRollover()
+
+      expect(useVerseStore.getState().verse).toBeNull()
+      expect(useVerseStore.getState().lastFetchedAt).toBeNull()
+    })
+
+    it('should keep verse intact if checkRollover is called on the same day', () => {
+      const today = Date.now()
+      const mockVerse = { verse_key: '2:255' } as any
+      useVerseStore.setState({
+        verse: mockVerse,
+        lastFetchedAt: today,
+      } as any)
+
+      // @ts-ignore
+      useVerseStore.getState().checkRollover()
+
+      expect(useVerseStore.getState().verse).toBe(mockVerse)
+      expect(useVerseStore.getState().lastFetchedAt).toBe(today)
+    })
+  })
 })
+

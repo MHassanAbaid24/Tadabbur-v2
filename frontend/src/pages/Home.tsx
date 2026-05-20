@@ -9,15 +9,65 @@ import StreakBadge from '../components/progress/StreakBadge'
 import PageWrapper from '../components/layout/PageWrapper'
 import { Link } from 'react-router-dom'
 
-export default function Home() {
-  const { verse, isLoading: verseLoading, error: verseError } = useVerseStore()
-  const {
-    todayReflection,
-    isLoading: reflectionLoading,
-  } = useReflectionStore()
-  const { summary, isLoading: progressLoading } = useProgressStore()
+function VerseCardSkeleton() {
+  return (
+    <div className="bg-white border border-border rounded-[4px] p-0 overflow-hidden shadow-[0_4px_40px_rgba(184,146,42,0.08),0_1px_4px_rgba(0,0,0,0.06)] mb-10 animate-pulse">
+      {/* Gold ornamental top strip */}
+      <div className="bg-green/10 py-[0.85rem] px-3 md:px-8 flex items-center justify-center gap-4 text-center">
+        <div className="h-4 bg-green/20 rounded w-1/3" />
+      </div>
+      <div className="pt-10 px-5 md:px-10 pb-8 space-y-6">
+        <div className="h-20 bg-gray-200 rounded" />
+        <div className="h-10 bg-gray-100 rounded w-5/6" />
+        <div className="h-8 bg-gold-light/10 rounded-full w-24" />
+      </div>
+    </div>
+  )
+}
 
-  const [formSubmitted, setFormSubmitted] = useState(false)
+function ReflectionFormSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse mt-6">
+      <div className="space-y-2">
+        <div className="h-4 bg-gray-200 rounded w-1/2" />
+        <div className="h-28 bg-gray-50 border border-border rounded-[4px]" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 bg-gray-200 rounded w-1/2" />
+        <div className="h-28 bg-gray-50 border border-border rounded-[4px]" />
+      </div>
+      <div className="h-11 bg-gold-light/20 rounded-full" />
+    </div>
+  )
+}
+
+function ProgressSummarySkeleton() {
+  return (
+    <div className="bg-white border border-border rounded-[4px] p-6 lg:px-8 mt-10 grid grid-cols-2 sm:grid-cols-3 gap-5 items-center animate-pulse">
+      <div>
+        <div className="h-3 bg-gray-150 rounded w-2/3 mb-2" />
+        <div className="h-6 bg-gold-light/30 rounded w-1/2" />
+      </div>
+      <div>
+        <div className="h-3 bg-gray-150 rounded w-2/3 mb-2" />
+        <div className="h-6 bg-green/15 rounded w-1/2" />
+      </div>
+      <div className="col-span-2 sm:col-span-1">
+        <div className="h-3 bg-gray-150 rounded w-2/3 mb-2" />
+        <div className="h-6 bg-gray-200 rounded w-1/2" />
+      </div>
+    </div>
+  )
+}
+
+export default function Home() {
+  const { verse, error: verseError } = useVerseStore()
+  const { todayReflection } = useReflectionStore()
+  const { summary } = useProgressStore()
+
+  // Track if a form was submitted during this session to refresh context if needed
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setFormSubmitted] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,37 +80,7 @@ export default function Home() {
     fetchData()
   }, [])
 
-  const isLoading = verseLoading || reflectionLoading || progressLoading
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white pt-20 pb-20 px-4">
-        <div className="max-w-lg mx-auto space-y-6">
-          {/* Skeleton: Heading with streak */}
-          <div className="flex items-center justify-between">
-            <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse" />
-            <div className="h-8 w-16 bg-gold-200 rounded-full animate-pulse" />
-          </div>
-
-          {/* Skeleton: Verse card */}
-          <div className="bg-white rounded-2xl border border-gold-500/20 p-6 space-y-4">
-            <div className="h-24 bg-gray-200 rounded animate-pulse" />
-            <div className="h-12 bg-gray-100 rounded animate-pulse" />
-            <div className="h-10 bg-gray-100 rounded animate-pulse" />
-          </div>
-
-          {/* Skeleton: Form fields */}
-          <div className="space-y-4">
-            <div className="h-28 bg-gray-100 rounded-lg animate-pulse" />
-            <div className="h-28 bg-gray-100 rounded-lg animate-pulse" />
-            <div className="h-12 bg-gold-200 rounded-lg animate-pulse" />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (verseError || !verse) {
+  if (verseError && !verse) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-cream-50 to-white flex items-center justify-center p-4">
         <div className="max-w-lg w-full text-center">
@@ -99,13 +119,17 @@ export default function Home() {
       {/* Main Content */}
       <div className="pb-6">
         {/* Verse Card */}
-        <VerseCard
-          verseKey={verse.verse_key}
-          textUthmani={verse.text_uthmani}
-          translation={verse.translation}
-          tafsir={verse.tafsir}
-          audioUrl={verse.audio_url}
-        />
+        {verse ? (
+          <VerseCard
+            verseKey={verse.verse_key}
+            textUthmani={verse.text_uthmani}
+            translation={verse.translation}
+            tafsir={verse.tafsir}
+            audioUrl={verse.audio_url}
+          />
+        ) : (
+          <VerseCardSkeleton />
+        )}
 
         {/* Reflection Section */}
         <div className="fade-up-delay-1">
@@ -135,13 +159,17 @@ export default function Home() {
               <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-border"></div>
             </div>
             
-            <ReflectionForm
-              verseKey={verse.verse_key}
-              prompt1Label={verse.prompt_1}
-              prompt2Label={verse.prompt_2}
-              isHomePage={true}
-              onSubmitted={handleReflectionSubmitted}
-            />
+            {verse ? (
+              <ReflectionForm
+                verseKey={verse.verse_key}
+                prompt1Label={verse.prompt_1}
+                prompt2Label={verse.prompt_2}
+                isHomePage={true}
+                onSubmitted={handleReflectionSubmitted}
+              />
+            ) : (
+              <ReflectionFormSkeleton />
+            )}
             {/* Tip */}
             <p className="text-[0.85rem] text-muted text-center italic mt-6 mb-10">
               Your reflection is private by default.
@@ -150,7 +178,7 @@ export default function Home() {
         </div>
 
         {/* Progress Summary Card */}
-        {summary && (
+        {summary ? (
           <div className="bg-white border border-border rounded-[4px] p-6 lg:px-8 mt-10 grid grid-cols-2 sm:grid-cols-3 gap-5 items-center fade-up-delay-2">
             <div>
               <p className="font-cinzel text-[0.62rem] tracking-[0.12em] uppercase text-muted mb-1">Longest Streak</p>
@@ -175,6 +203,8 @@ export default function Home() {
               View full progress →
             </Link>
           </div>
+        ) : (
+          <ProgressSummarySkeleton />
         )}
       </div>
     </PageWrapper>

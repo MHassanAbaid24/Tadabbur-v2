@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import api from '../lib/api'
 import { getErrorMessage } from '../lib/errors'
 import { Chapter, Verse, VerseListItem } from '../types/verse'
@@ -30,11 +31,14 @@ interface VerseStore {
   fetchVersesByChapter: (chapterNumber: number, page?: number) => Promise<void>
   getAudioUrl: (verseKey: string) => Promise<string>
   getTafsir: (verseKey: string) => Promise<string>
+  checkRollover: () => void
 }
 
 const VERSE_STALE_MS = 5 * 60 * 1000 // 5 minutes — today's verse is the same all day
 
-export const useVerseStore = create<VerseStore>((set, get) => ({
+export const useVerseStore = create<VerseStore>()(
+  persist(
+    (set, get) => ({
   verse: null,
   isLoading: false,
   error: null,
@@ -212,4 +216,32 @@ export const useVerseStore = create<VerseStore>((set, get) => ({
     }))
     return content
   },
-}))
+
+  checkRollover: () => {
+    const { lastFetchedAt } = get()
+    if (lastFetchedAt) {
+      const lastDate = new Date(lastFetchedAt).toDateString()
+      const todayDate = new Date().toDateString()
+      if (lastDate !== todayDate) {
+        set({ verse: null, lastFetchedAt: null })
+      }
+    }
+  },
+    }),
+    {
+      name: 'tadabbur-verse-store',
+      partialize: (state) => ({
+        verse: state.verse,
+        lastFetchedAt: state.lastFetchedAt,
+        audioUrlCache: state.audioUrlCache,
+        tafsirCache: state.tafsirCache,
+        promptCache: state.promptCache,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.checkRollover()
+        }
+      },
+    }
+  )
+)

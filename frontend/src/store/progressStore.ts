@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import api from '../lib/api'
 
 export interface ProgressSummary {
@@ -33,7 +34,9 @@ interface ProgressStore {
 
 const PROGRESS_STALE_MS = 5 * 60 * 1000 // 5 minutes
 
-export const useProgressStore = create<ProgressStore>((set, get) => ({
+export const useProgressStore = create<ProgressStore>()(
+  persist(
+    (set, get) => ({
   summary: null,
   weeklyInsights: null,
   isLoading: false,
@@ -86,4 +89,14 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
       })
     }
   },
-}))
+    }),
+    {
+      name: 'tadabbur-progress-store',
+      partialize: (state) => ({
+        summary: state.summary,
+        weeklyInsights: state.weeklyInsights,
+        lastFetchedAt: state.lastFetchedAt,
+      }),
+    }
+  )
+)

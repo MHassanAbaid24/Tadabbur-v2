@@ -20,9 +20,14 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     backend_url: Optional[str] = None
     
-    # Gmail SMTP settings for OTP email verification
-    gmail_sender_email: str
-    gmail_app_password: str
+    # Gmail SMTP settings for OTP email verification (Legacy/Fallback)
+    gmail_sender_email: Optional[str] = None
+    gmail_app_password: Optional[str] = None
+    
+    # Brevo HTTP API settings for production OTP email verification
+    brevo_api_key: Optional[str] = None
+    brevo_sender_email: Optional[str] = None
+    
     otp_expiry_minutes: int = 10
     otp_max_resend_attempts: int = 3
     otp_resend_cooldown_minutes: int = 10

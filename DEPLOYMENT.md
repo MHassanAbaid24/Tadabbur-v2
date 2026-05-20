@@ -79,8 +79,10 @@ To store secrets safely without exposing them, navigate to **Settings ➡️ Var
 | `JWT_SECRET` | `your-random-64-character-jwt-key` | Random string to encrypt local JWT auth tokens |
 | `FRONTEND_URL` | `https://tadabbur.netlify.app` | **Your Netlify Frontend URL** (No trailing slash) |
 | `BACKEND_URL` | `https://yourusername-tadabbur-backend.hf.space` | **Your Hugging Face Space URL** (Details below) |
-| `GMAIL_SENDER_EMAIL` | `your-email@gmail.com` | Gmail address for sending verification OTPs |
-| `GMAIL_APP_PASSWORD` | `xxxx xxxx xxxx xxxx` | [Google App Password](https://myaccount.google.com/apppasswords) |
+| `BREVO_API_KEY` | `xkeysib-...` | **Recommended:** Brevo API Key (allows HTTPS email delivery on HF Spaces) |
+| `BREVO_SENDER_EMAIL` | `sender@example.com` | **Recommended:** Verified Sender Email in your Brevo Account |
+| `GMAIL_SENDER_EMAIL` | `your-email@gmail.com` | *Optional/Fallback:* Gmail address for sending verification OTPs |
+| `GMAIL_APP_PASSWORD` | `xxxx xxxx xxxx xxxx` | *Optional/Fallback:* [Google App Password](https://myaccount.google.com/apppasswords) |
 
 > [!TIP]
 > **How to derive your Hugging Face Space URL:**
@@ -120,5 +122,5 @@ Because user authentication relies on the secure Quran Foundation OIDC/OAuth2 fl
 Once deployed, perform these checks:
 1. **Health Endpoint**: Visit `https://yourusername-tadabbur-backend.hf.space/health` in your browser. It should return `{"status":"ok","version":"1.0.0"}`.
 2. **Page Refreshes**: Navigate to your Netlify URL, go to `/circle`, and hit refresh. The page should reload successfully (verifying the Netlify `_redirects` rule).
-3. **User Flow**: Register a new account. You should receive a verification OTP email instantly via Gmail SMTP.
+3. **User Flow**: Register a new account. You should receive a verification OTP email instantly via Brevo HTTP API (or Gmail SMTP).
 4. **AI Generation**: Answer a daily reflection and verify that the Gemini action suggestion appears as a `"💡 You might also consider..."` pop-up.

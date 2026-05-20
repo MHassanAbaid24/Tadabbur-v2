@@ -4,6 +4,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import httpx
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ GMAIL_SMTP_PORT = 587
 
 
 class EmailService:
-    """Service for sending emails via Gmail SMTP with App Passwords."""
+    """Service for sending emails via Brevo HTTP API (async) or Gmail SMTP (sync fallback)."""
 
     @staticmethod
     async def send_otp_email(recipient_email: str, otp_code: str) -> bool:
@@ -55,8 +56,17 @@ class EmailService:
             </html>
             """
 
+            # Route to Brevo HTTP API if configured (HTTPS Port 443 - not blocked on HF Spaces)
+            if settings.brevo_api_key and settings.brevo_sender_email:
+                return await EmailService._send_email_brevo(
+                    recipient_email=recipient_email,
+                    subject=subject,
+                    html_body=html_body,
+                )
+
+            # Fallback to Gmail SMTP if Brevo keys are not set
             return await asyncio.to_thread(
-                EmailService._send_email,
+                EmailService._send_email_smtp,
                 recipient_email=recipient_email,
                 subject=subject,
                 html_body=html_body,
@@ -134,8 +144,17 @@ class EmailService:
             </html>
             """
 
+            # Route to Brevo HTTP API if configured (HTTPS Port 443 - not blocked on HF Spaces)
+            if settings.brevo_api_key and settings.brevo_sender_email:
+                return await EmailService._send_email_brevo(
+                    recipient_email=recipient_email,
+                    subject=subject,
+                    html_body=html_body,
+                )
+
+            # Fallback to Gmail SMTP if Brevo keys are not set
             return await asyncio.to_thread(
-                EmailService._send_email,
+                EmailService._send_email_smtp,
                 recipient_email=recipient_email,
                 subject=subject,
                 html_body=html_body,
@@ -146,14 +165,63 @@ class EmailService:
             return False
 
     @staticmethod
-    def _send_email(
+    async def _send_email_brevo(
         recipient_email: str,
         subject: str,
         html_body: str,
     ) -> bool:
         """
-        Send email via Gmail SMTP.
+        Send email via Brevo HTTP API (Port 443 HTTPS).
+        This is stampede-safe, non-blocking, and bypassing serverless outbound port blocks.
         """
+        try:
+            url = "https://api.brevo.com/v3/smtp/email"
+            headers = {
+                "accept": "application/json",
+                "api-key": settings.brevo_api_key,
+                "content-type": "application/json",
+            }
+            payload = {
+                "sender": {
+                    "name": "Tadabbur",
+                    "email": settings.brevo_sender_email
+                },
+                "to": [
+                    {
+                        "email": recipient_email
+                    }
+                ],
+                "subject": subject,
+                "htmlContent": html_body
+            }
+
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.post(url, json=payload, headers=headers)
+
+            if response.status_code >= 400:
+                logger.error(f"Brevo API request failed: {response.status_code} - {response.text}")
+                return False
+
+            logger.info(f"Email sent successfully to {recipient_email} via Brevo HTTP API")
+            return True
+
+        except Exception as e:
+            logger.error(f"Unexpected error sending email via Brevo to {recipient_email}: {str(e)}")
+            return False
+
+    @staticmethod
+    def _send_email_smtp(
+        recipient_email: str,
+        subject: str,
+        html_body: str,
+    ) -> bool:
+        """
+        Send email via Gmail SMTP (Legacy Fallback).
+        """
+        if not settings.gmail_sender_email or not settings.gmail_app_password:
+            logger.error("Gmail SMTP configuration is incomplete. Skipping SMTP dispatch.")
+            return False
+
         try:
             # Create MIME message
             msg = MIMEMultipart("alternative")
@@ -175,7 +243,7 @@ class EmailService:
                     msg.as_string(),
                 )
 
-            logger.info(f"Email sent successfully to {recipient_email}")
+            logger.info(f"Email sent successfully to {recipient_email} via Gmail SMTP")
             return True
 
         except smtplib.SMTPAuthenticationError as e:
@@ -185,5 +253,5 @@ class EmailService:
             logger.error(f"SMTP error while sending email to {recipient_email}: {str(e)}")
             return False
         except Exception as e:
-            logger.error(f"Unexpected error sending email to {recipient_email}: {str(e)}")
+            logger.error(f"Unexpected error sending email to {recipient_email} via SMTP: {str(e)}")
             return False

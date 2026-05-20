@@ -139,6 +139,7 @@ export default function Home() {
               verseKey={verse.verse_key}
               prompt1Label={verse.prompt_1}
               prompt2Label={verse.prompt_2}
+              isHomePage={true}
               onSubmitted={handleReflectionSubmitted}
             />
             {/* Tip */}

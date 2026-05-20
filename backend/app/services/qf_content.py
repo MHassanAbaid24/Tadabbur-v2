@@ -283,19 +283,28 @@ async def get_chapters() -> list[Dict[str, Any]]:
     return data.get("chapters", [])
 
 
-async def get_verses_by_chapter(chapter_number: int) -> list[Dict[str, Any]]:
+async def get_verses_by_chapter(chapter_number: int, page: int = 1, per_page: int = 10) -> Dict[str, Any]:
     """
-    Fetch all verses for a chapter from QF Content API.
+    Fetch all verses for a chapter from QF Content API with pagination.
     Includes Uthmani text and default English translation.
     """
     url = f"{QF_CONTENT_BASE}/verses/by_chapter/{chapter_number}"
     params = {
         "translations": TRANSLATION_ID,
         "fields": "text_uthmani,translations",
+        "page": page,
+        "per_page": per_page,
     }
     
     data = await _qf_get(url, params)
     verses_raw = data.get("verses", [])
+    pagination = data.get("pagination", {
+        "per_page": per_page,
+        "current_page": page,
+        "next_page": None,
+        "total_pages": 1,
+        "total_records": len(verses_raw)
+    })
     
     # Format for frontend consumption
     formatted_verses = []
@@ -313,4 +322,7 @@ async def get_verses_by_chapter(chapter_number: int) -> list[Dict[str, Any]]:
             "translation": translation
         })
         
-    return formatted_verses
+    return {
+        "verses": formatted_verses,
+        "pagination": pagination
+    }

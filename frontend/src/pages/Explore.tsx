@@ -81,7 +81,9 @@ export default function Explore() {
     fetchChapters, 
     versesList, 
     isLoadingVerses, 
-    fetchVersesByChapter 
+    fetchVersesByChapter,
+    hasMoreVerses,
+    nextVersePage
   } = useVerseStore()
 
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null)
@@ -95,6 +97,7 @@ export default function Explore() {
   const [isLoadingTafsir, setIsLoadingTafsir] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   // Audio player state
   const [playingVerseKey, setPlayingVerseKey] = useState<string | null>(null)
@@ -168,6 +171,32 @@ export default function Explore() {
     }
   }, [targetVerse, versesList, isLoadingVerses, tafsirVerseKey])
 
+  // Native IntersectionObserver for infinite scroll
+  useEffect(() => {
+    if (!selectedChapter) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0]
+        if (first.isIntersecting && !isLoadingVerses && hasMoreVerses) {
+          fetchVersesByChapter(selectedChapter, nextVersePage)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentSentinel = sentinelRef.current
+    if (currentSentinel) {
+      observer.observe(currentSentinel)
+    }
+
+    return () => {
+      if (currentSentinel) {
+        observer.unobserve(currentSentinel)
+      }
+    }
+  }, [selectedChapter, isLoadingVerses, hasMoreVerses, nextVersePage, fetchVersesByChapter])
+
   const filteredChapters = chapters.filter(c => 
     c.name_simple.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.id.toString() === searchQuery
@@ -175,6 +204,8 @@ export default function Explore() {
 
   const handleChapterClick = (chapterId: number) => {
     setSelectedChapter(chapterId)
+    // Clear list instantly to prevent flash of old verses
+    useVerseStore.setState({ versesList: [], hasMoreVerses: false, nextVersePage: 1, totalVerses: 0 })
     fetchVersesByChapter(chapterId)
   }
 
@@ -461,7 +492,7 @@ export default function Explore() {
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-gold/10 rounded-full -ml-12 -mb-12 blur-xl" />
                   </div>
 
-                  {isLoadingVerses ? (
+                  {isLoadingVerses && versesList.length === 0 ? (
                     <div className="p-16 flex flex-col items-center justify-center gap-5">
                       <Loader2 className="animate-spin text-gold" size={32} />
                       <p className="text-[0.75rem] font-cinzel tracking-[0.16em] text-muted uppercase animate-pulse">Fetching ayahs...</p>
@@ -539,6 +570,21 @@ export default function Explore() {
                           </div>
                         </div>
                       ))}
+
+                      {/* Sentinel for infinite scroll */}
+                      <div ref={sentinelRef} className="h-14 w-full flex items-center justify-center pt-2">
+                        {isLoadingVerses && versesList.length > 0 && (
+                          <div className="flex items-center gap-2 text-gold py-4 animate-pulse font-cinzel text-[0.75rem] tracking-[0.12em] uppercase">
+                            <Loader2 size={16} className="animate-spin text-gold" />
+                            <span>Loading more Ayahs...</span>
+                          </div>
+                        )}
+                        {!isLoadingVerses && !hasMoreVerses && versesList.length > 0 && (
+                          <p className="text-[0.7rem] text-center text-muted uppercase tracking-[0.2em] font-medium opacity-60 py-6">
+                            End of Surah
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </motion.div>

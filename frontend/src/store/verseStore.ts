@@ -14,10 +14,13 @@ interface VerseStore {
   isLoadingChapters: boolean
   versesList: VerseListItem[]
   isLoadingVerses: boolean
+  hasMoreVerses: boolean
+  nextVersePage: number
+  totalVerses: number
   
   fetchTodayVerse: (force?: boolean) => Promise<void>
   fetchChapters: () => Promise<void>
-  fetchVersesByChapter: (chapterNumber: number) => Promise<void>
+  fetchVersesByChapter: (chapterNumber: number, page?: number) => Promise<void>
 }
 
 const VERSE_STALE_MS = 5 * 60 * 1000 // 5 minutes — today's verse is the same all day
@@ -32,6 +35,9 @@ export const useVerseStore = create<VerseStore>((set, get) => ({
   isLoadingChapters: false,
   versesList: [],
   isLoadingVerses: false,
+  hasMoreVerses: false,
+  nextVersePage: 1,
+  totalVerses: 0,
 
   fetchTodayVerse: async (force = false) => {
     const state = get()
@@ -65,11 +71,32 @@ export const useVerseStore = create<VerseStore>((set, get) => ({
     }
   },
 
-  fetchVersesByChapter: async (chapterNumber: number) => {
+  fetchVersesByChapter: async (chapterNumber: number, page = 1) => {
     try {
-      set({ isLoadingVerses: true, versesList: [] })
-      const response = await api.get<{ data: VerseListItem[] }>(`/api/verse/chapters/${chapterNumber}/verses`)
-      set({ versesList: response.data.data, isLoadingVerses: false })
+      set({ isLoadingVerses: true })
+      
+      const response = await api.get<{
+        data: {
+          verses: VerseListItem[]
+          pagination: {
+            per_page: number
+            current_page: number
+            next_page: number | null
+            total_pages: number
+            total_records: number
+          }
+        }
+      }>(`/api/verse/chapters/${chapterNumber}/verses?page=${page}&per_page=20`)
+      
+      const { verses, pagination } = response.data.data
+      
+      set((state) => ({
+        versesList: page === 1 ? verses : [...state.versesList, ...verses],
+        hasMoreVerses: pagination.next_page !== null,
+        nextVersePage: pagination.next_page || 1,
+        totalVerses: pagination.total_records,
+        isLoadingVerses: false,
+      }))
     } catch (error: any) {
       set({ error: getErrorMessage(error, 'Failed to fetch verses'), isLoadingVerses: false })
     }

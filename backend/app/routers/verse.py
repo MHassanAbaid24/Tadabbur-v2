@@ -158,14 +158,16 @@ async def list_chapters(
 @router.get("/chapters/{chapter_number}/verses", response_model=APIResponse)
 async def list_verses(
     chapter_number: int,
+    page: int = 1,
+    per_page: int = 10,
     current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> APIResponse:
     """
-    List all verses for a specific chapter.
+    List all verses for a specific chapter with pagination parameters.
     """
     if not (1 <= chapter_number <= 114):
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Invalid chapter number")
         
-    verses = await get_verses_by_chapter(chapter_number)
-    return APIResponse(success=True, data=verses)
+    verses_data = await get_verses_by_chapter(chapter_number, page=page, per_page=per_page)
+    return APIResponse(success=True, data=verses_data)

@@ -16,11 +16,11 @@ export default function Landing() {
   const [showXPPopup, setShowXPPopup] = useState(false)
 
   const moods = [
-    { title: 'Peace', emoji: '☮️' },
-    { title: 'Gratitude', emoji: '🙏' },
-    { title: 'Hope', emoji: '🌅' },
-    { title: 'Strength', emoji: '💪' },
-    { title: 'Moved', emoji: '🥹' },
+    { title: 'In supplication', emoji: '🤲' },
+    { title: 'Moved to tears', emoji: '😢' },
+    { title: 'At peace', emoji: '😌' },
+    { title: 'Grateful & growing', emoji: '🌿' },
+    { title: 'Deep in thought', emoji: '💭' },
   ]
 
   const handleMockReflect = (e: React.FormEvent) => {
@@ -169,13 +169,18 @@ export default function Landing() {
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-green" />
 
                 {/* Card Title */}
-                <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-                  <div className="flex items-center gap-1.5 text-gold text-xs font-semibold font-cinzel tracking-wider uppercase">
-                    <span>❧ ✦ ❧</span>
-                    <span>Daily Ayah Preview</span>
-                    <span>❧ ✦ ❧</span>
+                <div className="border-b border-border pb-4 mb-6">
+                  <div className="flex items-center justify-between gap-4 mb-1.5">
+                    <span className="text-gold text-xs font-semibold font-cinzel tracking-wider uppercase">
+                      Daily Reflection
+                    </span>
+                    <span className="bg-gold/10 text-gold text-[9px] sm:text-[10px] font-semibold font-cinzel tracking-wider uppercase px-2 py-0.5 rounded-sm border border-gold/20 shrink-0">
+                      Interactive Demo
+                    </span>
                   </div>
-                  <span className="font-cinzel text-xs text-muted">Al-Baqarah · 2:152</span>
+                  <p className="font-cormorant text-[11px] sm:text-xs text-muted italic leading-normal">
+                    This is a demo interaction to showcase the reflection functionality of the website.
+                  </p>
                 </div>
 
                 <AnimatePresence mode="wait">
@@ -199,6 +204,9 @@ export default function Landing() {
                         </p>
                         <p className="font-cormorant text-base sm:text-lg text-ink-soft text-left italic font-light mt-3 leading-relaxed">
                           "So remember Me; I will remember you. And be grateful to Me and do not deny Me."
+                        </p>
+                        <p className="font-cinzel text-[10px] text-muted tracking-wider text-left mt-2 uppercase">
+                          — Al-Baqarah 2:152
                         </p>
                       </div>
 

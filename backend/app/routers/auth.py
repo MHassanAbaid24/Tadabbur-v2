@@ -196,9 +196,9 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
         email = verification_record.get("email")
 
         # Get username from the profile record (already created during registration)
-        profile_response = await asyncio.to_thread(supabase_client.table("profiles").select("username,display_name").eq(
-            "id", req.user_id
-        ).execute)
+        profile_response = await asyncio.to_thread(supabase_client.table("profiles").select(
+            "username,display_name,onboarded"
+        ).eq("id", req.user_id).execute)
         
         if not profile_response.data:
             logger.error("Profile not found for user: %s", req.user_id)
@@ -206,6 +206,7 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
         
         username = profile_response.data[0]["username"]
         display_name = profile_response.data[0].get("display_name") or ""
+        onboarded = profile_response.data[0].get("onboarded", False)
         
         # Update profile to mark as verified
         await asyncio.to_thread(supabase_client.table("profiles").update(
@@ -229,6 +230,7 @@ async def verify_otp(req: VerifyOTPRequest) -> APIResponse:
                 display_name=display_name,
                 avatar_url=None,  # New user has no avatar
                 qf_connected=False,
+                onboarded=onboarded,
             ).model_dump(),
         )
 
@@ -338,7 +340,7 @@ async def login(req: LoginRequest) -> APIResponse:
 
         # Fetch user profile
         profile_response = await asyncio.to_thread(supabase_client.table("profiles").select(
-            "username,display_name,email_verified,avatar_url,qf_access_token"
+            "username,display_name,email_verified,avatar_url,qf_access_token,onboarded"
         ).eq("id", user_id).execute)
 
         if not profile_response.data:
@@ -364,6 +366,7 @@ async def login(req: LoginRequest) -> APIResponse:
                 display_name=profile["display_name"] or "",
                 avatar_url=profile.get("avatar_url"),
                 qf_connected=bool(profile.get("qf_access_token")),
+                onboarded=profile.get("onboarded", False),
             ).model_dump(),
         )
 
@@ -417,7 +420,10 @@ async def get_profile(current_user: Dict[str, Any] = Depends(get_current_user)) 
                 "xp": profile.get("xp", 0),
                 "level": profile.get("level", 1),
                 "daily_reminder_time": profile.get("daily_reminder_time"),
+                "timezone": profile.get("timezone"),
+                "reminders_enabled": profile.get("reminders_enabled", False),
                 "qf_connected": bool(profile.get("qf_access_token")),
+                "onboarded": profile.get("onboarded", False),
                 "created_at": profile.get("created_at"),
             },
         )
@@ -470,6 +476,46 @@ async def update_profile(
     except Exception as e:
         logger.error("Error updating profile for user %s: %s", user_id, str(e))
         raise HTTPException(status_code=500, detail="Failed to update profile") from e
+
+
+@router.put("/onboarding")
+async def complete_onboarding(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> APIResponse:
+    """
+    Mark the current authenticated user as onboarded.
+
+    Args:
+        current_user: Current user from JWT
+
+    Returns:
+        APIResponse indicating successful onboarding status update
+    """
+    user_id = current_user["sub"]
+
+    try:
+        response = await asyncio.to_thread(supabase_client.table("profiles").update(
+            {"onboarded": True}
+        ).eq("id", user_id).execute)
+
+        if not response.data:
+            logger.warning("Profile not found for onboarding: %s", user_id)
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+        updated_profile = response.data[0]
+        logger.info("Successfully completed onboarding for user: %s", user_id)
+
+        return APIResponse(
+            success=True,
+            data={
+                "onboarded": updated_profile.get("onboarded", True),
+                "message": "Onboarding completed successfully"
+            },
+        )
+
+    except Exception as e:
+        logger.error("Error completing onboarding for user %s: %s", user_id, str(e))
+        raise HTTPException(status_code=500, detail="Failed to complete onboarding") from e
 
 
 @router.get("/qf/connect")

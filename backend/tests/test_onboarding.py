@@ -125,3 +125,42 @@ def test_profile_update_rejects_invalid_reminder_time_format() -> None:
         client.close()
 
     app.dependency_overrides.clear()
+
+
+def test_complete_onboarding_updates_onboarded_flag() -> None:
+    profile_row = {
+        "id": "user_uuid_123",
+        "username": "tester",
+        "display_name": "Tester",
+        "avatar_url": None,
+        "xp": 0,
+        "level": 1,
+        "daily_reminder_time": None,
+        "timezone": "UTC",
+        "reminders_enabled": False,
+        "qf_access_token": None,
+        "onboarded": False,
+        "created_at": "2026-05-17T00:00:00Z",
+    }
+    fake_supabase = _FakeSupabaseClient(profile_row)
+
+    client = _test_client_with_auth()
+    with patch("app.routers.auth.supabase_client", fake_supabase):
+        # 1. Verify initially not onboarded in /me profile fetch
+        me_response = client.get("/api/auth/me")
+        assert me_response.status_code == 200
+        assert me_response.json()["data"]["onboarded"] is False
+
+        # 2. Complete onboarding
+        onboarding_response = client.put("/api/auth/onboarding")
+        assert onboarding_response.status_code == 200
+        assert onboarding_response.json()["data"]["onboarded"] is True
+
+        # 3. Verify onboarded is now True in /me profile fetch
+        me_response_after = client.get("/api/auth/me")
+        assert me_response_after.status_code == 200
+        assert me_response_after.json()["data"]["onboarded"] is True
+
+    client.close()
+    app.dependency_overrides.clear()
+
